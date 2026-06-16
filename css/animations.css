@@ -1,0 +1,68 @@
+/* ============================================================
+   EX-CAP Sports — animations.css
+   Purposeful, performant motion. Respects reduced-motion.
+   ============================================================ */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes ring{0%{box-shadow:0 0 0 0 rgba(22,192,98,.6)}70%{box-shadow:0 0 0 9px rgba(22,192,98,0)}100%{box-shadow:0 0 0 0 rgba(22,192,98,0)}}
+@keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes floatUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+/* hero entrance — staggered */
+.hero-in > div > *{animation:heroIn .7s both cubic-bezier(.2,.8,.2,1)}
+.hero-in > div > *:nth-child(1){animation-delay:.05s}
+.hero-in > div > *:nth-child(2){animation-delay:.13s}
+.hero-in > div > *:nth-child(3){animation-delay:.21s}
+.hero-in > div > *:nth-child(4){animation-delay:.29s}
+.hero-in > div > *:nth-child(5){animation-delay:.37s}
+.hero-card{animation:heroCard .8s .2s both cubic-bezier(.2,.8,.2,1)}
+@keyframes heroIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@keyframes heroCard{from{opacity:0;transform:translateY(28px) scale(.97)}to{opacity:1;transform:none}}
+
+/* drifting pitch lights in hero */
+.pitch-bg::after{content:"";position:absolute;inset:0;background:
+  radial-gradient(280px 280px at 30% 40%,rgba(124,58,237,.16),transparent 70%),
+  radial-gradient(240px 240px at 70% 60%,rgba(219,39,119,.14),transparent 70%);
+  animation:lights 14s ease-in-out infinite alternate}
+@keyframes lights{0%{transform:translate(0,0)}100%{transform:translate(40px,-26px)}}
+
+/* animated pitch centre circle stroke */
+.pitch-lines .spin-c{transform-origin:600px 300px;animation:slowspin 60s linear infinite}
+@keyframes slowspin{to{transform:rotate(360deg)}}
+
+/* scroll reveal */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal.d1{transition-delay:.06s}.reveal.d2{transition-delay:.12s}.reveal.d3{transition-delay:.18s}.reveal.d4{transition-delay:.24s}
+
+/* count digit flip feel */
+.cd-cell .v{transition:transform .25s}
+.cd-cell.tick .v{animation:tick .3s ease}
+@keyframes tick{0%{transform:translateY(-4px);opacity:.4}100%{transform:none;opacity:1}}
+
+/* button shine on primary */
+.btn-primary{position:relative;overflow:hidden}
+.btn-primary::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-20deg);transition:left .6s}
+.btn-primary:hover::after{left:120%}
+
+/* reduced motion */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
+  .reveal{opacity:1;transform:none}
+}
+
+/* scoreboard + football vibe */
+@keyframes scorePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12);color:var(--pitch)}}
+@keyframes trophyBob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-7px) rotate(4deg)}}
+
+/* rolling football accent */
+.foot-ball{position:absolute;width:36px;height:36px;border-radius:50%;background:
+  radial-gradient(circle at 35% 30%,#fff 0 38%,#e5e7eb 39% 100%);
+  box-shadow:inset -4px -4px 10px rgba(0,0,0,.25);opacity:.9}
+.foot-ball::before{content:"⚽";position:absolute;inset:0;display:grid;place-items:center;font-size:34px;line-height:1}
+.ball-roll{animation:ballRoll 9s linear infinite}
+@keyframes ballRoll{0%{left:-50px;transform:rotate(0)}100%{left:100%;transform:rotate(1080deg)}}
+
+/* confetti for champions */
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(120px) rotate(360deg);opacity:0}}

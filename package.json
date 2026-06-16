@@ -1,0 +1,11 @@
+{
+  "name": "excap-sports",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EX-CAP Football Tournament platform (SCPSC alumni).",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": { "node": ">=18" }
+}

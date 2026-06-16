@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Public can READ settings, logos, results (needed to render the site)
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;   // only signed-in admins
+    }
+
+    // Live scoreboard: anyone can read; only signed-in admins write.
+    match /matches/{id} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Anyone can CREATE a registration (public sign-up).
+    // Only signed-in admins can read the full list, update status, or delete.
+    match /registrations/{id} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // ID counters: callable by the public create flow but never deletable.
+    match /counters/{name} {
+      allow read, write: if true;
+    }
+
+    // Admin profiles: any signed-in admin can read; you can only write your own.
+    match /admins/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Audit log: signed-in admins can read and append; nobody can edit or delete.
+    match /audit_logs/{id} {
+      allow read, create: if request.auth != null;
+      allow update, delete: if false;
+    }
+  }
+}

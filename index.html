@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0d1c">
+  <title>EX-CAP Football Tournament · SCPSC Alumni</title>
+  <meta name="description" content="Register for the EX-CAP Football Tournament — the SCPSC alumni reunion on home ground. Teams, guests, visitors and current students welcome.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="EX-CAP Football Tournament">
+  <meta property="og:description" content="The SCPSC field is calling again. Build your team and claim a slot.">
+  <meta property="og:type" content="website">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/animations.css">
+
+  <!-- EmailJS SDK (client-side email) -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <!-- Real scannable QR codes (passes) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@2.0.4/qrcode.js"></script>
+  <!-- QR camera scanner (admin check-in) -->
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <div id="app"><!-- app renders here --></div>
+
+  <!-- toast -->
+  <div id="toast" class="toast"><span class="d"></span><span id="toast-msg"></span></div>
+
+  <!-- App modules (order matters) -->
+  <script src="js/config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/notify.js"></script>
+  <script src="js/bkash.js"></script>
+  <script src="js/qr.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/public.js"></script>
+  <script src="js/scoreboard.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

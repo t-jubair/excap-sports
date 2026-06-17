@@ -128,7 +128,7 @@ function renderHome(){
     <div class="section-head" style="justify-content:center;text-align:center"><div>
       <div class="kicker">Organized &amp; supported by</div>
       <h2 class="sec">The people behind it</h2>
-      <p class="sec-sub" style="margin:10px auto 0">EX-CAP — the alumni association of SCPSC — brings everyone back to the school's own ground. SCPSC is the institution it all started in, and its clubs power the execution on the day.</p>
+      <p class="sec-sub" style="margin:10px auto 0">EX-CAP, the alumni association of SCPSC, organizes the tournament — powered on match day by the SCPSC clubs. Played at the SCPSC field.</p>
     </div></div>
 
     <div class="ecosystem">
@@ -139,25 +139,15 @@ function renderHome(){
           <div class="eco-info"><b>EX-CAP</b><span>Alumni Association of SCPSC</span></div>
           <div class="eco-badge">Hosts &amp; runs the tournament</div>
         </div>
+        <div class="eco-venue">📍 Played at the <b>${esc(s.venue||"SCPSC field")}</b></div>
       </div>
 
-      <div class="eco-connector"><span class="dotline"></span><em>is the alumni association of</em><span class="dotline"></span></div>
+      <div class="eco-connector"><span class="dotline"></span><em>powered on match day by</em><span class="dotline"></span></div>
 
       <div class="eco-row">
-        <span class="eco-tag institution">Institution</span>
-        <div class="eco-node node-inst reveal">
-          <div class="eco-logo">${logoImg("scpsc","SC")}</div>
-          <div class="eco-info"><b>SCPSC</b><span>The school &amp; home ground where it all began</span></div>
-          <div class="eco-badge">Venue &amp; host institution</div>
-        </div>
-      </div>
-
-      <div class="eco-connector"><span class="dotline"></span><em>powered on the day by its clubs</em><span class="dotline"></span></div>
-
-      <div class="eco-row">
-        <span class="eco-tag clubs">Supporting clubs of SCPSC</span>
+        <span class="eco-tag clubs">Supporting clubs</span>
         <div class="eco-clubs">
-          ${[["business","Business &amp; Career Club","Sponsorship & operations"],["it","IT Club","Platform & tech"],["cyber","Cyber Hub","Security & media"],["sports","Sports Club","On-field management"]].map(([k,n,role])=>`
+          ${[["business","Business &amp; Career Club","Sponsorship &amp; operations"],["it","IT Club","Platform &amp; technology"],["cyber","Cyber Hub","Security &amp; media"],["sports","Sports Club","On-field management"]].map(([k,n,role])=>`
             <div class="eco-club reveal"><div class="eco-logo sm">${logoImg(k,initials(n.replace(/&amp;/g,'&')))}</div>
               <div class="eco-info"><b>${n}</b><span>${role}</span></div></div>`).join("")}
         </div>
@@ -203,7 +193,7 @@ function teamCard(r){
     <div class="tc-top"><div class="tc-logo" style="background:${d.logo?'transparent':`hsl(${hue} 70% 45%)`}">${d.logo?`<img src="${d.logo}">`:esc(d.shortName||initials(d.teamName))}</div>
     <div><div class="tc-name">${esc(d.teamName||"Team")}</div><div class="tc-cat">${esc(d.category||"")} ${d.batch?"· "+esc(d.batch):""}</div></div></div>
     <div class="tc-row"><span>Captain</span><b>${esc(d.captainName||"—")}</b></div>
-    <div class="tc-row"><span>Players</span><b>${(r.players||[]).length}/${App.settings.playersPerTeam}</b></div>
+    <div class="tc-row"><span>Players</span><b>${(r.playerCount!=null?r.playerCount:(r.players||[]).length)}/${App.settings.playersPerTeam}</b></div>
     <div class="tc-row" style="border-bottom:0;padding-bottom:0"><span>Status</span><span class="pill ${st[0]}">${st[1]}</span></div></div>`;
 }
 
@@ -383,7 +373,9 @@ async function teamSubmit(){
       location.href=bkashURL; return;
     }catch(e){ toast("bKash unavailable — saved as pending","warn"); }
   }
-  await Store.saveReg(rec); App.regs.unshift(rec); draft=null; renderConfirm("team",rec);
+  await Store.saveReg(rec); App.regs.unshift(rec);
+  try{ App.publicTeams = await Store.listPublicTeams(); }catch(e){}
+  draft=null; renderConfirm("team",rec);
 }
 
 /* ============================================================

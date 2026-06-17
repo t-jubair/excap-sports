@@ -1,0 +1,132 @@
+/* ============================================================
+   EX-CAP Sports — footer.css  (standalone, manage on its own)
+   ============================================================ */
+   footer.site-foot{position:relative;overflow:hidden;background:linear-gradient(180deg,#0b0e20,#070a16);border-top:1px solid var(--line-soft);margin-top:72px}
+   .site-foot .foot-aurora{position:absolute;inset:0;z-index:0;pointer-events:none;background:
+     radial-gradient(620px 300px at 10% -5%,rgba(124,58,237,.30),transparent 60%),
+     radial-gradient(560px 280px at 90% 8%,rgba(219,39,119,.22),transparent 60%),
+     radial-gradient(520px 320px at 60% 110%,rgba(22,192,98,.13),transparent 60%);
+     animation:footAurora 16s ease-in-out infinite alternate}
+   @keyframes footAurora{0%{transform:translateY(0) scale(1);opacity:.9}100%{transform:translateY(-20px) scale(1.07);opacity:1}}
+   .site-foot .foot-pitch{position:absolute;inset:0;z-index:0;opacity:.07;pointer-events:none}
+   .site-foot .foot-pitch .pitch-lines{opacity:1}
+   .site-foot .wrap{position:relative;z-index:2}
+   
+   /* CTA band */
+   .foot-cta{padding:54px 22px 6px}
+   .foot-cta-inner{background:linear-gradient(120deg,rgba(124,58,237,.16),rgba(219,39,119,.12));border:1px solid var(--line);border-radius:24px;padding:30px 34px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;box-shadow:0 34px 70px -38px rgba(124,58,237,.6)}
+   .foot-cta-inner .fc-copy{min-width:240px;flex:1}
+   .foot-kick{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#e9d5ff;background:rgba(124,58,237,.2);border:1px solid var(--line);padding:6px 13px;border-radius:999px;margin-bottom:13px}
+   .foot-cta-inner h2{font-size:clamp(22px,3vw,32px);font-weight:900;text-transform:uppercase;line-height:1.07}
+   .foot-cta-inner h2 .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+   .foot-cta-inner p{color:var(--muted);margin-top:10px;max-width:430px;font-size:14px}
+   .foot-cta-inner .fc-actions{display:flex;gap:11px;flex-wrap:wrap}
+   .foot-ghost{background:rgba(255,255,255,.07);border:1px solid var(--line);color:var(--ink)}
+   .foot-ghost:hover{background:rgba(255,255,255,.14)}
+   
+   /* columns */
+   .foot-cols{display:grid;grid-template-columns:1.4fr 1.85fr 1.2fr;gap:44px;padding:48px 0 30px;align-items:start}
+   .foot-cols h5{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted-2);font-weight:800;margin:0 0 15px}
+   
+   .foot-brand .brand{margin-bottom:13px}
+   .foot-brand .brand b{color:var(--ink)}
+   .foot-brand .desc{color:var(--muted);font-size:13.5px;line-height:1.6;max-width:300px}
+   .foot-info{margin:16px 0;background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:13px 15px;display:flex;flex-direction:column;gap:9px}
+   .fi-row{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted)}
+   .fi-row b{color:var(--ink)}
+   .fi-ic{width:16px;text-align:center;flex:none}
+   .fi-stat{width:9px;height:9px;border-radius:50%;background:var(--muted-2);flex:none;margin-left:3px}
+   .fi-stat.open{background:var(--pitch);box-shadow:0 0 0 3px rgba(22,192,98,.2);animation:pulse 2s infinite}
+   .fi-stat.before{background:var(--amber)} .fi-stat.closed{background:var(--red)}
+   .socials{display:flex;gap:10px;margin-top:4px;flex-wrap:wrap}
+   .soc{width:40px;height:40px;border-radius:12px;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center;color:var(--muted);transition:.18s}
+   .soc:hover{color:#fff;transform:translateY(-3px);background:var(--grad);border-color:transparent;box-shadow:0 12px 24px -10px rgba(219,39,119,.6)}
+   .soc svg{width:18px;height:18px;fill:currentColor}
+   
+   .foot-links{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+   .fl-col a{display:block;color:var(--muted);font-size:13.5px;margin-bottom:11px;cursor:pointer;transition:.15s;width:fit-content;text-decoration:none}
+   .fl-col a:hover{color:var(--ink);transform:translateX(4px)}
+   .fl-col a.lock{color:#b794f6}
+   
+   .foot-contact .fc-field{margin-bottom:10px}
+   .foot-contact input,.foot-contact textarea{width:100%;background:#0c1024;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:12px 14px;font-size:15px;transition:.15s;-webkit-appearance:none;appearance:none}
+   .foot-contact input::placeholder,.foot-contact textarea::placeholder{color:var(--muted-2)}
+   .foot-contact input:focus,.foot-contact textarea:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 4px rgba(124,58,237,.2)}
+   .foot-contact textarea{resize:vertical;min-height:76px}
+   .fc-btns{display:flex;gap:10px}
+   .fc-btns .btn{flex:1}
+   .fc-direct{display:flex;flex-direction:column;gap:8px;margin-top:13px}
+   .fc-direct a{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;text-decoration:none;width:fit-content;transition:.15s;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+   .fc-direct a svg{width:15px;height:15px;fill:currentColor;flex:none}
+   .fc-direct a:hover{color:var(--ink)}
+   .emergency{margin-top:12px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22);border-radius:12px;padding:10px 13px;font-size:12.5px;color:#fca5a5}
+   .emergency .ed{color:#ef4444;margin-right:4px;animation:pulse 1.8s infinite}
+   .emergency b{color:#fff}
+   
+   /* club credits */
+   .foot-clubs{padding:8px 0 6px}
+   .fclubs-head{margin-bottom:18px}
+   .fclubs-head .kicker{display:block;margin-bottom:6px}
+   .fclubs-head h4{font-size:clamp(17px,2.4vw,22px);font-weight:800;text-transform:uppercase;letter-spacing:-.01em}
+   .fclubs-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+   .fclub{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:13px 15px;transition:.18s}
+   .fclub:hover{transform:translateY(-3px);border-color:var(--line);box-shadow:var(--shadow)}
+   .fclub-logo{width:42px;height:42px;border-radius:11px;background:var(--panel-2);display:grid;place-items:center;font-family:var(--font-display);font-weight:900;font-size:13px;color:#fff;flex:none;overflow:hidden}
+   .fclub-logo img{width:100%;height:100%;object-fit:cover}
+   .fclub-info{min-width:0}
+   .fclub-info b{display:block;font-size:13.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+   .fclub-info span{font-size:11px;color:var(--muted-2);display:block;margin-top:2px}
+   
+   /* developer credit */
+   .dev-card{margin-top:24px;border-radius:20px;background:linear-gradient(120deg,var(--purple),var(--magenta) 55%,var(--pitch));padding:1.5px;box-shadow:0 28px 64px -32px rgba(124,58,237,.6)}
+   .dev-inner{position:relative;overflow:hidden;background:#0a0d1c;border-radius:19px;padding:22px 26px;display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap}
+   .dev-glow{position:absolute;top:-60%;right:-8%;width:300px;height:300px;background:radial-gradient(circle,rgba(124,58,237,.42),transparent 62%);animation:footAurora 9s ease-in-out infinite alternate;pointer-events:none}
+   .dev-left{display:flex;align-items:center;gap:16px;position:relative;z-index:1;min-width:0}
+   .dev-ava{width:54px;height:54px;border-radius:15px;background:var(--grad);display:grid;place-items:center;font-family:var(--font-display);font-weight:900;color:#fff;font-size:20px;flex:none;box-shadow:0 12px 26px -8px rgba(219,39,119,.7)}
+   .dev-meta{min-width:0}
+   .dev-meta .l{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted-2)}
+   .dev-meta b{font-family:var(--font-display);font-size:21px;font-weight:900;display:block;line-height:1.15;background:linear-gradient(120deg,#fff,#e9d5ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+   .dev-meta .role{font-size:12.5px;color:var(--muted)}
+   .dev-right{display:flex;flex-direction:column;align-items:flex-end;gap:11px;position:relative;z-index:1}
+   .dev-tag{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:#7ee6a6;background:rgba(22,192,98,.12);border:1px solid rgba(22,192,98,.3);padding:5px 11px;border-radius:999px;white-space:nowrap}
+   .dev-tag .dot{width:7px;height:7px;border-radius:50%;background:var(--pitch);animation:ring 1.8s infinite}
+   .dev-socials{display:flex;gap:9px}
+   
+   /* bottom */
+   .foot-bottom{position:relative;z-index:2;border-top:1px solid var(--line-soft);margin-top:26px;padding:22px 0 34px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;color:var(--muted-2);font-size:12.5px}
+   .foot-bottom .links{display:flex;gap:18px;flex-wrap:wrap}
+   .foot-bottom .links a{color:var(--muted-2);cursor:pointer;text-decoration:none;transition:.15s}
+   .foot-bottom .links a:hover{color:var(--ink)}
+   
+   /* ============================================================
+      FOOTER RESPONSIVE  (carefully staged so nothing collapses)
+      ============================================================ */
+   @media(max-width:1040px){
+     .foot-cols{grid-template-columns:1fr 1fr;gap:36px 40px}
+     .foot-brand{grid-column:1/-1}
+     .foot-links{grid-column:1 / 2}
+     .foot-contact{grid-column:2 / 3}
+     .fclubs-grid{grid-template-columns:repeat(2,1fr)}
+   }
+   @media(max-width:760px){
+     .foot-cta-inner{flex-direction:column;align-items:flex-start}
+     .foot-cta-inner .fc-actions{width:100%}
+     .foot-cta-inner .fc-actions .btn{flex:1}
+     .foot-cols{grid-template-columns:1fr;gap:32px}
+     .foot-links{grid-column:1/-1;grid-template-columns:repeat(3,1fr)}
+     .foot-contact{grid-column:1/-1}
+     .foot-brand .desc,.foot-info{max-width:none}
+   }
+   @media(max-width:560px){
+     .foot-cta{padding-top:40px}
+     .foot-links{grid-template-columns:1fr 1fr;gap:22px}
+     .fclubs-grid{grid-template-columns:1fr}
+     .dev-inner{flex-direction:column;align-items:flex-start;text-align:left;padding:20px}
+     .dev-right{align-items:flex-start;width:100%}
+     .foot-bottom{flex-direction:column;align-items:flex-start}
+     .fc-btns{flex-direction:column}
+   }
+   @media(max-width:380px){
+     .foot-links{grid-template-columns:1fr}
+     .foot-cta-inner{padding:24px 20px}
+   }

@@ -139,80 +139,6 @@ h1.title .g{background:var(--grad);-webkit-background-clip:text;background-clip:
 .club span{font-size:11px;color:var(--muted-2)}
 
 /* ============================================================
-   FOOTER (white, modern, animated)
-   ============================================================ */
-footer.site-foot{position:relative;background:#ffffff;color:#1f2430;margin-top:60px;overflow:hidden}
-/* animated wave illustration at the top edge */
-.foot-wave{position:relative;height:120px;margin-bottom:-1px;overflow:hidden;line-height:0}
-.foot-wave svg{position:absolute;bottom:0;left:0;width:100%;height:120px}
-.foot-wave .w1{fill:rgba(124,58,237,.10)}
-.foot-wave .w2{fill:#ffffff}
-.foot-wave .fw-ball{position:absolute;top:26px;font-size:22px;opacity:.85;filter:drop-shadow(0 6px 8px rgba(0,0,0,.15))}
-.foot-wave .f1{animation:footBall1 14s linear infinite}
-.foot-wave .f2{animation:footBall2 18s linear infinite;top:46px}
-@keyframes footBall1{0%{left:-4%;transform:rotate(0)}100%{left:104%;transform:rotate(900deg)}}
-@keyframes footBall2{0%{left:104%;transform:rotate(0)}100%{left:-4%;transform:rotate(-720deg)}}
-
-/* CTA card */
-.foot-cta-wrap{position:relative;z-index:2;margin-top:-10px}
-.foot-cta-card{position:relative;overflow:hidden;background:linear-gradient(120deg,var(--purple),var(--magenta));border-radius:22px;padding:30px 34px;display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap;box-shadow:0 24px 50px -24px rgba(124,58,237,.6)}
-.fcc-glow{position:absolute;inset:0;background:radial-gradient(380px 180px at 85% -10%,rgba(255,255,255,.35),transparent 60%);pointer-events:none}
-.foot-cta-card .fcc-text{position:relative;z-index:1}
-.foot-cta-card h2{font-size:clamp(22px,3vw,32px);font-weight:900;text-transform:uppercase;color:#fff;line-height:1.05}
-.foot-cta-card h2 .g{color:#ffe6f5}
-.foot-cta-card p{color:rgba(255,255,255,.92);margin:8px 0 0;font-size:14.5px;max-width:460px}
-.foot-cta-card .btn-primary{position:relative;z-index:1;background:#fff;color:var(--purple);box-shadow:0 10px 24px -10px rgba(0,0,0,.4)}
-.foot-cta-card .btn-primary::after{display:none}
-
-/* columns */
-.foot-main{position:relative;z-index:2;padding:48px 0 26px}
-.foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1.5fr;gap:36px}
-.foot-grid h5{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#9aa1b4;margin:0 0 16px;font-weight:800}
-.foot-col a{display:block;color:#5b6172;font-size:14px;margin-bottom:11px;cursor:pointer;transition:.15s;width:fit-content;text-decoration:none}
-.foot-col a:hover{color:var(--purple);transform:translateX(4px)}
-.foot-col a.muted{color:#aeb4c2}
-.foot-brand .brand{margin-bottom:14px}
-.foot-brand .brand b{color:#10142b}
-.foot-brand .brand span{color:#8b91a3}
-.foot-brand .mark{background:linear-gradient(120deg,var(--purple),var(--magenta));color:#fff}
-.foot-brand .desc{color:#5b6172;font-size:14px;line-height:1.7;max-width:320px}
-.socials{display:flex;gap:10px;margin-top:18px}
-.soc{width:40px;height:40px;border-radius:12px;background:#f4f5fb;border:1px solid #e7e9f2;display:grid;place-items:center;color:#6b7280;transition:.18s}
-.soc:hover{color:#fff;transform:translateY(-3px);border-color:transparent;background:linear-gradient(120deg,var(--purple),var(--magenta));box-shadow:0 10px 20px -8px rgba(124,58,237,.6)}
-.soc svg{width:18px;height:18px;fill:currentColor}
-.soc.dark{background:#0c1024;border-color:#0c1024;color:#fff}
-.soc.dark:hover{background:linear-gradient(120deg,var(--purple),var(--magenta))}
-.emergency{margin-top:20px;background:#fff5f5;border:1px solid #fad2d2;border-radius:12px;padding:11px 14px;font-size:13px;color:#b4474a}
-.emergency .ed{color:#ef4444;animation:pulse 1.8s infinite;margin-right:4px}
-.emergency b{color:#7a1f22}
-
-/* contact form */
-.foot-contact h5{color:#9aa1b4}
-.foot-contact .fc-field{margin-bottom:11px}
-.foot-contact input,.foot-contact textarea{width:100%;background:#f7f8fc;border:1px solid #e3e6f0;color:#1f2430;border-radius:12px;padding:13px 15px;font-size:15px;transition:.15s}
-.foot-contact input::placeholder,.foot-contact textarea::placeholder{color:#9aa1b4}
-.foot-contact input:focus,.foot-contact textarea:focus{outline:none;background:#fff;border-color:var(--purple);box-shadow:0 0 0 4px rgba(124,58,237,.14)}
-.foot-contact textarea{resize:vertical;min-height:80px}
-.foot-contact .btn-primary{margin-top:2px}
-.fc-direct{margin-top:12px;font-size:13px;color:#6b7280}
-.fc-direct a{color:var(--purple);text-decoration:none}
-
-/* developer credit */
-.dev-card{position:relative;overflow:hidden;margin:14px 0 0;background:#0b0e1d;border-radius:18px;padding:20px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:space-between}
-.dev-card .dev-ring{position:absolute;top:-60px;right:-40px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,.5),transparent 65%);animation:lights 7s ease-in-out infinite alternate;pointer-events:none}
-.dev-left{display:flex;align-items:center;gap:15px;position:relative;z-index:1}
-.dev-ava{width:50px;height:50px;border-radius:14px;background:linear-gradient(120deg,var(--purple),var(--magenta));display:grid;place-items:center;font-family:var(--font-display);font-weight:900;color:#fff;font-size:18px;flex:none;box-shadow:0 8px 20px -6px rgba(219,39,119,.6)}
-.dev-meta .l{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#8b93b5}
-.dev-meta b{font-family:var(--font-display);font-size:19px;font-weight:800;display:block;line-height:1.2;color:#fff;background:linear-gradient(120deg,#fff,#e9d5ff);-webkit-background-clip:text;background-clip:text}
-.dev-meta .role{font-size:12.5px;color:#aab0c8}
-.dev-socials{display:flex;gap:10px;position:relative;z-index:1}
-
-.foot-bottom{position:relative;z-index:2;border-top:1px solid #eef0f6;margin-top:26px;padding:22px 0;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;color:#9aa1b4;font-size:12.5px}
-.foot-bottom .links{display:flex;gap:18px;flex-wrap:wrap}
-.foot-bottom .links span,.foot-bottom .links a{cursor:pointer;color:#9aa1b4;text-decoration:none}
-.foot-bottom .links span:hover,.foot-bottom .links a:hover{color:var(--purple)}
-
-/* ============================================================
    ECOSYSTEM (organizer / institution / clubs hierarchy)
    ============================================================ */
 .eco-block{background:var(--navy-2)}
@@ -379,8 +305,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
 @media(max-width:1000px){
   .hero-in{grid-template-columns:1fr;gap:34px}
   .stats,.reg-grid,.team-grid{grid-template-columns:repeat(2,1fr)}
-  .story,.foot-grid{grid-template-columns:1fr 1fr;gap:30px}
-  .foot-brand,.foot-contact{grid-column:1/-1}
+  .story{grid-template-columns:1fr;gap:30px}
   .cd-strip{grid-template-columns:1fr}
   nav.links,.nav-cta .btn-line{display:none}
   .hamb{display:block}
@@ -388,19 +313,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
   .admin-side{position:fixed;left:0;top:0;width:250px;z-index:130;transform:translateX(-100%);transition:.25s}
   .admin-side.open{transform:none}
   .admin-main{padding:20px 16px}
-  .foot-cta-card{flex-direction:column;text-align:center;align-items:center}
 }
 @media(max-width:560px){
-  .stats,.reg-grid,.team-grid,.clubs,.pay-methods,.eco-clubs,.foot-grid{grid-template-columns:1fr}
+  .stats,.reg-grid,.team-grid,.clubs,.pay-methods,.eco-clubs{grid-template-columns:1fr}
   .player-row{grid-template-columns:26px 1fr;gap:8px}
   .player-row .st{grid-column:1/-1}
   .form-shell,.confirm{padding:20px}
-  .foot-bottom{flex-direction:column}
-  .dev-card{flex-direction:column;align-items:flex-start;text-align:left}
   .eco-node{flex-wrap:wrap;justify-content:center;text-align:center;padding:18px}
   .eco-node .eco-info{flex-basis:100%;order:2}
   .eco-badge{display:none}
-  .foot-wave,.foot-wave svg{height:80px}
   .page{padding-top:30px}
   h1.ph{font-size:clamp(26px,8vw,34px)}
 }
@@ -500,3 +421,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
   repeating-linear-gradient(90deg,rgba(22,192,98,.05) 0 60px,transparent 60px 120px)}
 .ball-band .foot-ball{top:50%;margin-top:-18px}
 .ball-band .line{position:absolute;left:0;right:0;top:50%;height:2px;background:var(--line-soft)}
+
+/* ecosystem venue chip */
+.eco-venue{margin-top:14px;font-size:13px;color:var(--muted);background:var(--panel);border:1px solid var(--line-soft);padding:8px 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px}
+.eco-venue b{color:var(--ink)}
+@media(max-width:560px){
+  .eco-clubs{grid-template-columns:1fr}
+  .eco-node{flex-direction:column;text-align:center;gap:12px}
+  .eco-node .eco-badge{white-space:normal}
+}

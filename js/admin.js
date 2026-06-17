@@ -16,7 +16,7 @@
   registerRoute("admin",renderAdmin);
   function renderAdmin(){
     if(!Store.user) return renderAdminLogin();
-    const tabs=[["dashboard","📊","Dashboard"],["scoreboard","🏟️","Scoreboard"],["results","🏆","Results & awards"],["checkin","📲","Check-in"],["teams","⚽","Teams"],["registrations","📋","Registrations"],["volunteers","🤝","Volunteers"],["payments","💳","Payments"],["manual","🧾","Record payment"],["broadcast","📡","Broadcast center"],["branding","🎨","Branding & logos"],["announcement","📣","Announcement"],["settings","⚙️","Settings"],["profile","👤","My profile"],["log","🗒️","Activity log"]];
+    const tabs=[["dashboard","📊","Dashboard"],["scoreboard","🏟️","Scoreboard"],["results","🏆","Results & awards"],["checkin","📲","Check-in"],["teams","⚽","Teams"],["registrations","📋","Registrations"],["volunteers","🤝","Volunteers"],["messages","💬","Messages"],["payments","💳","Payments"],["manual","🧾","Record payment"],["broadcast","📡","Broadcast center"],["branding","🎨","Branding & logos"],["announcement","📣","Announcement"],["settings","⚙️","Settings"],["profile","👤","My profile"],["log","🗒️","Activity log"]];
     const me=Store.adminInfo();
     $("#app").innerHTML=`<div class="admin-shell">
       <aside class="admin-side" id="aside">
@@ -38,7 +38,7 @@
         </div><div id="admin-body"></div></main></div>`;
     if(window._ciScanner){ _ciScanner.stop&&_ciScanner.stop(); window._ciScanner=null; }
     if(window._admMatchUnsub){ _admMatchUnsub(); window._admMatchUnsub=null; }
-    ({dashboard:adminDashboard,scoreboard:adminScoreboard,results:adminResults,checkin:adminCheckin,teams:adminTeams,registrations:adminRegistrations,volunteers:adminVolunteers,payments:adminPayments,manual:adminManual,broadcast:adminBroadcast,branding:adminBranding,announcement:adminAnnouncement,settings:adminSettings,profile:adminProfile,log:adminLog}[adminTab])();
+    ({dashboard:adminDashboard,scoreboard:adminScoreboard,results:adminResults,checkin:adminCheckin,teams:adminTeams,registrations:adminRegistrations,volunteers:adminVolunteers,messages:adminMessages,payments:adminPayments,manual:adminManual,broadcast:adminBroadcast,branding:adminBranding,announcement:adminAnnouncement,settings:adminSettings,profile:adminProfile,log:adminLog}[adminTab])();
   }
   async function refreshAdmin(){ App.regs=await Store.listRegs(); App.settings=await Store.getSettings(); App.logos=await Store.getLogos(); renderAdmin(); toast("Data refreshed"); }
   async function adminSignOut(){ await Store.logAction("Signed out"); App.isAdmin=false; App.regs=[]; await Store.adminLogout(); go("home"); }
@@ -204,11 +204,50 @@
         <div><label class="fl">Magenta</label><div class="swatch"><input type="color" id="b-magenta" value="${App.settings.brand?.magenta||cfg.brand.magenta}"></div></div></div>
         <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="saveColors()">Apply colours</button></div>`;
   }
+  /* resize + compress an image file to a safe data URL (keeps Firestore docs small) */
+  function processImage(file, maxDim, cb){
+    if(!file){ cb(null,"No file"); return; }
+    if(!/^image\//.test(file.type)){ cb(null,"Not an image file"); return; }
+    const rd=new FileReader();
+    rd.onerror=()=>cb(null,"Could not read file");
+    rd.onload=()=>{
+      const img=new Image();
+      img.onerror=()=>cb(null,"Could not decode image");
+      img.onload=()=>{
+        try{
+          let w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+          if(!w||!h){ cb(rd.result); return; }
+          if(w>maxDim||h>maxDim){ const r=Math.min(maxDim/w,maxDim/h); w=Math.round(w*r); h=Math.round(h*r); }
+          const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+          cv.getContext("2d").drawImage(img,0,0,w,h);
+          let out=cv.toDataURL("image/png");                 // PNG keeps transparency
+          if(out.length>150*1024) out=cv.toDataURL("image/jpeg",0.85);  // fall back for photos
+          cb(out);
+        }catch(err){ cb(rd.result); }   // fall back to original if canvas blocked
+      };
+      img.src=rd.result;
+    };
+    rd.readAsDataURL(file);
+  }
+  
   async function setLogoSlot(e,key){
     const f=e.target.files[0]; if(!f)return;
-    if(f.size>1.8*1024*1024){ toast("Logo too large — keep under ~1.5MB","warn"); return; }
-    const rd=new FileReader(); rd.onload=async()=>{ App.logos[key]=rd.result; await Store.setLogo(key,rd.result); await Store.logAction("Updated logo", LOGO_SLOTS.find(s=>s.key===key).name); toast(LOGO_SLOTS.find(s=>s.key===key).name+" logo updated"); adminBranding(); };
-    rd.readAsDataURL(f);
+    const name=LOGO_SLOTS.find(s=>s.key===key).name;
+    toast("Processing "+name+"…");
+    processImage(f, 320, async (dataURL,err)=>{
+      if(!dataURL){ toast(err||"Could not process image","err"); return; }
+      try{
+        await Store.setLogo(key,dataURL);
+        App.logos[key]=dataURL;
+        await Store.logAction("Updated logo", name);
+        toast(name+" logo updated");
+        adminBranding();
+      }catch(ex){
+        const msg=/maximum|size|exceed|larger/i.test(ex.message||"")?"Image still too large after compression — try a simpler PNG":(ex.message||"Save failed");
+        toast(msg,"err");
+      }
+    });
+    e.target.value="";   // allow re-uploading the same file
   }
   async function removeLogoSlot(key){ delete App.logos[key]; await Store.removeLogo(key); await Store.logAction("Removed logo", LOGO_SLOTS.find(s=>s.key===key).name); toast("Logo removed"); adminBranding(); }
   async function saveColors(){
@@ -276,7 +315,7 @@
     </div>`;
   }
   let _pfPhoto=null;
-  function pfPhoto(e){ const f=e.target.files[0]; if(!f)return; if(f.size>1.2*1024*1024){toast("Photo too big — under ~1MB","warn");return;} const rd=new FileReader(); rd.onload=()=>{ _pfPhoto=rd.result; $("#pf-ava").innerHTML=`<img src="${rd.result}" style="width:100%;height:100%;object-fit:cover;border-radius:16px">`; }; rd.readAsDataURL(f); }
+  function pfPhoto(e){ const f=e.target.files[0]; if(!f)return; processImage(f,256,(d,err)=>{ if(!d){toast(err||"Could not process photo","err");return;} _pfPhoto=d; $("#pf-ava").innerHTML=`<img src="${d}" style="width:100%;height:100%;object-fit:cover;border-radius:16px">`; }); e.target.value=""; }
   async function saveProfile(){
     if(!val("pf-name")){ setErr("pf-name","Name is required"); return; }
     const p={name:val("pf-name"),role:val("pf-role"),phone:val("pf-phone"),photo:_pfPhoto||(Store._profile&&Store._profile.photo)||null};
@@ -611,6 +650,46 @@
     el.innerHTML=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Name</th><th>Pass</th></tr></thead><tbody>
       ${list.slice(0,40).map(x=>`<tr><td style="white-space:nowrap">${fmtDateTime(x.t)}</td><td><b>${esc(x.name)}</b></td><td style="color:var(--muted)">${esc(x.sub)}</td></tr>`).join("")||`<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">No check-ins yet.</td></tr>`}
     </tbody></table></div>`;
+  }
+  
+  /* ============================================================
+     MESSAGES / SUPPORT TICKETS
+     ============================================================ */
+  async function adminMessages(){
+    $("#admin-body").innerHTML=`<div class="panel"><p class="ph-help">Loading messages…</p></div>`;
+    let tickets=[]; try{ tickets=await Store.listTickets(); }catch(e){}
+    App._tickets=tickets;
+    const open=tickets.filter(t=>t.status==="open").length;
+    $("#admin-body").innerHTML=`
+      <div class="kpis"><div class="kpi accent"><div class="v num">${open}</div><div class="k">Open</div></div>
+        <div class="kpi"><div class="v num">${tickets.length}</div><div class="k">Total messages</div></div>
+        <div class="kpi"><div class="v num">${tickets.length-open}</div><div class="k">Resolved</div></div></div>
+      <div class="panel"><h3>Contact &amp; support inbox</h3>
+        <p class="ph-help">Every message from the site's contact form lands here. Reply by email, then mark it resolved.</p>
+        <div id="tk-list">${tickets.length?tickets.map(ticketRow).join(""):`<div class="empty-wall">No messages yet.</div>`}</div>
+      </div>`;
+  }
+  function ticketRow(t){
+    return `<div class="tk ${t.status}">
+      <div class="tk-main">
+        <div class="tk-head"><b>${esc(t.name)}</b><span class="pill ${t.status==='open'?'rev':'ok'}">${t.status==='open'?'Open':'Resolved'}</span></div>
+        <a href="mailto:${esc(t.email)}" class="tk-email">${esc(t.email)}</a>
+        <p class="tk-msg">${esc(t.message)}</p>
+        <span class="tk-time">${fmtDateTime(t.created)}</span>
+      </div>
+      <div class="tk-actions">
+        <a class="btn btn-sm btn-primary" href="mailto:${esc(t.email)}?subject=Re%3A%20EX-CAP%20support&body=${encodeURIComponent("Hi "+t.name+",\n\n")}">Reply</a>
+        ${t.status==="open"
+          ? `<button class="btn btn-sm btn-pitch" onclick="resolveTicket('${t.id}',true)">Mark resolved</button>`
+          : `<button class="btn btn-sm btn-line" onclick="resolveTicket('${t.id}',false)">Reopen</button>`}
+      </div>
+    </div>`;
+  }
+  async function resolveTicket(id,resolved){
+    await Store.updateTicket(id,{status:resolved?"resolved":"open"});
+    await Store.logAction(resolved?"Resolved message":"Reopened message", id);
+    toast(resolved?"Marked resolved":"Reopened");
+    adminMessages();
   }
   
   /* ---------- activity log ---------- */

@@ -23,10 +23,10 @@ function uploader(id,label,note="PNG/JPG · max 2MB"){
 const uploadData={};
 function handleUpload(e,id){
   const f=e.target.files[0]; if(!f) return;
-  if(f.size>2.5*1024*1024){ toast("Image too large — keep under 2MB","warn"); return; }
-  const rd=new FileReader();
-  rd.onload=()=>{ uploadData[id]=rd.result; const p=$("#"+id+"-prev"); if(p)p.innerHTML=`<img src="${rd.result}">`; const n=$("#"+id+"-name"); if(n)n.textContent=f.name.slice(0,22); };
-  rd.readAsDataURL(f);
+  const apply=(d)=>{ uploadData[id]=d; const p=$("#"+id+"-prev"); if(p)p.innerHTML=`<img src="${d}">`; const n=$("#"+id+"-name"); if(n)n.textContent=(f.name||"image").slice(0,22); };
+  if(window.processImage){ processImage(f,320,(d,err)=>{ if(!d){toast(err||"Could not read image","warn");return;} apply(d); }); }
+  else { if(f.size>2.5*1024*1024){toast("Image too large — keep under 2MB","warn");return;} const rd=new FileReader(); rd.onload=()=>apply(rd.result); rd.readAsDataURL(f); }
+  e.target.value="";
 }
 const val=id=>{ const e=$("#"+id); return e?e.value.trim():""; };
 function setErr(id,msg){ const e=$("#"+id),er=$("#"+id+"-err"); if(e)e.classList.toggle("err",!!msg); if(er){er.textContent=msg||"";er.classList.toggle("show",!!msg);} }
@@ -47,6 +47,14 @@ function regPhase(){
 /* ============================================================
    HOME
    ============================================================ */
+const REG_TYPES=[
+  ["⚽","Register a team","For captains. Build your squad, invite guests and pay online or at the desk.",[["Approval","By organizers"],["You get","Team + player passes"]],"register-team","From captains building a squad"],
+  ["🎟️","Team guest","For supporters invited by a registered team using the captain's invite code.",[["Approval","Yes"],["You get","Guest QR pass"]],"register-guest","Invited by a team captain"],
+  ["👥","Visitor","For alumni, guardians, club reps and supporters not attached to a team.",[["Approval","Yes"],["You get","Visitor QR pass"]],"register-visitor","Alumni & supporters"],
+  ["🎓","Current student","For current SCPSC students. ID collected online, checked at the gate.",[["Approval","Auto · ID at gate"],["You get","Student QR pass"]],"register-student","Current SCPSC students"],
+  ["🤝","Volunteer","Join the crew that runs match day. Pick a role; organizers assign your zone and shift.",[["Approval","By organizers"],["You get","Crew pass + duty"]],"register-volunteer","Help run match day"]
+];
+
 registerRoute("home",renderHome);
 registerRoute("",renderHome);
 function renderHome(){
@@ -54,13 +62,7 @@ function renderHome(){
   const confirmed=confirmedTeams();
   const stats=[[max,"Teams"],[max*s.playersPerTeam,"Players"],[2,"Fields"],[31,"Matches"],[20,"Min / match"],[4,"Clubs"]];
   const phase=regPhase();
-  const reg=[
-    ["⚽","Register a team",`For captains. Build your squad of ${s.playersPerTeam}, invite guests and pay online or at the desk.`,[["Approval","By organizers"],["You get","Team + player passes"]],"register-team"],
-    ["🎟️","Team guest","For supporters invited by a registered team using the captain's invite code.",[["Approval","Yes"],["You get","Guest QR pass"]],"register-guest"],
-    ["👥","Visitor","For alumni, guardians, club reps and supporters not attached to a team.",[["Approval","Yes"],["You get","Visitor QR pass"]],"register-visitor"],
-    ["🎓","Current student","For current SCPSC students. ID collected online, checked at the gate.",[["Approval","Auto, ID at gate"],["You get","Student QR pass"]],"register-student"],
-    ["🤝","Volunteer","Join the crew that runs match day. Pick a role; organizers assign your zone and shift.",[["Approval","By organizers"],["You get","Crew pass + duty"]],"register-volunteer"]
-  ];
+  const reg=REG_TYPES;
   $("#app").innerHTML=anncHTML()+navHTML("home")+`
   <section class="hero"><div class="pitch-bg"></div>${pitchLines()}
     <div class="wrap hero-in">
@@ -69,11 +71,10 @@ function renderHome(){
         <h1 class="title">The SCPSC field<br><span class="g">is calling again</span></h1>
         <p class="lead">EX-CAP brings students, players, alumni and the SCPSC community together through football. Build your team, claim a slot and play on home ground.</p>
         <div class="hero-cta">
-          <button class="btn btn-primary" onclick="go('register-team')">Register your team</button>
-          <button class="btn btn-ghost" onclick="go('register-visitor')">Register as visitor</button>
-          <button class="btn btn-line" onclick="go('tournament')">▶ Tournament info</button>
+          <button class="btn btn-primary" onclick="go('register')">Register now</button>
+          <button class="btn btn-ghost" onclick="go('live')">▶ Live scoreboard</button>
+          <button class="btn btn-line" onclick="go('tournament')">Tournament info</button>
         </div>
-        <div class="org-line"><b>Organized by EX-CAP</b> · Supported by SCPSC Business & Career · IT Club · Cyber Hub · Sports Club</div>
       </div>
       <div class="hero-card">
         <div class="hc-top"><span class="hc-label">Kick-off in</span><span class="pill ok">Live</span></div>
@@ -111,11 +112,12 @@ function renderHome(){
   <section class="block" id="home-champ-sec" style="padding-top:0;display:none"><div class="wrap" id="home-champ"></div></section>
 
   <section class="block"><div class="wrap">
-    <div class="section-head"><div><div class="kicker">Choose your entry</div><h2 class="sec">Register in minutes</h2><p class="sec-sub">Four clear paths. Every approved registration gets a QR pass for gate check-in.</p></div></div>
-    <div class="reg-grid">${reg.map(([ic,t,d,meta,r],i)=>`
-      <div class="reg-card reveal d${i}" onclick="go('${r}')"><div class="ic">${ic}</div><h3>${t}</h3><p>${d}</p>
-        <div class="meta">${meta.map(([a,b])=>`<div>${a}: <b>${b}</b></div>`).join("")}</div>
-        <div class="go">Start registration <span class="arr">→</span></div></div>`).join("")}</div>
+    <div class="section-head"><div><div class="kicker">Choose your entry</div><h2 class="sec">Register in minutes</h2><p class="sec-sub">Five clear paths. Every approved registration gets a QR pass for gate check-in.</p></div>
+      <button class="btn btn-line" onclick="go('register')">All options →</button></div>
+    <div class="reg-quick">${reg.map(([ic,t,desc,meta,r,tag],i)=>`
+      <button class="rq reveal d${i}" onclick="go('${r}')"><span class="rq-ic">${ic}</span><span class="rq-t">${t}</span><span class="rq-sub">${tag}</span></button>`).join("")}
+    </div>
+    <div class="center" style="margin-top:22px"><button class="btn btn-primary" onclick="go('register')">Open registration hub →</button></div>
   </div></section>
 
   <section class="block" style="background:var(--navy-2)"><div class="wrap">
@@ -239,6 +241,35 @@ registerRoute("help",function(){
    TEAM REGISTRATION (multi-step)
    ============================================================ */
 let draft=null;
+registerRoute("register",function(){
+  const s=App.settings, used=slotsUsed(), remaining=Math.max(0,s.maxTeams-used), phase=regPhase();
+  $("#app").innerHTML=anncHTML()+navHTML("register")+`
+  <div class="wrap page">
+    <div class="page-head center">
+      <span class="crumb" onclick="go('home')">← Back to home</span>
+      <span class="reg-phase ${phase}">${phase==="open"?"● Registration open":phase==="before"?"● Opening soon":"● Registration closed"}</span>
+      <h1 class="ph">How would you like to join?</h1>
+      <p class="ph-sub">Pick the option that fits you. Each one opens a short, guided form — and every approved entry gets a QR pass for the gate.</p>
+    </div>
+    <div class="reg-hub">
+      ${REG_TYPES.map(([ic,t,desc,meta,r,tag],i)=>`
+        <button class="hub-card reveal d${i}" onclick="go('${r}')">
+          <div class="hub-ic">${ic}</div>
+          <div class="hub-body">
+            <h3>${t}</h3>
+            <p>${desc}</p>
+            <div class="hub-meta">${meta.map(([a,b])=>`<span>${a}: <b>${b}</b></span>`).join("")}</div>
+          </div>
+          <div class="hub-go">Start <span class="arr">→</span></div>
+        </button>`).join("")}
+    </div>
+    <div class="reg-note note-box" style="max-width:none;margin-top:22px"><span class="i">🎟️</span>
+      <div><b>${remaining} team slot${remaining===1?"":"s"} remaining.</b> Guests need a captain's invite code. Students are auto-approved with ID checked at the gate. Everyone else is approved by the organizers — you'll get an email + SMS once you're in.</div>
+    </div>
+  </div>`+footerHTML();
+  observeReveal();
+});
+
 registerRoute("register-team",()=>renderTeamReg());
 function renderTeamReg(step){
   const s=App.settings;
@@ -247,7 +278,7 @@ function renderTeamReg(step){
   draft = draft || {data:{},players:Array.from({length:s.playersPerTeam},()=>({status:"empty"})),guests:[],payment:{},step:0};
   const st=typeof step==="number"?step:draft.step; draft.step=st;
   const steps=["Captain","Team","Players","Guests","Payment","Review"];
-  const shell=inner=>anncHTML()+navHTML("register-team")+`<div class="wrap page"><div class="page-head">
+  const shell=inner=>anncHTML()+navHTML("register")+`<div class="wrap page"><div class="page-head">
     <span class="crumb" onclick="go('home')">← Back to home</span><h1 class="ph">Register a team</h1>
     <p class="ph-sub">${s.playersPerTeam} players · entry fee ৳${esc(s.teamFee)} · approval by organizers.</p></div>
     <div class="form-shell">${stepsBar(steps,st)}${inner}</div></div>`+footerHTML();
@@ -382,7 +413,7 @@ async function teamSubmit(){
    GUEST / VISITOR / STUDENT
    ============================================================ */
 registerRoute("register-guest",function(){
-  $("#app").innerHTML=anncHTML()+navHTML("register-team")+`<div class="wrap page"><div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span>
+  $("#app").innerHTML=anncHTML()+navHTML("register")+`<div class="wrap page"><div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span>
     <h1 class="ph">Team guest</h1><p class="ph-sub">Attending with a registered team. You'll need the invite code from the captain.</p></div>
     <div class="form-shell">
       ${field("g-code","Team invite code",{req:true,ph:"EXCAP-FT26-T001",help:"Ask your captain."})}
@@ -406,7 +437,7 @@ async function submitGuest(){
   await Store.saveReg(rec); App.regs.unshift(rec); renderConfirm("guest",rec);
 }
 registerRoute("register-visitor",function(){
-  $("#app").innerHTML=anncHTML()+navHTML("register-team")+`<div class="wrap page"><div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span>
+  $("#app").innerHTML=anncHTML()+navHTML("register")+`<div class="wrap page"><div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span>
     <h1 class="ph">Visitor registration</h1><p class="ph-sub">For alumni, guardians, club reps and supporters not attached to a team.</p></div>
     <div class="form-shell">
       ${field("v-name","Full name",{req:true})}
@@ -426,7 +457,7 @@ async function submitVisitor(){
   await Store.saveReg(rec); App.regs.unshift(rec); renderConfirm("visitor",rec);
 }
 registerRoute("register-student",function(){
-  $("#app").innerHTML=anncHTML()+navHTML("register-team")+`<div class="wrap page"><div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span>
+  $("#app").innerHTML=anncHTML()+navHTML("register")+`<div class="wrap page"><div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span>
     <h1 class="ph">Current student</h1><p class="ph-sub">For current SCPSC students. Register online; student ID checked at the gate.</p></div>
     <div class="form-shell">
       <div class="note-box"><span class="i">🎓</span><div>Bring your valid SCPSC student ID on event day. Your QR pass is scanned and ID checked together.</div></div>
@@ -452,7 +483,7 @@ async function submitStudent(){
 /* ---------- VOLUNTEER ---------- */
 registerRoute("register-volunteer",function(){
   const roles=App.settings.volunteerRoles||[];
-  $("#app").innerHTML=anncHTML()+navHTML("register-team")+`<div class="wrap page"><div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span>
+  $("#app").innerHTML=anncHTML()+navHTML("register")+`<div class="wrap page"><div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span>
     <h1 class="ph">Volunteer registration</h1><p class="ph-sub">Join the crew that makes match day run. Organizers review and assign you a role and zone.</p></div>
     <div class="form-shell">
       <div class="note-box"><span class="i">🤝</span><div>Tell us where you'd like to help. You'll get an email + SMS once an organizer confirms your role and shift.</div></div>

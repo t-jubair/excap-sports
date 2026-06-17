@@ -14,6 +14,9 @@
       linkedin:'<path d="M6.9 8.2H3.6V20h3.3V8.2zM5.2 3.4a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8zM20.4 20v-6.5c0-3.5-1.9-5.1-4.4-5.1a3.8 3.8 0 0 0-3.4 1.9V8.2H9.2V20h3.3v-6.2c0-1.6.3-3.2 2.3-3.2s2 1.9 2 3.3V20h3.3z"/>',
       github:'<path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8a2 2 0 0 1 .6-1.3c-2.2-.2-4.6-1.1-4.6-5a3.9 3.9 0 0 1 1-2.7 3.6 3.6 0 0 1 .1-2.7s.8-.3 2.7 1a9.3 9.3 0 0 1 4.9 0c1.9-1.3 2.7-1 2.7-1a3.6 3.6 0 0 1 .1 2.7 3.9 3.9 0 0 1 1 2.7c0 3.9-2.3 4.7-4.6 5a2.2 2.2 0 0 1 .6 1.7v2.5c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/>',
       portfolio:'<path d="M12 2 2 7l10 5 10-5-10-5zm0 7L4 6m8 3 8-3M2 12l10 5 10-5M2 17l10 5 10-5"/>',
+      twitter:'<path d="M18.2 2H21l-6.4 7.3L22 22h-6.3l-4.9-6.4L5.1 22H2.3l6.9-7.9L2 2h6.4l4.4 5.9L18.2 2zm-1.1 18h1.6L7 3.7H5.3L17.1 20z"/>',
+      threads:'<path d="M16.5 11.2c-.1 0-.2-.1-.3-.1-.2-2.9-1.8-4.6-4.4-4.6-1.6 0-2.9.7-3.7 1.9l1.4 1c.6-.9 1.5-1.1 2.3-1.1 1.4 0 2.4.9 2.6 2.5-.6-.1-1.2-.2-1.9-.1-2.1.1-3.6 1.3-3.5 3.1.1 1.6 1.5 2.6 3.1 2.5 1.6-.1 3.4-.9 3.7-3.6.5.3.8.7 1 1.2.3.9.3 2.3-.7 3.3-.9.9-2 1.3-3.6 1.3-1.8 0-3.1-.6-4-1.7-.8-1.1-1.3-2.6-1.3-4.6s.5-3.5 1.3-4.6c.9-1.1 2.2-1.7 4-1.7 1.8 0 3.1.6 4.1 1.8.5.6.8 1.3 1.1 2.2l1.7-.5c-.3-1.1-.8-2-1.4-2.8-1.3-1.6-3.1-2.4-5.4-2.4-2.3 0-4.2.8-5.4 2.4C5.6 7.4 5 9.4 5 11.9s.6 4.5 1.8 6.1C8 19.6 9.9 20.4 12.2 20.4c2 0 3.6-.5 4.8-1.7 1.6-1.6 1.5-3.6 1-4.9-.4-.9-1-1.6-1.5-2.6zm-4.3 3.9c-.9.1-1.4-.4-1.5-1-.1-.7.6-1.2 1.6-1.3.4 0 .8 0 1.3.1-.1 1.5-.8 2.1-1.4 2.2z"/>',
+      website:'<path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm6.9 6h-2.5a14.6 14.6 0 0 0-1.1-3.1A8 8 0 0 1 18.9 8zM12 4c.6 0 1.5 1.4 2 3.9H10c.5-2.5 1.4-3.9 2-3.9zM4.3 14a7.7 7.7 0 0 1 0-4h2.8a16.8 16.8 0 0 0 0 4zm.8 2h2.5a14.6 14.6 0 0 0 1.1 3.1A8 8 0 0 1 5.1 16zm2.5-8H5.1a8 8 0 0 1 3.6-3.1A14.6 14.6 0 0 0 7.6 8zM12 20c-.6 0-1.5-1.4-2-3.9h4c-.5 2.5-1.4 3.9-2 3.9zm2.4-5.9H9.6a14.6 14.6 0 0 1 0-4h4.8a14.6 14.6 0 0 1 0 4zm.5 5a14.6 14.6 0 0 0 1.1-3.1h2.5a8 8 0 0 1-3.6 3.1zM17 14a16.8 16.8 0 0 0 0-4h2.8a7.7 7.7 0 0 1 0 4z"/>',
       email:'<path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm9 7L4 6.5V18h16V6.5L12 12z"/>'
     };
     return `<svg viewBox="0 0 24 24" aria-hidden="true">${I[name]||I.portfolio}</svg>`;
@@ -65,7 +68,7 @@
           <p class="desc">The EX-CAP reunion football tournament — bringing alumni and current students back together on the field.</p>
           <div class="foot-info">
             <div class="fi-row"><span class="fi-ic">📍</span> Venue: <b>${esc(s.venue||"SCPSC field")}</b></div>
-            <div class="fi-row"><span class="fi-ic">📅</span> ${fmtDate(s.tournamentDate)}</div>
+            <div class="fi-row"><span class="fi-ic">🕑</span> Dhaka time: <b id="foot-clock">${nowDhaka()}</b></div>
             <div class="fi-row"><span class="fi-stat ${phase}"></span> ${statusTxt}</div>
           </div>
           <div class="socials">${socialLinks(cfg.socials,"soc")}</div>
@@ -116,41 +119,64 @@
       </div>
   
       <div class="wrap foot-clubs">
-        <div class="fclubs-head"><span class="kicker">Supported by</span><h4>The SCPSC clubs powering match day</h4></div>
+        <div class="fclubs-head">
+          <div><span class="kicker">Supported by</span><h4>The SCPSC clubs powering match day</h4></div>
+          <span class="sys-pill"><span class="sys-dot"></span> All systems operational</span>
+        </div>
         <div class="fclubs-grid">${footerClubs()}</div>
       </div>
   
-      <div class="wrap"><div class="dev-card"><div class="dev-inner">
+      <div class="wrap"><a class="dev-card" href="${esc((d.socials&&d.socials.portfolio)||'#')}" target="_blank" rel="noopener"><div class="dev-inner">
         <div class="dev-glow" aria-hidden="true"></div>
         <div class="dev-left">
           <div class="dev-ava">${initials(d.name)}</div>
-          <div class="dev-meta"><span class="l">Crafted &amp; developed by</span><b>${esc(d.name)}</b><span class="role">${esc(d.role)}</span></div>
+          <div class="dev-meta"><span class="l">Developed &amp; engineered by</span><b>${esc(d.name)} ${svgIcon("website")}</b>
+            <span class="role">${esc(d.role)}</span>${d.org?`<span class="org">${esc(d.org)}</span>`:""}</div>
         </div>
         <div class="dev-right">
-          <span class="dev-tag"><span class="dot"></span> Available for projects</span>
-          <div class="dev-socials">${socialLinks(d.socials,"soc")}</div>
+          <span class="dev-tag"><span class="dot"></span> View portfolio ↗</span>
+          <div class="dev-socials" onclick="event.preventDefault();event.stopPropagation()">${socialLinks(d.socials,"soc")}</div>
         </div>
-      </div></div></div>
+      </div></a></div>
   
       <div class="wrap foot-bottom">
-        <span>© ${new Date().getFullYear()} EX-CAP · Alumni Association of SCPSC. All rights reserved.</span>
-        <span class="links">
-          <a onclick="go('help')">Privacy</a>
-          <a onclick="go('help')">Rules</a>
-          <a href="https://excapscpsc.com" target="_blank" rel="noopener">excapscpsc.com</a>
-        </span>
+        <div class="fb-left">
+          <span>© ${new Date().getFullYear()} EX-CAP · Alumni Association of SCPSC</span>
+          <span class="ver">v.${esc(cfg.build?cfg.build.version:"1.0")} <i>|</i> Updated ${esc(cfg.build?cfg.build.date:"")}</span>
+        </div>
+        <div class="fb-right">
+          <span class="links">
+            <a onclick="go('help')">Privacy</a>
+            <a onclick="go('help')">Rules</a>
+            <a href="https://excapscpsc.com" target="_blank" rel="noopener">excapscpsc.com</a>
+          </span>
+          <button class="foot-top" onclick="scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">↑</button>
+        </div>
       </div>
     </footer>`;
   }
+  
+  /* live Dhaka clock */
+  function nowDhaka(){
+    try{ return new Date().toLocaleTimeString("en-US",{timeZone:"Asia/Dhaka",hour:"2-digit",minute:"2-digit",second:"2-digit"}); }
+    catch(e){ return new Date().toLocaleTimeString(); }
+  }
+  (function footClock(){
+    if(window._footClock) return;
+    window._footClock=setInterval(()=>{ const el=document.getElementById("foot-clock"); if(el) el.textContent=nowDhaka(); },1000);
+  })();
   
   async function submitContact(){
     const name=$("#cf-name").value.trim(), email=$("#cf-email").value.trim(), msg=$("#cf-msg").value.trim();
     if(!name||!email||!msg){ toast("Fill in name, email and message","warn"); return; }
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toast("Enter a valid email","warn"); return; }
     const btn=$("#cf-send"); btn.innerHTML='<span class="spinner"></span>'; btn.disabled=true;
+    // 1) store as a support ticket the admin can see + manage
+    const ticket={ id:"TK"+Date.now().toString(36).toUpperCase(), name, email, message:msg, status:"open", created:Date.now() };
+    try{ await Store.saveTicket(ticket); }catch(e){}
+    // 2) also email the organizers (best-effort)
     const r=await Notify.sendContact({name,email,message:msg});
     btn.disabled=false; btn.textContent="Send message";
-    if(r.ok){ toast("Message sent — we'll get back to you"); $("#cf-name").value=$("#cf-email").value=$("#cf-msg").value=""; }
-    else if(r.skipped) toast("Contact form not configured yet (EmailJS)","warn");
-    else toast("Could not send — try emailing us instead","err");
+    if(r.ok || !r.error){ toast("Message sent — we'll get back to you"); $("#cf-name").value=$("#cf-email").value=$("#cf-msg").value=""; }
+    else toast("Saved, but email relay failed — we still received it","warn");
   }

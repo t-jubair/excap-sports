@@ -42,6 +42,8 @@
       edition: "2026",
       venue: "SCPSC Field",
       emailLogoUrl: "",                 // hosted HTTPS logo URL shown in emails (admin-editable)
+      maintenance: true,                // TRUE = public sees the holding page; admins/preview bypass
+      previewKey: "excap-preview",      // secret to unlock a preview via #unlock or ?preview=KEY
       regOpen:  "2026-06-15T09:00",     // registration opens
       regDeadline: "2026-07-15T23:59",  // registration closes
       tournamentDate: "2026-08-21T09:00",

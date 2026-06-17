@@ -33,7 +33,7 @@
       db = fsMod.getFirestore(app);
       auth = authMod.getAuth(app);
       fb = { ...fsMod, ...authMod };
-      authMod.onAuthStateChanged(auth, u=>{ Store.user=u; Store._authCb && Store._authCb(u); });
+      authMod.onAuthStateChanged(auth, u=>{ Store.user=u; (Store._authCbs||[]).forEach(cb=>{try{cb(u);}catch(e){}}); });
     })();
   
     /* ===== SETTINGS ===== */
@@ -130,7 +130,7 @@
     };
   
     /* ===== AUTH (admin) ===== */
-    Store.onAuth = function(cb){ Store._authCb=cb; if(Store.user!==undefined) cb(Store.user); };
+    Store.onAuth = function(cb){ (Store._authCbs=Store._authCbs||[]).push(cb); if(Store.user!==undefined) cb(Store.user); };
     Store.adminLogin = async function(email,pass){
       if(Store.mode==="local"){
         // local demo: any email + the local demo password
@@ -235,6 +235,21 @@
         return ()=>{ window.removeEventListener("storage",onStorage); window.removeEventListener("excap-live",fire); };
       }
       return fb.onSnapshot(fb.doc(db,"config","results"), s=>cb(s.exists()?s.data():{}));
+    };
+  
+    /* ===== SUPPORT TICKETS (contact form → admin inbox) ===== */
+    Store.saveTicket = async function(t){
+      if(Store.mode==="local"){ const d=LS.read(); d.tickets=d.tickets||[]; d.tickets.unshift(t); LS.write(d); return; }
+      await fb.setDoc(fb.doc(db,"tickets",t.id), t);
+    };
+    Store.listTickets = async function(){
+      if(Store.mode==="local"){ return (LS.read().tickets||[]).sort((a,b)=>b.created-a.created); }
+      const snap=await fb.getDocs(fb.query(fb.collection(db,"tickets"), fb.orderBy("created","desc")));
+      return snap.docs.map(d=>d.data());
+    };
+    Store.updateTicket = async function(id,patch){
+      if(Store.mode==="local"){ const d=LS.read(); const t=(d.tickets||[]).find(x=>x.id===id); if(t)Object.assign(t,patch); LS.write(d); return; }
+      await fb.setDoc(fb.doc(db,"tickets",id), patch, {merge:true});
     };
   
     window.Store = Store;

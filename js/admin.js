@@ -281,7 +281,23 @@
       <div class="grid2"><div>${field("set-guests","Guests per team",{type:"number",val:s.guestsPerTeam})}</div><div>${field("set-fee","Team fee (৳)",{val:s.teamFee})}</div></div>
       <label class="fl">Payment numbers</label>
       ${s.paymentNumbers.map((n,i)=>`<div class="grid2" style="margin-bottom:8px;grid-template-columns:1fr 1.4fr"><input id="pm-${i}-m" value="${esc(n.method)}" placeholder="Method"><input id="pm-${i}-n" value="${esc(n.number)}" placeholder="Number"></div>`).join("")}
-      <button class="btn btn-primary" style="margin-top:18px" onclick="saveSet()">Save settings</button></div>`;
+      <button class="btn btn-primary" style="margin-top:18px" onclick="saveSet()">Save settings</button></div>
+  
+    <div class="panel" style="max-width:620px">
+      <h3>Site status <span class="pill ${s.maintenance?'rev':'ok'}" style="margin-left:8px">${s.maintenance?'Under construction':'Live'}</span></h3>
+      <p class="ph-help">When ON, the public sees a "coming soon" holding page. You (signed in) and anyone with the preview link always see the full site.</p>
+      <label class="fl" style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="set-maint" ${s.maintenance?'checked':''} style="width:auto"> Show "coming soon" page to the public</label>
+      ${field("set-pvkey","Preview key",{val:s.previewKey||"",help:"Share this so others can preview before launch (see preview link below)."})}
+      <div class="note-box" style="max-width:none;margin-top:10px"><span class="i">🔗</span><div>Preview link to share:<br><code style="word-break:break-all">${esc((typeof location!=="undefined"?location.origin:"https://sports.excapscpsc.com"))}/?preview=${encodeURIComponent(s.previewKey||"excap-preview")}</code></div></div>
+      <button class="btn btn-primary" style="margin-top:14px" onclick="saveMaint()">Save site status</button>
+    </div>`;
+  }
+  async function saveMaint(){
+    const upd={ maintenance: $("#set-maint").checked, previewKey: val("set-pvkey")||"excap-preview" };
+    Object.assign(App.settings,upd); await Store.saveSettings(upd);
+    await Store.logAction(upd.maintenance?"Enabled maintenance mode":"Took site live");
+    toast(upd.maintenance?"Public now sees the coming-soon page":"Site is now LIVE for everyone");
+    renderAdmin();
   }
   async function saveSet(){
     const s=App.settings;

@@ -47,7 +47,7 @@
    /* ============================================================
       NAV + DRAWER
       ============================================================ */
-   const NAV=[["home","Home"],["live","Live"],["fixtures","Fixtures"],["teams","Teams"],["register-team","Register"],["help","Help"]];
+   const NAV=[["home","Home"],["live","Live"],["fixtures","Fixtures"],["teams","Teams"],["register","Register"],["help","Help"]];
    function navHTML(active){
      return `
      <header class="nav"><div class="wrap nav-in">
@@ -134,13 +134,53 @@
    function registerRoute(name,fn){ Routes[name]=fn; }
    function go(hash){ if(location.hash==="#"+hash) route(); else location.hash=hash; window.scrollTo(0,0); }
    function currentRoute(){ return location.hash.replace(/^#/,"").split("?")[0]; }
+   
+   /* ---- maintenance gate ---- */
+   function maintenanceActive(){ return !!(App.settings && App.settings.maintenance===true); }
+   function previewUnlocked(){ try{ return localStorage.getItem("excap_preview")==="1"; }catch(e){ return false; } }
+   function canBypassMaintenance(){ return !!(App.authed || App.isAdmin || previewUnlocked()); }
+   
    async function route(){
      clearCountdowns();
-     const fn=Routes[currentRoute()]||Routes.home;
+     const r=currentRoute();
+     // public sees the holding page; admins (#admin / logged-in) and preview links pass through
+     if(maintenanceActive() && !canBypassMaintenance() && r!=="admin" && r!=="unlock"){
+       renderMaintenance(); return;
+     }
+     const fn=Routes[r]||Routes.home;
      await fn();
      observeReveal(); animateCounts();
    }
    window.addEventListener("hashchange",route);
+   
+   /* preview unlock: #unlock  (enter the key) OR ?preview=KEY in the URL */
+   function applyPreviewParam(){
+     try{
+       const m=location.search.match(/[?&]preview=([^&]+)/);
+       if(m && decodeURIComponent(m[1])===(App.settings.previewKey||cfg.settings.previewKey)){
+         localStorage.setItem("excap_preview","1");
+         history.replaceState({},"",location.pathname+location.hash);
+       }
+     }catch(e){}
+   }
+   Routes.unlock=function(){
+     $("#app").innerHTML=`<div class="maint"><div class="maint-card" style="max-width:420px">
+       <div class="maint-badge">Preview access</div>
+       <h1>Enter preview key</h1>
+       <p>For organizers and the developer to preview the site before launch.</p>
+       <input id="pv-key" type="password" placeholder="Preview key" style="margin:8px 0 12px">
+       <button class="btn btn-primary btn-block" onclick="tryUnlock()">Unlock preview</button>
+       <a class="maint-link" onclick="go('admin')">Organizer login instead →</a>
+     </div></div>`;
+   };
+   function tryUnlock(){
+     const k=$("#pv-key").value.trim();
+     if(k && k===(App.settings.previewKey||cfg.settings.previewKey)){
+       try{ localStorage.setItem("excap_preview","1"); }catch(e){}
+       toast("Preview unlocked"); location.hash="home"; route();
+     } else toast("Wrong key","err");
+   }
+   function lockPreview(){ try{ localStorage.removeItem("excap_preview"); }catch(e){} location.hash="home"; route(); }
    
    /* ============================================================
       BOOT
@@ -151,8 +191,11 @@
      try{ App.logos = await Store.getLogos(); }catch(e){ App.logos = {}; }
      try{ App.publicTeams = await Store.listPublicTeams(); }catch(e){ App.publicTeams = []; }
      App.regs = App.regs || [];   // populated only after admin signs in
+     applyPreviewParam();
      applyBrand((App.settings && App.settings.brand) || cfg.brand);
      Notify.initEmail();
+     // when Firebase restores/changes an admin session, lift the maintenance gate
+     if(Store.onAuth) Store.onAuth(u=>{ App.authed=!!u; route(); });
      route();
    }
    document.addEventListener("DOMContentLoaded",boot);

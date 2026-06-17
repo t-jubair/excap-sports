@@ -55,6 +55,53 @@ const REG_TYPES=[
   ["🤝","Volunteer","Join the crew that runs match day. Pick a role; organizers assign your zone and shift.",[["Approval","By organizers"],["You get","Crew pass + duty"]],"register-volunteer","Help run match day"]
 ];
 
+/* ============================================================
+   MAINTENANCE / COMING-SOON HOLDING PAGE (public, while building)
+   ============================================================ */
+function renderMaintenance(){
+  const s=App.settings, c=cfg.contact;
+  $("#app").innerHTML=`
+  <div class="maint">
+    <div class="maint-bg" aria-hidden="true">${pitchLines()}</div>
+    <span class="maint-ball b1">⚽</span><span class="maint-ball b2">⚽</span>
+    <div class="maint-card">
+      <div class="maint-logo">${logoImg("excap","EX")}</div>
+      <div class="maint-badge"><span class="md-dot"></span> Getting the pitch ready</div>
+      <h1>The EX-CAP field is<br><span class="g">almost ready</span></h1>
+      <p class="maint-lead">We're putting the final touches on the official ${esc(s.tournamentName||"EX-CAP Football Tournament")} ${esc(s.edition||"")} site — registrations, live scoreboard, fixtures and check-in are warming up. Kick-off soon.</p>
+
+      <div class="maint-cd" id="maint-cd">
+        ${["Days","Hours","Min","Sec"].map(k=>`<div class="cd-cell"><div class="v num">--</div><div class="k">${k}</div></div>`).join("")}
+      </div>
+      <div class="maint-cap">Launching ahead of kick-off · ${fmtDate(s.tournamentDate)} · ${esc(s.venue||"SCPSC field")}</div>
+
+      <form class="maint-notify" onsubmit="maintNotify(event)">
+        <input id="maint-email" type="email" placeholder="Email me when it's live" autocomplete="email">
+        <button class="btn btn-primary" type="submit">Notify me</button>
+      </form>
+
+      <div class="maint-socials">${socialLinks(cfg.socials,"soc")}</div>
+
+      <div class="maint-foot">
+        <a class="maint-link" onclick="go('admin')">🔐 Organizer login</a>
+        <span class="dotsep">·</span>
+        <a class="maint-link" href="mailto:${esc(c.email)}">Contact us</a>
+        <span class="dotsep">·</span>
+        <a class="maint-link" href="https://excapscpsc.com" target="_blank" rel="noopener">EX-CAP main site ↗</a>
+      </div>
+    </div>
+    <div class="maint-credit">Organized by EX-CAP · Alumni Association of SCPSC · Developed by ${esc(cfg.developer.name)}</div>
+  </div>`+footerHTML();
+  const cd=$("#maint-cd"); if(cd){ registerCountdown(cd, s.tournamentDate); }
+}
+function maintNotify(e){
+  e.preventDefault();
+  const email=($("#maint-email").value||"").trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toast("Enter a valid email","warn"); return; }
+  try{ Store.saveTicket({id:"NT"+Date.now().toString(36).toUpperCase(),name:"Launch notify",email,message:"Wants to be notified when the site launches.",status:"open",created:Date.now()}); }catch(_){}
+  toast("Thanks — we'll email you at launch!"); $("#maint-email").value="";
+}
+
 registerRoute("home",renderHome);
 registerRoute("",renderHome);
 function renderHome(){

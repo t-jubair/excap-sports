@@ -114,7 +114,7 @@ function renderMaintenance(){
       </div>`:""}
     </div>
 
-    <div class="maint-credit">Played at the ${esc(s.venue||"SCPSC field")} · Developed by ${esc(cfg.developer.name)}</div>
+    
   </div>`+footerHTML();
   const reg=$("#maint-cd-reg"); if(reg && phase!=="closed"){ registerCountdown(reg, phase==="before"?s.regOpen:s.regDeadline); }
   const mm=$("#maint-cd-match"); if(mm){ registerCountdown(mm, s.tournamentDate); }

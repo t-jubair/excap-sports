@@ -5,10 +5,9 @@
    ============================================================ */
    const LOGO_SLOTS=[
     {key:"excap",name:"EX-CAP",sub:"Main organizer"},
-    {key:"scpsc",name:"SCPSC",sub:"Institution"},
+    {key:"tournament",name:"Tournament",sub:"Event logo"},
+    {key:"scpsc",name:"SCPSC",sub:"Venue / institution"},
     {key:"business",name:"Business & Career",sub:"Supporting club"},
-    {key:"it",name:"IT Club",sub:"Supporting club"},
-    {key:"cyber",name:"Cyber Hub",sub:"Supporting club"},
     {key:"sports",name:"Sports Club",sub:"Supporting club"}
   ];
   let adminTab="dashboard", regFilter="all";
@@ -145,7 +144,47 @@
     showModal(`<h3>${r.id}</h3><p>${r.type} registration · ${r.status}</p>
       ${rows.map(([k,v])=>`<div class="rv" style="padding:8px 0"><span style="text-transform:capitalize">${esc(k)}</span><b style="max-width:60%">${esc(String(v))}</b></div>`).join("")}
       ${r.payment?.shot?`<img src="${r.payment.shot}" style="margin-top:12px;border-radius:10px;border:1px solid var(--line)">`:""}
-      <div class="form-actions">${r.status!=="approved"?`<button class="btn btn-pitch" onclick="closeModal();approveReg('${r.id}')">Approve & notify</button>`:"<span></span>"}${r.type==="team"?`<button class="btn btn-line" onclick="passesModal('${r.id}')">QR passes</button>`:""}<button class="btn btn-ghost" onclick="closeModal()">Close</button></div>`);
+      <div class="form-actions">${r.status!=="approved"?`<button class="btn btn-pitch" onclick="closeModal();approveReg('${r.id}')">Approve & notify</button>`:"<span></span>"}<button class="btn btn-line" onclick="editReg('${r.id}')">✎ Edit</button>${r.type==="team"?`<button class="btn btn-line" onclick="passesModal('${r.id}')">QR passes</button>`:""}<button class="btn btn-ghost" onclick="closeModal()">Close</button></div>`);
+  }
+
+  /* ---- full registration editor (works for every type + all member-filled fields) ---- */
+  const FIELD_LABELS={teamName:"Team name",shortName:"Short name",category:"Category",batch:"Batch",slogan:"Slogan",captainName:"Captain name",captainPhone:"Captain phone",viceName:"Vice-captain",name:"Full name",phone:"Phone",email:"Email",class:"Class / batch",roll:"Roll / ID",institution:"Institution",relation:"Relation",organization:"Organization",inviteCode:"Invite code",teamRef:"Team",role:"Preferred role",zone:"Zone",availability:"Availability",experience:"Experience",tshirt:"T-shirt size",emergency:"Emergency contact",address:"Address",note:"Note",reason:"Reason"};
+  function flabel(k){ return FIELD_LABELS[k]||k.replace(/([A-Z])/g," $1").replace(/^./,c=>c.toUpperCase()); }
+  function editReg(id){
+    const r=App.regs.find(x=>x.id===id); if(!r)return; const d=r.data||{};
+    const skip=["photo","logo"];
+    const keys=Object.keys(d).filter(k=>!skip.includes(k));
+    const fieldHTML=keys.map(k=>{
+      const v=d[k]==null?"":d[k];
+      const long=String(v).length>48||/slogan|address|note|reason|message|experience|availability/i.test(k);
+      return `<label class="el"><span>${esc(flabel(k))}</span>${long
+        ?`<textarea data-dk="${esc(k)}" rows="2">${esc(String(v))}</textarea>`
+        :`<input data-dk="${esc(k)}" value="${esc(String(v))}">`}</label>`;
+    }).join("");
+    const meta=`<label class="el"><span>Contact phone</span><input id="er-contact" value="${esc(r.contact||"")}"></label>
+      ${r.captainEmail!==undefined?`<label class="el"><span>Captain email</span><input id="er-cemail" value="${esc(r.captainEmail||"")}"></label>`:""}
+      <label class="el"><span>Status</span><select id="er-status">${["pending","approved","rejected","waitlist"].map(st=>`<option ${r.status===st?"selected":""}>${st}</option>`).join("")}</select></label>`;
+    let squad="";
+    if(r.type==="team"){
+      squad=`<div class="er-sec">Players (${(r.players||[]).length})</div>`+(r.players||[]).map((p,i)=>
+        `<div class="er-row"><input data-pk="${i}" data-f="name" value="${esc(p.name||"")}" placeholder="Player ${i+1} name"><input data-pk="${i}" data-f="phone" value="${esc(p.phone||"")}" placeholder="Phone"></div>`).join("");
+      if((r.guests||[]).length) squad+=`<div class="er-sec">Guests (${r.guests.length})</div>`+(r.guests||[]).map((g,i)=>
+        `<div class="er-row"><input data-gk="${i}" data-f="name" value="${esc(g.name||"")}" placeholder="Guest ${i+1} name"><input data-gk="${i}" data-f="phone" value="${esc(g.phone||"")}" placeholder="Phone"></div>`).join("");
+    }
+    showModal(`<h3>Edit ${r.id}</h3><p style="text-transform:capitalize">${esc(r.type)} registration · all member-filled fields are editable</p>
+      <div class="er-grid">${fieldHTML}${meta}</div>${squad}
+      <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveRegEdit('${r.id}')">Save changes</button></div>`,"wide");
+  }
+  async function saveRegEdit(id){
+    const r=App.regs.find(x=>x.id===id); if(!r)return;
+    document.querySelectorAll("#modal [data-dk]").forEach(el=>{ r.data[el.getAttribute("data-dk")]=el.value; });
+    const c=$("#er-contact"); if(c) r.contact=c.value;
+    const ce=$("#er-cemail"); if(ce) r.captainEmail=ce.value;
+    const st=$("#er-status"); if(st) r.status=st.value;
+    if(r.players) document.querySelectorAll("#modal [data-pk]").forEach(el=>{ const i=+el.getAttribute("data-pk"); r.players[i]=r.players[i]||{}; r.players[i][el.getAttribute("data-f")]=el.value; });
+    if(r.guests) document.querySelectorAll("#modal [data-gk]").forEach(el=>{ const i=+el.getAttribute("data-gk"); r.guests[i]=r.guests[i]||{}; r.guests[i][el.getAttribute("data-f")]=el.value; });
+    try{ await Store.saveReg(r); await Store.logAction("Edited registration", r.id+" — "+(r.data.teamName||r.data.name||r.type)); toast("Registration updated"); closeModal(); renderAdmin(); }
+    catch(e){ toast("Could not save: "+(e.message||"error"),"err"); }
   }
   function passesModal(id){
     const r=App.regs.find(x=>x.id===id); if(!r)return;
@@ -193,16 +232,52 @@
   
   /* ---------- branding & logos ---------- */
   function adminBranding(){
-    $("#admin-body").innerHTML=`<div class="panel"><h3>Logos</h3><p class="ph-help">Upload or replace any logo. Changes apply instantly across the site, footer, team cards and passes. PNG with transparency works best.</p>
-      <div class="logo-manager">${LOGO_SLOTS.map(s=>`<div class="logo-slot">
+    const baseSlots=LOGO_SLOTS;
+    const clubSlots=getClubs().filter(c=>!baseSlots.some(s=>s.key===c.key)).map(c=>({key:c.key,name:c.name,sub:"Club logo"}));
+    const slots=baseSlots.concat(clubSlots);
+    $("#admin-body").innerHTML=`<div class="panel"><h3>Logos</h3><p class="ph-help">Upload or replace any logo — SCPSC, EX-CAP, the tournament logo and each club. Changes apply instantly across the site, footer, maintenance page, team cards and passes. PNG with transparency works best; images are auto-compressed so uploads never fail.</p>
+      <div class="logo-manager">${slots.map(s=>`<div class="logo-slot">
         <div class="box">${App.logos[s.key]?`<img src="${App.logos[s.key]}">`:`<span class="ph2">No logo</span>`}</div>
         <b>${esc(s.name)}</b><span>${esc(s.sub)}</span>
         <div class="row2"><button class="btn btn-sm btn-primary" style="flex:1" onclick="$('#lf-${s.key}').click()">Upload</button>${App.logos[s.key]?`<button class="btn btn-sm btn-line" onclick="removeLogoSlot('${s.key}')">Remove</button>`:""}</div>
         <input id="lf-${s.key}" type="file" accept="image/*" class="hidden" onchange="setLogoSlot(event,'${s.key}')"></div>`).join("")}</div></div>
+
+      <div class="panel"><h3>Affiliated clubs</h3><p class="ph-help">These appear on the home page and the maintenance page (not in the footer). Upload each club's logo in the Logos section above — the slot appears automatically for every club here.</p>
+        <div id="club-editor">${getClubs().map((c,i)=>clubEditRow(c,i)).join("")}</div>
+        <div class="row2" style="margin-top:6px"><button class="btn btn-sm btn-line" onclick="addClub()">+ Add club</button><button class="btn btn-sm btn-primary" onclick="saveClubs()">Save clubs</button></div>
+      </div>
+
       <div class="panel"><h3>Colours</h3><p class="ph-help">Primary brand gradient used across the site.</p>
         <div class="grid2" style="max-width:420px"><div><label class="fl">Purple</label><div class="swatch"><input type="color" id="b-purple" value="${App.settings.brand?.purple||cfg.brand.purple}"></div></div>
         <div><label class="fl">Magenta</label><div class="swatch"><input type="color" id="b-magenta" value="${App.settings.brand?.magenta||cfg.brand.magenta}"></div></div></div>
         <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="saveColors()">Apply colours</button></div>`;
+  }
+  function clubEditRow(c,i){
+    return `<div class="club-edit" data-ci="${i}">
+      <label class="el"><span class="ck">Club name</span><input data-cf="name" value="${esc(c.name||"")}"></label>
+      <label class="el"><span class="ck">Role on match day</span><input data-cf="role" value="${esc(c.role||"")}"></label>
+      <button class="btn btn-sm btn-line" onclick="removeClub(${i})" title="Remove">✕</button>
+      <input type="hidden" data-cf="key" value="${esc(c.key||"")}"></div>`;
+  }
+  function readClubs(){
+    return [...document.querySelectorAll("#club-editor .club-edit")].map(row=>{
+      const get=f=>{const el=row.querySelector(`[data-cf="${f}"]`);return el?el.value.trim():"";};
+      let key=get("key")||get("name").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||("club"+Date.now().toString(36));
+      return {key,name:get("name"),role:get("role")};
+    }).filter(c=>c.name);
+  }
+  function addClub(){
+    const cur=readClubs(); cur.push({key:"club"+Date.now().toString(36),name:"",role:""});
+    App.settings.clubs=cur; const box=$("#club-editor"); box.innerHTML=cur.map((c,i)=>clubEditRow(c,i)).join("");
+  }
+  function removeClub(i){
+    const cur=readClubs(); cur.splice(i,1); App.settings.clubs=cur;
+    $("#club-editor").innerHTML=cur.map((c,i)=>clubEditRow(c,i)).join("");
+  }
+  async function saveClubs(){
+    const clubs=readClubs(); App.settings.clubs=clubs;
+    try{ await Store.saveSettings({clubs}); await Store.logAction("Updated affiliated clubs"); toast("Clubs saved"); adminBranding(); }
+    catch(e){ toast("Could not save clubs","err"); }
   }
   /* resize + compress an image file to a safe data URL (keeps Firestore docs small) */
   function processImage(file, maxDim, cb){
@@ -290,7 +365,22 @@
       ${field("set-pvkey","Preview key",{val:s.previewKey||"",help:"Share this so others can preview before launch (see preview link below)."})}
       <div class="note-box" style="max-width:none;margin-top:10px"><span class="i">🔗</span><div>Preview link to share:<br><code style="word-break:break-all">${esc((typeof location!=="undefined"?location.origin:"https://sports.excapscpsc.com"))}/?preview=${encodeURIComponent(s.previewKey||"excap-preview")}</code></div></div>
       <button class="btn btn-primary" style="margin-top:14px" onclick="saveMaint()">Save site status</button>
+    </div>
+
+    <div class="panel" style="max-width:620px">
+      <h3>Emergency contact</h3>
+      <p class="ph-help">Shown in the bar at the top of every page so anyone who hits a problem during registration can reach a person directly.</p>
+      ${(()=>{const e=(App.settings.emergency||cfg.emergency||{});return `
+      <div class="grid2"><div>${field("em-name","Name",{val:e.name||""})}</div><div>${field("em-role","Role / title",{val:e.role||""})}</div></div>
+      <div class="grid2"><div>${field("em-phone","Phone",{val:e.phone||""})}</div><div>${field("em-email","Email",{val:e.email||""})}</div></div>`;})()}
+      <button class="btn btn-primary" style="margin-top:14px" onclick="saveEmergency()">Save emergency contact</button>
     </div>`;
+  }
+  async function saveEmergency(){
+    const emergency={ name:val("em-name"), role:val("em-role"), phone:val("em-phone"), email:val("em-email") };
+    App.settings.emergency=emergency; try{ cfg.emergency=emergency; }catch(_){}
+    await Store.saveSettings({emergency}); await Store.logAction("Updated emergency contact");
+    toast("Emergency contact saved"); renderAdmin();
   }
   async function saveMaint(){
     const upd={ maintenance: $("#set-maint").checked, previewKey: val("set-pvkey")||"excap-preview" };

@@ -59,21 +59,33 @@ const REG_TYPES=[
    MAINTENANCE / COMING-SOON HOLDING PAGE (public, while building)
    ============================================================ */
 function renderMaintenance(){
-  const s=App.settings, c=cfg.contact;
-  $("#app").innerHTML=`
+  const s=App.settings, c=cfg.contact, clubs=getClubs();
+  const phase=regPhase();
+  $("#app").innerHTML=emergencyBar()+`
   <div class="maint">
     <div class="maint-bg" aria-hidden="true">${pitchLines()}</div>
     <span class="maint-ball b1">⚽</span><span class="maint-ball b2">⚽</span>
     <div class="maint-card">
-      <div class="maint-logo">${logoImg("excap","EX")}</div>
+      <div class="maint-logos">
+        <span class="maint-logo">${logoImg("scpsc","SC")}</span>
+        <span class="maint-logo big">${logoImg("tournament","FT")}</span>
+        <span class="maint-logo">${logoImg("excap","EX")}</span>
+      </div>
       <div class="maint-badge"><span class="md-dot"></span> Getting the pitch ready</div>
       <h1>The EX-CAP field is<br><span class="g">almost ready</span></h1>
       <p class="maint-lead">We're putting the final touches on the official ${esc(s.tournamentName||"EX-CAP Football Tournament")} ${esc(s.edition||"")} site — registrations, live scoreboard, fixtures and check-in are warming up. Kick-off soon.</p>
 
-      <div class="maint-cd" id="maint-cd">
-        ${["Days","Hours","Min","Sec"].map(k=>`<div class="cd-cell"><div class="v num">--</div><div class="k">${k}</div></div>`).join("")}
+      <div class="maint-counters">
+        <div class="mc-block">
+          <div class="mc-label">${phase==="before"?"Registration opens in":phase==="open"?"Registration closes in":"Registration closed"}</div>
+          <div class="maint-cd ${phase==="closed"?"is-off":""}" id="maint-cd-reg">${["Days","Hrs","Min","Sec"].map(k=>`<div class="cd-cell"><div class="v num">--</div><div class="k">${k}</div></div>`).join("")}</div>
+        </div>
+        <div class="mc-block">
+          <div class="mc-label">Match day kicks off in</div>
+          <div class="maint-cd" id="maint-cd-match">${["Days","Hrs","Min","Sec"].map(k=>`<div class="cd-cell"><div class="v num">--</div><div class="k">${k}</div></div>`).join("")}</div>
+        </div>
       </div>
-      <div class="maint-cap">Launching ahead of kick-off · ${fmtDate(s.tournamentDate)} · ${esc(s.venue||"SCPSC field")}</div>
+      <div class="maint-cap">${fmtDate(s.tournamentDate)} · ${esc(s.venue||"SCPSC field")}</div>
 
       <form class="maint-notify" onsubmit="maintNotify(event)">
         <input id="maint-email" type="email" placeholder="Email me when it's live" autocomplete="email">
@@ -90,9 +102,22 @@ function renderMaintenance(){
         <a class="maint-link" href="https://excapscpsc.com" target="_blank" rel="noopener">EX-CAP main site ↗</a>
       </div>
     </div>
-    <div class="maint-credit">Organized by EX-CAP · Alumni Association of SCPSC · Developed by ${esc(cfg.developer.name)}</div>
+
+    <div class="maint-eco">
+      <div class="me-block">
+        <div class="me-head">Organized by</div>
+        <div class="me-org"><span class="me-logo">${logoImg("excap","EX")}</span><div><b>EX-CAP</b><span>Alumni Association of SCPSC</span></div></div>
+      </div>
+      ${clubs.length?`<div class="me-block">
+        <div class="me-head">Supported by</div>
+        <div class="me-clubs">${clubs.map(cl=>`<div class="me-club"><span class="me-logo sm">${logoImg(cl.key,initials(cl.name))}</span><div><b>${esc(cl.name)}</b><span>${esc(cl.role||"")}</span></div></div>`).join("")}</div>
+      </div>`:""}
+    </div>
+
+    <div class="maint-credit">Played at the ${esc(s.venue||"SCPSC field")} · Developed by ${esc(cfg.developer.name)}</div>
   </div>`+footerHTML();
-  const cd=$("#maint-cd"); if(cd){ registerCountdown(cd, s.tournamentDate); }
+  const reg=$("#maint-cd-reg"); if(reg && phase!=="closed"){ registerCountdown(reg, phase==="before"?s.regOpen:s.regDeadline); }
+  const mm=$("#maint-cd-match"); if(mm){ registerCountdown(mm, s.tournamentDate); }
 }
 function maintNotify(e){
   e.preventDefault();
@@ -107,7 +132,7 @@ registerRoute("",renderHome);
 function renderHome(){
   const s=App.settings, max=s.maxTeams, used=slotsUsed(), remaining=Math.max(0,max-used), pct=Math.min(100,Math.round(used/max*100));
   const confirmed=confirmedTeams();
-  const stats=[[max,"Teams"],[max*s.playersPerTeam,"Players"],[2,"Fields"],[31,"Matches"],[20,"Min / match"],[4,"Clubs"]];
+  const stats=[[max,"Teams"],[max*s.playersPerTeam,"Players"],[2,"Fields"],[31,"Matches"],[20,"Min / match"],[getClubs().length,"Clubs"]];
   const phase=regPhase();
   const reg=REG_TYPES;
   $("#app").innerHTML=anncHTML()+navHTML("home")+`
@@ -196,9 +221,9 @@ function renderHome(){
       <div class="eco-row">
         <span class="eco-tag clubs">Supporting clubs</span>
         <div class="eco-clubs">
-          ${[["business","Business &amp; Career Club","Sponsorship &amp; operations"],["it","IT Club","Platform &amp; technology"],["cyber","Cyber Hub","Security &amp; media"],["sports","Sports Club","On-field management"]].map(([k,n,role])=>`
-            <div class="eco-club reveal"><div class="eco-logo sm">${logoImg(k,initials(n.replace(/&amp;/g,'&')))}</div>
-              <div class="eco-info"><b>${n}</b><span>${role}</span></div></div>`).join("")}
+          ${getClubs().map(cl=>`
+            <div class="eco-club reveal"><div class="eco-logo sm">${logoImg(cl.key,initials(cl.name))}</div>
+              <div class="eco-info"><b>${esc(cl.name)}</b><span>${esc(cl.role||"")}</span></div></div>`).join("")}
         </div>
       </div>
     </div>

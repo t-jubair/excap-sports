@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,6 +30,10 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@2.0.4/qrcode.js"></script>
   <!-- QR camera scanner (admin check-in) -->
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <link rel="manifest" href="assets/manifest.webmanifest">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <meta name="theme-color" content="#0a0d1c">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
 </head>
 <body>
   <div id="app"><!-- app renders here --></div>
@@ -47,5 +52,17 @@
   <script src="js/public.js"></script>
   <script src="js/scoreboard.js"></script>
   <script src="js/admin.js"></script>
+  <script>
+    /* PWA: capture install prompt + register service worker */
+    window.__pwaInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      window.__pwaInstallPrompt = e;
+      window.dispatchEvent(new Event('pwaInstallReady'));
+    });
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+    }
+  </script>
 </body>
 </html>

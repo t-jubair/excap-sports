@@ -1,0 +1,14 @@
+{
+  "name": "EX-CAP Football Tournament",
+  "short_name": "EX-CAP FT",
+  "description": "Registration, live scoreboard and check-in for the EX-CAP football tournament.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0d1c",
+  "theme_color": "#7c3aed",
+  "icons": [
+    { "src": "/assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

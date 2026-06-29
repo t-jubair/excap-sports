@@ -18,18 +18,41 @@
    function teamHue(n){ let h=0; for(const c of (n||"x")) h=(h*31+c.charCodeAt(0))%360; return h; }
    
    function toast(msg,kind=""){ const t=$("#toast"); $("#toast-msg").textContent=msg; t.className="toast show "+kind; clearTimeout(t._t); t._t=setTimeout(()=>t.className="toast "+kind,2800); }
-   function showModal(html){ const d=document.createElement("div"); d.className="modal-bg"; d.id="modal"; d.onclick=e=>{if(e.target===d)closeModal();}; d.innerHTML=`<div class="modal">${html}</div>`; document.body.appendChild(d); }
+   function showModal(html,cls=""){ const d=document.createElement("div"); d.className="modal-bg"; d.id="modal"; d.onclick=e=>{if(e.target===d)closeModal();}; d.innerHTML=`<div class="modal ${cls}">${html}</div>`; document.body.appendChild(d); }
    function closeModal(){ const m=$("#modal"); m&&m.remove(); }
    
    /* real scannable QR (qr.js); falls back to decorative if lib missing */
    function qrSvg(seed){ return (window.QR&&QR.svg)?QR.svg(seed):`<svg viewBox="0 0 1 1"></svg>`; }
    
-   function logoImg(key,fallback,cls=""){ return App.logos[key]?`<img class="${cls}" src="${App.logos[key]}" alt="">`:`<span class="${cls}">${esc(fallback)}</span>`; }
+   const LOGO_DEFAULTS={ tournament:"assets/logo-tournament.png", excap:"assets/logo-excap.png", scpsc:"assets/logo-scpsc.png" };
+   function logoImg(key,fallback,cls=""){
+     const up=App.logos&&App.logos[key];
+     if(up) return `<img class="${cls}" src="${up}" alt="">`;
+     const def=LOGO_DEFAULTS[key];
+     if(def) return `<img class="${cls}" src="${def}" alt="" data-fb="${esc(fallback)}" data-cls="${esc(cls)}" onerror="logoFallback(this)">`;
+     return `<span class="${cls} lf">${esc(fallback)}</span>`;
+   }
+   function logoFallback(img){ try{ const s=document.createElement("span"); s.className=(img.getAttribute("data-cls")||"")+" lf"; s.textContent=img.getAttribute("data-fb")||""; img.replaceWith(s); }catch(e){} }
    
    /* ---- derived data ---- */
    /* team data: use full registrations when available (admin), else the
       PII-free public mirror (public visitors). */
    function allTeams(){ return (App.isAdmin && App.regs && App.regs.length) ? App.regs.filter(r=>r.type==="team") : (App.publicTeams||[]); }
+   /* affiliated clubs (admin-editable via settings.clubs) */
+   function getClubs(){ return (App.settings && App.settings.clubs && App.settings.clubs.length) ? App.settings.clubs : (cfg.settings.clubs||[]); }
+   /* emergency contact bar — shown at the top of every page */
+   function emergencyBar(){
+     const e=(App.settings && App.settings.emergency) || cfg.emergency || {}; if(!e.phone && !e.email) return "";
+     const tel=(e.phone||"").replace(/[^\d+]/g,"");
+     return `<div class="emerg-bar"><div class="wrap emerg-in">
+       <span class="emerg-tag">⚠ Registration help</span>
+       <span class="emerg-name"><b>${esc(e.name||"")}</b>${e.role?` · <span class="emerg-role">${esc(e.role)}</span>`:""}</span>
+       <span class="emerg-links">
+         ${e.phone?`<a href="tel:${esc(tel)}" class="emerg-link">📞 ${esc(e.phone)}</a>`:""}
+         ${e.email?`<a href="mailto:${esc(e.email)}" class="emerg-link">✉ ${esc(e.email)}</a>`:""}
+       </span>
+     </div></div>`;
+   }
    function findTeam(id){ return (App.regs||[]).find(r=>r.id===id) || (App.publicTeams||[]).find(r=>r.id===id) || null; }
    function teamRegs(){ return allTeams(); }
    function confirmedTeams(){ return allTeams().filter(r=>r.status==="approved"); }
@@ -49,21 +72,21 @@
       ============================================================ */
    const NAV=[["home","Home"],["live","Live"],["fixtures","Fixtures"],["teams","Teams"],["register","Register"],["help","Help"]];
    function navHTML(active){
-     return `
+     return emergencyBar()+`
      <header class="nav"><div class="wrap nav-in">
-       <div class="brand" onclick="go('home')"><div class="mark">${logoImg("excap","EX")}</div>
+       <div class="brand" onclick="go('home')"><div class="mark">${logoImg("tournament","EX")}</div>
          <div><b>EX-CAP</b><span>SCPSC Alumni Football</span></div></div>
        <nav class="links">${NAV.map(([h,l])=>`<a class="${active===h?'active':''}" onclick="go('${h}')">${l}</a>`).join("")}</nav>
        <div class="nav-cta">
          <button class="btn btn-line" onclick="go('teams')">View teams</button>
-         <button class="btn btn-primary" onclick="go('register-team')">Register now</button>
+         <button class="btn btn-primary" onclick="go('register')">Register now</button>
        </div>
        <button class="hamb" aria-label="Menu" onclick="$('#drawer').classList.add('open')">☰</button>
      </div></header>
      <div id="drawer" class="drawer">
        <button class="close" aria-label="Close" onclick="$('#drawer').classList.remove('open')">✕</button>
        ${NAV.map(([h,l])=>`<a onclick="$('#drawer').classList.remove('open');go('${h}')">${l}</a>`).join("")}
-       <a onclick="$('#drawer').classList.remove('open');go('register-team')" style="color:var(--magenta)">Register now →</a>
+       <a onclick="$('#drawer').classList.remove('open');go('register')" style="color:var(--magenta)">Register now →</a>
      </div>`;
    }
    function anncHTML(){
@@ -145,13 +168,25 @@
      const r=currentRoute();
      // public sees the holding page; admins (#admin / logged-in) and preview links pass through
      if(maintenanceActive() && !canBypassMaintenance() && r!=="admin" && r!=="unlock"){
-       renderMaintenance(); return;
+       renderMaintenance(); updateMaintBadge(); return;
      }
      const fn=Routes[r]||Routes.home;
      await fn();
      observeReveal(); animateCounts();
+     updateMaintBadge();
    }
    window.addEventListener("hashchange",route);
+
+   /* floating badge shown to admins/preview while the site is in maintenance */
+   function updateMaintBadge(){
+     let b=document.getElementById("maint-badge");
+     const show = maintenanceActive() && canBypassMaintenance() && currentRoute()!=="admin";
+     if(show){
+       if(!b){ b=document.createElement("div"); b.id="maint-badge"; document.body.appendChild(b); }
+       const who=App.authed||App.isAdmin?"Organizer view":"Preview";
+       b.innerHTML=`<span class="mb-dot"></span> Maintenance mode · <b>${who}</b><span class="mb-sub">Public sees the coming-soon page</span>`;
+     } else if(b){ b.remove(); }
+   }
    
    /* preview unlock: #unlock  (enter the key) OR ?preview=KEY in the URL */
    function applyPreviewParam(){

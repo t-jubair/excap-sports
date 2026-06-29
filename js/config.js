@@ -60,7 +60,21 @@
         link:"#register-team", linkLabel:"Register", active:true, urgent:false
       },
       volunteerRoles: ["Registration Desk","Field Marshal","Logistics","Media & Photography","First Aid","Hospitality","Crowd & Security","Refreshments","Scoreboard","Anchor / MC"],
-      volunteerZones: ["Main Gate","Field A","Field B","Registration Tent","Media Booth","Refreshment Area","Parking","First-Aid Point"]
+      volunteerZones: ["Main Gate","Field A","Field B","Registration Tent","Media Booth","Refreshment Area","Parking","First-Aid Point"],
+
+      /* affiliated clubs (admin-editable; logos uploaded per key in Branding) */
+      clubs: [
+        { key:"business", name:"Business & Career Club", role:"Sponsorship & operations" },
+        { key:"sports",   name:"Sports Club",            role:"On-field management" }
+      ]
+    },
+
+    /* ---- Emergency contact — shown at the top of every page ---- */
+    emergency: {
+      name:  "Talha Jubair",
+      role:  "Assistant Secretary, Technology — EX-CAP",
+      phone: "01711988862",
+      email: "me.talhajubair@gmail.com"
     },
   
     /* ---- Brand colours (admin can change live) ---- */

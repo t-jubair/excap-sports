@@ -7,7 +7,7 @@
 
    /* ---- state shared across modules ---- */
    const App = { settings:null, logos:{}, regs:[] };
-   
+
    /* ---- dom + format helpers ---- */
    const $  = (s,el=document)=>el.querySelector(s);
    const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
@@ -16,22 +16,25 @@
    function fmtDateTime(ts){ return new Date(ts).toLocaleString(undefined,{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}); }
    function initials(n){ return (n||"?").split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase(); }
    function teamHue(n){ let h=0; for(const c of (n||"x")) h=(h*31+c.charCodeAt(0))%360; return h; }
-   
+
    function toast(msg,kind=""){ const t=$("#toast"); $("#toast-msg").textContent=msg; t.className="toast show "+kind; clearTimeout(t._t); t._t=setTimeout(()=>t.className="toast "+kind,2800); }
    function showModal(html,cls=""){ const d=document.createElement("div"); d.className="modal-bg"; d.id="modal"; d.onclick=e=>{if(e.target===d)closeModal();}; d.innerHTML=`<div class="modal ${cls}">${html}</div>`; document.body.appendChild(d); }
    function closeModal(){ const m=$("#modal"); m&&m.remove(); }
-   
+
    /* real scannable QR (qr.js); falls back to decorative if lib missing */
    function qrSvg(seed){ return (window.QR&&QR.svg)?QR.svg(seed):`<svg viewBox="0 0 1 1"></svg>`; }
-   
+
+   /* logo lookup order: admin-uploaded -> file in /assets -> text initials */
    const LOGO_DEFAULTS={ tournament:"assets/logo-tournament.png", excap:"assets/logo-excap.png", scpsc:"assets/logo-scpsc.png" };
    function logoImg(key,fallback,cls=""){
-    const up=App.logos&&App.logos[key];
-    if(up) return `<img class="${cls}" src="${up}" alt="">`;
-    return `<span class="${cls} lf">${esc(fallback)}</span>`;
-  }
+     const up=App.logos&&App.logos[key];
+     if(up) return `<img class="${cls}" src="${up}" alt="">`;
+     const def=LOGO_DEFAULTS[key];
+     if(def) return `<img class="${cls}" src="${def}" alt="" data-fb="${esc(fallback)}" data-cls="${esc(cls)}" onerror="logoFallback(this)">`;
+     return `<span class="${cls} lf">${esc(fallback)}</span>`;
+   }
    function logoFallback(img){ try{ const s=document.createElement("span"); s.className=(img.getAttribute("data-cls")||"")+" lf"; s.textContent=img.getAttribute("data-fb")||""; img.replaceWith(s); }catch(e){} }
-   
+
    /* ---- derived data ---- */
    /* team data: use full registrations when available (admin), else the
       PII-free public mirror (public visitors). */
@@ -69,7 +72,7 @@
    function teamRegs(){ return allTeams(); }
    function confirmedTeams(){ return allTeams().filter(r=>r.status==="approved"); }
    function slotsUsed(){ return allTeams().filter(r=>["approved","review","submitted"].includes(r.status)).length; }
-   
+
    /* ---- apply brand colours ---- */
    function applyBrand(b){
      const root=document.documentElement.style;
@@ -78,7 +81,7 @@
      root.setProperty("--grad-soft",`linear-gradient(120deg,${hexA(b.purple,.18)},${hexA(b.magenta,.18)})`);
    }
    function hexA(hex,a){ const m=hex.replace("#",""); const r=parseInt(m.slice(0,2),16),g=parseInt(m.slice(2,4),16),bl=parseInt(m.slice(4,6),16); return `rgba(${r},${g},${bl},${a})`; }
-   
+
    /* ============================================================
       NAV + DRAWER
       ============================================================ */
@@ -107,8 +110,8 @@
      return `<div id="annc" class="${a.urgent?'urgent':''}"><span class="dot"></span><span>${esc(a.text)}</span>
        ${a.link?`<a onclick="${a.link.startsWith('#')?`go('${a.link.slice(1)}')`:`window.open('${esc(a.link)}','_blank')`}">${esc(a.linkLabel||'More')} →</a>`:""}</div>`;
    }
-   
-   
+
+
    /* ============================================================
       PITCH LINES SVG (hero + footer ambience)
       ============================================================ */
@@ -123,7 +126,7 @@
          <circle cx="600" cy="300" r="3" fill="rgba(255,255,255,.2)" stroke="none"/>
        </g></svg>`;
    }
-   
+
    /* ============================================================
       COUNTDOWN ENGINE (multiple targets) + count-up + reveal
       ============================================================ */
@@ -142,7 +145,7 @@
        if(c.target-now<=0 && !c.fired){ c.fired=true; c.onZero&&c.onZero(c.el); }
      }
    },1000);
-   
+
    function observeReveal(){
      const els=$$(".reveal:not(.in)");
      if(!("IntersectionObserver" in window)){ els.forEach(el=>el.classList.add("in")); return; }
@@ -162,21 +165,22 @@
      const dur=1100,t0=performance.now();
      (function f(t){const p=Math.min(1,(t-t0)/dur);el.textContent=Math.round(to*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f);})(t0);
    }
-   
+
    /* ============================================================
       ROUTER
       ============================================================ */
    const Routes={};
    function registerRoute(name,fn){ Routes[name]=fn; }
-   function go(hash){ if(location.hash==="#"+hash) route(); else location.hash=hash; window.scrollTo(0,0); }
+   function go(hash){ if(location.hash==="#"+hash) route(); else location.hash=hash; }
    function currentRoute(){ return location.hash.replace(/^#/,"").split("?")[0]; }
-   
+
    /* ---- maintenance gate ---- */
    function maintenanceActive(){ return !!(App.settings && App.settings.maintenance===true); }
    function previewUnlocked(){ try{ return localStorage.getItem("excap_preview")==="1"; }catch(e){ return false; } }
    function canBypassMaintenance(){ return !!(App.authed || App.isAdmin || previewUnlocked()); }
-   
+
    async function route(){
+     window.scrollTo(0,0);
      clearCountdowns();
      const r=currentRoute();
      // public sees the holding page; admins (#admin / logged-in) and preview links pass through
@@ -200,7 +204,7 @@
        b.innerHTML=`<span class="mb-dot"></span> Maintenance mode · <b>${who}</b><span class="mb-sub">Public sees the coming-soon page</span>`;
      } else if(b){ b.remove(); }
    }
-   
+
    /* preview unlock: #unlock  (enter the key) OR ?preview=KEY in the URL */
    function applyPreviewParam(){
      try{
@@ -229,11 +233,14 @@
      } else toast("Wrong key","err");
    }
    function lockPreview(){ try{ localStorage.removeItem("excap_preview"); }catch(e){} location.hash="home"; route(); }
-   
+
    /* ============================================================
       BOOT
       ============================================================ */
    async function boot(){
+     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+     window.scrollTo(0,0);
+
      // 1) INSTANT first paint from config defaults (no waiting on the network)
      App.settings = App.settings || {...cfg.settings};
      App.logos    = App.logos || {};
@@ -243,14 +250,16 @@
      applyBrand((App.settings && App.settings.brand) || cfg.brand);
      route();                                  // page is visible immediately
 
-     // 2) Hydrate from the backend, then refresh
+     // 2) Hydrate from the backend, then re-render only if data actually changed
      try{ await Store.ready; }catch(e){}
+     const before = JSON.stringify({s:App.settings, l:App.logos, t:App.publicTeams});
      try{ App.settings = await Store.getSettings(); }catch(e){}
      try{ App.logos = await Store.getLogos(); }catch(e){}
      try{ App.publicTeams = await Store.listPublicTeams(); }catch(e){}
+     const after = JSON.stringify({s:App.settings, l:App.logos, t:App.publicTeams});
      applyBrand((App.settings && App.settings.brand) || cfg.brand);
      if(window.Notify && Notify.initEmail) Notify.initEmail();
      if(Store.onAuth) Store.onAuth(u=>{ App.authed=!!u; route(); });
-     route();                                  // re-render with live data
+     if(before !== after) route();             // skip needless re-render (no flash)
    }
    document.addEventListener("DOMContentLoaded",boot);

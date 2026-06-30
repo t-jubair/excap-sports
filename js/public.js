@@ -238,12 +238,12 @@ function renderHome() {
         <div class="eco-node node-org reveal">
           <div class="eco-logo">${logoImg("excap", "EX")}</div>
           <div class="eco-info"><b>EX-CAP</b><span>Alumni Association of SCPSC</span></div>
-          <div class="eco-badge">Hosts &amp; runs the tournament</div>
+          
         </div>
         <div class="eco-venue">📍 Played at the <b>${esc(s.venue || "SCPSC field")}</b></div>
       </div>
 
-      <div class="eco-connector"><span class="dotline"></span><em>powered on match day by</em><span class="dotline"></span></div>
+      <div class="eco-connector"><span class="dotline"></span><em></em><span class="dotline"></span></div>
 
       <div class="eco-row">
         <span class="eco-tag clubs">Supporting clubs</span>

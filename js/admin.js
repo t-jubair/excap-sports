@@ -146,7 +146,7 @@
     // detail rows by type
     let rows;
     if(r.type==="team"){
-      rows=[["Short name",d.shortName],["Category",d.category],["Batch",d.batch],["Slogan",d.slogan],
+      rows=[["Category",d.category],["Batch",d.batch],
         ["Captain",d.captainName],["Captain phone",d.captainPhone],["Vice-captain",d.viceName],["Email",r.captainEmail]];
     } else {
       rows=Object.entries(d).filter(([k])=>!["photo","logo","name"].includes(k)).map(([k,v])=>[flabel(k),v]);
@@ -190,7 +190,7 @@
   }
 
   /* ---- full registration editor (works for every type + all member-filled fields) ---- */
-  const FIELD_LABELS={teamName:"Team name",shortName:"Short name",category:"Category",batch:"Batch",slogan:"Slogan",captainName:"Captain name",captainPhone:"Captain phone",viceName:"Vice-captain",name:"Full name",phone:"Phone",email:"Email",class:"Class / batch",roll:"Roll / ID",institution:"Institution",relation:"Relation",organization:"Organization",inviteCode:"Invite code",teamRef:"Team",role:"Preferred role",zone:"Zone",availability:"Availability",experience:"Experience",tshirt:"T-shirt size",emergency:"Emergency contact",address:"Address",note:"Note",reason:"Reason"};
+  const FIELD_LABELS={teamName:"Team name",category:"Category",batch:"Batch",captainName:"Captain name",captainPhone:"Captain phone",viceName:"Vice-captain",name:"Full name",phone:"Phone",email:"Email",class:"Class / batch",roll:"Roll / ID",institution:"Institution",relation:"Relation",organization:"Organization",inviteCode:"Invite code",teamRef:"Team",role:"Preferred role",zone:"Zone",availability:"Availability",experience:"Experience",tshirt:"T-shirt size",emergency:"Emergency contact",address:"Address",note:"Note",reason:"Reason"};
   function flabel(k){ return FIELD_LABELS[k]||k.replace(/([A-Z])/g," $1").replace(/^./,c=>c.toUpperCase()); }
   function editReg(id){
     const r=App.regs.find(x=>x.id===id); if(!r)return; const d=r.data||{};
@@ -198,7 +198,7 @@
     const keys=Object.keys(d).filter(k=>!skip.includes(k));
     const fieldHTML=keys.map(k=>{
       const v=d[k]==null?"":d[k];
-      const long=String(v).length>48||/slogan|address|note|reason|message|experience|availability/i.test(k);
+      const long=String(v).length>48||/address|note|reason|message|experience|availability/i.test(k);
       return `<label class="el"><span>${esc(flabel(k))}</span>${long
         ?`<textarea data-dk="${esc(k)}" rows="2">${esc(String(v))}</textarea>`
         :`<input data-dk="${esc(k)}" value="${esc(String(v))}">`}</label>`;

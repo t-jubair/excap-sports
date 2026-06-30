@@ -26,12 +26,10 @@
    
    const LOGO_DEFAULTS={ tournament:"assets/logo-tournament.png", excap:"assets/logo-excap.png", scpsc:"assets/logo-scpsc.png" };
    function logoImg(key,fallback,cls=""){
-     const up=App.logos&&App.logos[key];
-     if(up) return `<img class="${cls}" src="${up}" alt="">`;
-     const def=LOGO_DEFAULTS[key];
-     if(def) return `<img class="${cls}" src="${def}" alt="" data-fb="${esc(fallback)}" data-cls="${esc(cls)}" onerror="logoFallback(this)">`;
-     return `<span class="${cls} lf">${esc(fallback)}</span>`;
-   }
+    const up=App.logos&&App.logos[key];
+    if(up) return `<img class="${cls}" src="${up}" alt="">`;
+    return `<span class="${cls} lf">${esc(fallback)}</span>`;
+  }
    function logoFallback(img){ try{ const s=document.createElement("span"); s.className=(img.getAttribute("data-cls")||"")+" lf"; s.textContent=img.getAttribute("data-fb")||""; img.replaceWith(s); }catch(e){} }
    
    /* ---- derived data ---- */

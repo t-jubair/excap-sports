@@ -1,5 +1,5 @@
 /* ============================================================
-   EX-CAP Sports â€” components.css
+   EX-CAP Sports — components.css
    ============================================================ */
 
 /* ---------- buttons ---------- */
@@ -573,7 +573,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
 @media(max-width:560px){.club-edit{grid-template-columns:1fr}}
 
 /* ============================================================
-   EMERGENCY / HELP â€” button, FAB and card modal
+   EMERGENCY / HELP — button, FAB and card modal
    ============================================================ */
 .btn-soft{background:var(--grad-soft);border:1px solid var(--line);color:var(--ink)}
 .btn-soft:hover{border-color:rgba(124,58,237,.5)}
@@ -682,3 +682,17 @@ select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(1
 .hub-status.closed{color:#fca5a5;background:rgba(239,68,68,.14)}
 .hub-card.disabled{opacity:.6}
 .hub-card.disabled:hover{transform:none;border-color:var(--line)}
+
+/* registration form polish — uniform spacing, no overlap */
+.form-shell .fld{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;min-width:0}
+.form-shell .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:0}
+.form-shell .grid2 .fld{margin-bottom:14px}
+.fsec-h{font-family:var(--font-display);font-weight:800;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);margin:20px 0 12px;padding-top:18px;border-top:1px solid var(--line-soft);display:flex;align-items:baseline;gap:10px}
+.fsec-h:first-child{border-top:0;padding-top:0;margin-top:0}
+.fsec-h .fsec-sub{font-family:var(--font-body);font-weight:500;font-size:12px;letter-spacing:0;text-transform:none;color:var(--muted-2)}
+.form-shell .fl{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);margin:0}
+.form-shell .fl .opt{color:var(--muted-2);font-weight:500;text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px}
+.form-shell .fl .req{color:var(--magenta);margin-left:4px}
+.form-shell .help{font-size:11.5px;color:var(--muted-2);margin:0}
+.form-shell input,.form-shell select,.form-shell textarea{width:100%}
+@media(max-width:560px){.form-shell .grid2{grid-template-columns:1fr;gap:0}}

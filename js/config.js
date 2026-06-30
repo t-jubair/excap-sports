@@ -51,6 +51,10 @@
       playersPerTeam: 7,
       guestsPerTeam: 5,
       teamFee: "2500",
+      paymentMode: "offline",          // "offline" (main) — bKash shows a merchant QR
+      bkashQR: "",                     // merchant QR image (base64) — admin uploads in Branding
+      bkashNumber: "01XXX-XXXXXX",
+      regStatus: { team:"open", guest:"open", volunteer:"open" },   // open | paused | closed (admin-controlled per type)
       paymentNumbers: [
         { method:"bKash", number:"01XXX-XXXXXX", type:"Personal" },
         { method:"Nagad", number:"01XXX-XXXXXX", type:"Personal" }

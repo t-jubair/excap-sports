@@ -182,7 +182,8 @@
       <div class="form-actions">
         ${r.status!=="approved"?`<button class="btn btn-pitch" onclick="closeModal();approveReg('${r.id}')">Approve & notify</button>`:""}
         <button class="btn btn-line" onclick="editReg('${r.id}')">✎ Edit all details</button>
-        ${r.type==="team"?`<button class="btn btn-line" onclick="passesModal('${r.id}')">QR passes</button>`:""}
+        <button class="btn btn-line" onclick="passesModal('${r.id}')">QR passes</button>
+        <button class="btn btn-line" onclick="downloadRegPdf('${r.id}')">⤓ PDF</button>
         <button class="btn btn-ghost" onclick="closeModal()">Close</button>
       </div>
     </div>`,"wide");
@@ -229,13 +230,16 @@
   }
   function passesModal(id){
     const r=App.regs.find(x=>x.id===id); if(!r)return;
-    const tile=(code,name,sub)=>`<div class="pass-mini"><div class="qb">${QR.svg(code)}</div><b>${esc(name)}</b><span>${esc(sub)}</span><div style="font-size:9px;color:#888;margin-top:3px">${esc(code)}</div></div>`;
-    let tiles=tile(r.id,r.data.teamName,"Team pass");
-    (r.players||[]).forEach((p,i)=>{ tiles+=tile(r.id+"#P"+(i+1),p.name||("Player "+(i+1)),"Player "+(i+1)); });
-    (r.guests||[]).forEach((g,i)=>{ tiles+=tile(r.id+"#G"+(i+1),g.name||("Guest "+(i+1)),"Guest"); });
-    showModal(`<h3>QR passes — ${esc(r.data.teamName)}</h3><p>Scan these at the gate. Print or show on screen. Each player & guest has a unique code.</p>
+    const who=r.data.teamName||r.data.name||"Registrant";
+    const tile=(code,name,sub)=>`<div class="pass-mini"><div class="qb">${qrSvg(code)}</div><b>${esc(name)}</b><span>${esc(sub)}</span><div style="font-size:9px;color:#888;margin-top:3px">${esc(code)}</div></div>`;
+    let tiles=tile(r.id,who,(r.type||"")+" pass");
+    if(r.type==="team"){
+      (r.players||[]).forEach((p,i)=>{ tiles+=tile(r.id+"#P"+(i+1),p.name||("Player "+(i+1)),p.role||("Player "+(i+1))); });
+      (r.guests||[]).forEach((g,i)=>{ tiles+=tile(r.id+"#G"+(i+1),g.name||("Guest "+(i+1)),"Guest"); });
+    }
+    showModal(`<h3>QR passes — ${esc(who)}</h3><p>Scan these at the gate. Each player & guest has a unique code. Download a printable PDF for the whole registration.</p>
       <div class="pass-print">${tiles}</div>
-      <div class="form-actions"><button class="btn btn-primary" onclick="window.print()">Print</button><button class="btn btn-ghost" onclick="closeModal()">Close</button></div>`);
+      <div class="form-actions"><button class="btn btn-primary" onclick="downloadRegPdf('${r.id}')">⤓ Download PDF</button><button class="btn btn-ghost" onclick="closeModal()">Close</button></div>`,"wide");
   }
   
   /* ---------- payments ---------- */
@@ -415,8 +419,43 @@
       <div class="grid2"><div>${field("em-name","Name",{val:e.name||""})}</div><div>${field("em-role","Role / title",{val:e.role||""})}</div></div>
       <div class="grid2"><div>${field("em-phone","Phone",{val:e.phone||""})}</div><div>${field("em-email","Email",{val:e.email||""})}</div></div>`;})()}
       <button class="btn btn-primary" style="margin-top:14px" onclick="saveEmergency()">Save emergency contact</button>
+    </div>
+
+    <div class="panel" style="max-width:620px">
+      <h3>Registration control</h3>
+      <p class="ph-help">Open, pause or close each registration type. The member site updates instantly — paused/closed types show a notice instead of the form.</p>
+      ${["team","guest","volunteer"].map(t=>{const v=(App.settings.regStatus||cfg.settings.regStatus||{})[t]||"open";
+        return `<div class="regctl"><span class="rc-name">${t}</span><div class="seg">${["open","paused","closed"].map(o=>`<button data-v="${o}" class="${v===o?'on':''}" onclick="setRegStatus('${t}','${o}')">${o}</button>`).join("")}</div></div>`;}).join("")}
+    </div>
+
+    <div class="panel" style="max-width:620px">
+      <h3>Payment — bKash merchant QR</h3>
+      <p class="ph-help">Offline / cash is the main method. For bKash, upload your merchant QR here; it shows on the team payment step. You can change it anytime.</p>
+      <div class="bk-qr-row">
+        <div class="bk-qr-box">${App.settings.bkashQR?`<img src="${App.settings.bkashQR}">`:`<span class="ph2">No QR</span>`}</div>
+        <div>
+          ${field("set-bknum","bKash number",{val:App.settings.bkashNumber||"",ph:"01XXXXXXXXX"})}
+          <div class="row2" style="margin-top:8px"><button class="btn btn-sm btn-primary" onclick="$('#bkash-qr-file').click()">Upload QR</button>${App.settings.bkashQR?`<button class="btn btn-sm btn-line" onclick="removeBkashQR()">Remove</button>`:""}<button class="btn btn-sm btn-line" onclick="saveBkashNum()">Save number</button></div>
+          <input id="bkash-qr-file" type="file" accept="image/*" class="hidden" onchange="setBkashQR(event)">
+        </div>
+      </div>
     </div>`;
   }
+  function setRegStatus(type,v){
+    App.settings.regStatus=App.settings.regStatus||{...(cfg.settings.regStatus||{})};
+    App.settings.regStatus[type]=v;
+    Store.saveSettings({regStatus:App.settings.regStatus}).then(()=>Store.logAction("Registration "+type+" → "+v));
+    toast(type+" registration "+v); renderAdmin();
+  }
+  function setBkashQR(e){
+    const f=e.target.files[0]; if(!f)return;
+    processImage(f,420,async(d,err)=>{ if(!d){toast(err||"Could not process image","err");return;}
+      App.settings.bkashQR=d; try{ await Store.saveSettings({bkashQR:d}); await Store.logAction("Updated bKash QR"); toast("Merchant QR saved"); adminSettings(); }
+      catch(ex){ toast("Save failed: "+(ex.message||"error"),"err"); } });
+    e.target.value="";
+  }
+  async function removeBkashQR(){ App.settings.bkashQR=""; await Store.saveSettings({bkashQR:""}); toast("QR removed"); adminSettings(); }
+  async function saveBkashNum(){ const n=val("set-bknum"); App.settings.bkashNumber=n; await Store.saveSettings({bkashNumber:n}); toast("bKash number saved"); }
   async function saveEmergency(){
     const emergency={ name:val("em-name"), role:val("em-role"), phone:val("em-phone"), email:val("em-email") };
     App.settings.emergency=emergency; try{ cfg.emergency=emergency; }catch(_){}

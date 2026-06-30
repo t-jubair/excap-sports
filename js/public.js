@@ -23,9 +23,10 @@ function uploader(id,label,note="PNG/JPG · max 2MB"){
 const uploadData={};
 function handleUpload(e,id){
   const f=e.target.files[0]; if(!f) return;
+  if(f.size>5*1024*1024 && !window.processImage){ toast("Image too large — keep under 5 MB","warn"); e.target.value=""; return; }
   const apply=(d)=>{ uploadData[id]=d; const p=$("#"+id+"-prev"); if(p)p.innerHTML=`<img src="${d}">`; const n=$("#"+id+"-name"); if(n)n.textContent=(f.name||"image").slice(0,22); };
-  if(window.processImage){ processImage(f,320,(d,err)=>{ if(!d){toast(err||"Could not read image","warn");return;} apply(d); }); }
-  else { if(f.size>2.5*1024*1024){toast("Image too large — keep under 2MB","warn");return;} const rd=new FileReader(); rd.onload=()=>apply(rd.result); rd.readAsDataURL(f); }
+  if(window.processImage){ processImage(f,640,(d,err)=>{ if(!d){toast(err||"Could not read image","warn");return;} apply(d); }); }
+  else { const rd=new FileReader(); rd.onload=()=>apply(rd.result); rd.readAsDataURL(f); }
   e.target.value="";
 }
 const val=id=>{ const e=$("#"+id); return e?e.value.trim():""; };
@@ -42,6 +43,24 @@ function regPhase(){
   if(now<open) return "before";
   if(now>close) return "closed";
   return "open";
+}
+/* per-type override: admin can pause/close a specific registration type */
+function regStatusFor(type){ const rs=(App.settings&&App.settings.regStatus)||cfg.settings.regStatus||{}; return rs[type]||"open"; }
+function regPhaseFor(type){
+  const st=regStatusFor(type);
+  if(st==="paused") return "paused";
+  if(st==="closed") return "closed";
+  return regPhase();
+}
+function phaseLabel(p){ return p==="open"?"Open":p==="before"?"Opening soon":p==="paused"?"Paused":"Closed"; }
+const REG_YEARS=(()=>{const a=[];for(let y=2032;y>=1977;y--)a.push(String(y));return a;})();
+function regGate(type){
+  const p=regPhaseFor(type);
+  if(p==="open") return null;
+  const msg={ before:["Registration opens soon","This registration opens on "+fmtDate(App.settings.regOpen)+".","🕓"],
+    paused:["Registration paused","This registration is temporarily paused by the organizers. Please check back shortly.","⏸️"],
+    closed:["Registration closed","This registration is now closed. Contact the organizers if you need help.","🔒"] }[p];
+  return renderInfo(msg[0],msg[1],msg[2]);
 }
 
 /* ============================================================
@@ -320,19 +339,20 @@ registerRoute("register",function(){
       <p class="ph-sub">Pick the option that fits you. Each one opens a short, guided form — and every approved entry gets a QR pass for the gate.</p>
     </div>
     <div class="reg-hub">
-      ${REG_TYPES.map(([ic,t,desc,meta,r,tag],i)=>`
-        <button class="hub-card reveal d${i}" onclick="go('${r}')">
+      ${REG_TYPES.map(([ic,t,desc,meta,r,tag],i)=>{
+        const type=r.replace("register-",""); const p=regPhaseFor(type); const open=p==="open";
+        return `<button class="hub-card reveal d${i} ${open?"":"disabled"}" onclick="${open?`go('${r}')`:`toast('This registration is ${phaseLabel(p)}','warn')`}">
           <div class="hub-ic">${ic}</div>
           <div class="hub-body">
-            <h3>${t}</h3>
+            <h3>${t} <span class="hub-status ${p}">${phaseLabel(p)}</span></h3>
             <p>${desc}</p>
             <div class="hub-meta">${meta.map(([a,b])=>`<span>${a}: <b>${b}</b></span>`).join("")}</div>
           </div>
-          <div class="hub-go">Start <span class="arr">→</span></div>
-        </button>`).join("")}
+          <div class="hub-go">${open?"Start":phaseLabel(p)} <span class="arr">→</span></div>
+        </button>`;}).join("")}
     </div>
     <div class="reg-note note-box" style="max-width:none;margin-top:22px"><span class="i">🎟️</span>
-      <div><b>${used} team${used===1?"":"s"} registered so far.</b> Guests need a captain's invite code. Every entry is approved by the organizers — you'll get an email + SMS once you're in. There's no cap on teams, so bring your squad!</div>
+      <div><b>${used} team${used===1?"":"s"} registered so far.</b> Guest registration is free. Every entry is approved by the organizers — you'll get an email + SMS and a QR pass once you're in. There's no cap on teams, so bring your squad!</div>
     </div>
   </div>`+footerHTML();
   observeReveal();
@@ -341,167 +361,175 @@ registerRoute("register",function(){
 registerRoute("register-team",()=>renderTeamReg());
 function renderTeamReg(step){
   const s=App.settings;
-  if(regPhase()==="before") return renderInfo("Registration opens soon","Team registration opens on "+fmtDate(s.regOpen)+". Check back then to claim your slot.","🕓");
-  draft = draft || {data:{},players:Array.from({length:s.playersPerTeam},()=>({status:"empty"})),guests:[],payment:{},step:0};
+  const gate=regGate("team"); if(gate) return;
+  draft = draft || {data:{},players:Array.from({length:s.playersPerTeam},()=>({status:"empty"})),guests:[],payment:{mode:"offline"},step:0,captainIdx:0,viceIdx:1};
   const st=typeof step==="number"?step:draft.step; draft.step=st;
-  const steps=["Captain","Team","Players","Guests","Payment","Review"];
+  const steps=["Team","Players","Payment","Review"];
   const shell=inner=>anncHTML()+navHTML("register")+`<div class="wrap page"><div class="page-head">
-    <span class="crumb" onclick="go('home')">← Back to home</span><h1 class="ph">Register a team</h1>
+    <span class="crumb" onclick="go('register')">← All options</span><h1 class="ph">Register a team</h1>
     <p class="ph-sub">${s.playersPerTeam} players · entry fee ৳${esc(s.teamFee)} · approval by organizers.</p></div>
     <div class="form-shell">${stepsBar(steps,st)}${inner}</div></div>`+footerHTML();
 
   if(st===0){
-    $("#app").innerHTML=shell(`
-      <div class="note-box"><span class="i">📱</span><div>We verify the captain by mobile number. In production this sends an OTP by SMS (SMSQ); in demo mode any 6 digits work.</div></div>
-      ${field("cap-phone","Captain mobile number",{type:"tel",ph:"01XXXXXXXXX",req:true,help:"This number manages the whole team."})}
-      ${field("cap-otp","Verification code (OTP)",{type:"tel",ph:"Enter 6 digits",req:true})}
-      ${field("cap-email","Email",{type:"email",ph:"captain@email.com",help:"Approval email is sent here."})}
-      <div class="form-actions"><span></span><button class="btn btn-primary" onclick="teamStep0()">Verify & continue →</button></div>`);
-  } else if(st===1){
     const d=draft.data;
     $("#app").innerHTML=shell(`
       <div class="grid2"><div>${field("t-name","Team name",{req:true,ph:"e.g. Batch '18 United",val:d.teamName})}</div><div>${field("t-short","Short tag",{req:true,ph:"B18",val:d.shortName,help:"Up to 4 letters."})}</div></div>
-      <div class="grid2"><div>${field("t-cat","Category",{type:"select",options:["Alumni","Batch","Mixed","Open"],val:d.category})}</div><div>${field("t-batch","Batch / year",{ph:"2018",val:d.batch})}</div></div>
+      <div class="grid2"><div>${field("t-cat","Category",{type:"select",options:["Alumni","Current","Mixed"],val:d.category})}</div>
+        <div><label class="fl">Batch</label><div class="grid2" style="gap:8px">
+          <select id="t-exam">${["SSC","HSC"].map(x=>`<option ${d.exam===x?"selected":""}>${x}</option>`).join("")}</select>
+          <select id="t-year">${["",...REG_YEARS].map(y=>`<option value="${y}" ${d.batch===y?"selected":""}>${y||"Year"}</option>`).join("")}</select>
+        </div></div></div>
       ${field("t-slogan","Team slogan",{ph:"Optional",val:d.slogan})}
-      <div class="grid2"><div><label class="fl">Primary colour</label><div class="swatch"><input type="color" id="t-c1" value="${d.c1||'#7c3aed'}"><span class="help" style="margin:0">Main kit</span></div></div>
-      <div><label class="fl">Alternate colour</label><div class="swatch"><input type="color" id="t-c2" value="${d.c2||'#db2777'}"><span class="help" style="margin:0">Away kit</span></div></div></div>
-      <div class="grid2"><div>${field("t-cap","Captain name",{req:true,val:d.captainName})}</div><div>${field("t-vice","Vice-captain",{val:d.viceName})}</div></div>
-      ${uploader("t-logo","Team logo")}
-      <div class="form-actions"><button class="btn btn-ghost" onclick="renderTeamReg(0)">← Back</button><button class="btn btn-primary" onclick="teamStep1()">Continue →</button></div>`);
+      <div class="fsec">Team contact (manages this registration)</div>
+      <div class="grid2"><div>${field("t-contact","Contact name",{req:true,val:d.contactName})}</div><div>${field("t-phone","Contact mobile",{type:"tel",req:true,ph:"01XXXXXXXXX",val:draft.capPhone})}</div></div>
+      ${field("t-email","Contact email",{type:"email",req:true,ph:"captain@email.com",val:draft.capEmail,help:"Approval email + PDF go here."})}
+      ${uploader("t-logo","Team logo (optional)")}
+      <div class="form-actions"><button class="btn btn-ghost" onclick="go('register')">← Cancel</button><button class="btn btn-primary" onclick="teamStep0()">Continue →</button></div>`);
     if(d.logo)$("#t-logo-prev").innerHTML=`<img src="${d.logo}">`;
+  } else if(st===1){
+    $("#app").innerHTML=shell(`
+      <div class="note-box"><span class="i">👥</span><div>Add each player's name and mobile, then pick your <b>captain (C)</b> and <b>vice-captain (V)</b>. Add at least 4 to continue.</div></div>
+      <div id="players">${draft.players.map((p,i)=>playerRow(p,i)).join("")}</div>
+      <div class="form-actions"><button class="btn btn-ghost" onclick="renderTeamReg(0)">← Back</button><button class="btn btn-primary" onclick="teamStep1()">Continue →</button></div>`);
   } else if(st===2){
     $("#app").innerHTML=shell(`
-      <div class="note-box"><span class="i">👥</span><div>Add each player's name and mobile. Add at least 4 to continue; fill all ${s.playersPerTeam} before final submission.</div></div>
-      <div id="players">${draft.players.map((p,i)=>playerRow(p,i)).join("")}</div>
-      <div class="form-actions"><button class="btn btn-ghost" onclick="renderTeamReg(1)">← Back</button><button class="btn btn-primary" onclick="teamStep2()">Continue →</button></div>`);
-  } else if(st===3){
-    $("#app").innerHTML=shell(`
-      <div class="note-box"><span class="i">🎟️</span><div>Each team may bring up to <b>${s.guestsPerTeam} guests</b>. Add them now or share your invite code after approval.</div></div>
-      <div id="guests">${draft.guests.map((g,i)=>guestRow(g,i)).join("")||'<p style="color:var(--muted);font-size:13.5px;margin-bottom:14px">No guests added yet.</p>'}</div>
-      <button class="btn btn-line btn-sm" onclick="addGuestRow()" ${draft.guests.length>=s.guestsPerTeam?'disabled':''}>+ Add guest (${draft.guests.length}/${s.guestsPerTeam})</button>
-      <div class="form-actions"><button class="btn btn-ghost" onclick="renderTeamReg(2)">← Back</button><button class="btn btn-primary" onclick="renderTeamReg(4)">Continue →</button></div>`);
-  } else if(st===4){
-    const bkashOn=cfg.bkash.enabled;
-    $("#app").innerHTML=shell(`
-      <div class="note-box"><span class="i">💳</span><div>Entry fee: <b>৳${esc(s.teamFee)}</b>. Pay instantly with bKash, or submit your manual payment details (the desk records cash too).</div></div>
+      <div class="note-box"><span class="i">💳</span><div>Entry fee: <b>৳${esc(s.teamFee)}</b>. <b>Offline / cash at the desk</b> is the main method. You can also pay via bKash and enter the reference.</div></div>
       <label class="fl">Payment method</label>
       <div class="pay-methods" id="pm">
-        <div class="pay-opt ${draft.payment.mode==='bkash'?'sel':''}" onclick="selectPay('bkash')"><div class="ic">📲</div><b>bKash online</b><span>${bkashOn?'Instant':'Sandbox/demo'}</span></div>
-        <div class="pay-opt ${draft.payment.mode!=='bkash'?'sel':''}" onclick="selectPay('manual')"><div class="ic">🧾</div><b>Manual / other</b><span>Enter transaction</span></div>
+        <div class="pay-opt ${draft.payment.mode!=='bkash'?'sel':''}" onclick="selectPay('offline')"><div class="ic">🧾</div><b>Offline / cash</b><span>Pay at the desk</span></div>
+        <div class="pay-opt ${draft.payment.mode==='bkash'?'sel':''}" onclick="selectPay('bkash')"><div class="ic">📲</div><b>bKash</b><span>Scan merchant QR</span></div>
       </div>
       <div id="pay-body"></div>
-      <div class="form-actions"><button class="btn btn-ghost" onclick="renderTeamReg(3)">← Back</button><button class="btn btn-primary" onclick="teamStep4()">Continue →</button></div>`);
-    selectPay(draft.payment.mode||"manual");
-  } else if(st===5){
-    const d=draft.data, filled=draft.players.filter(p=>p.name).length;
+      <div class="form-actions"><button class="btn btn-ghost" onclick="renderTeamReg(1)">← Back</button><button class="btn btn-primary" onclick="teamStep2()">Continue →</button></div>`);
+    selectPay(draft.payment.mode||"offline");
+  } else if(st===3){
+    const d=draft.data, filled=draft.players.filter(p=>p.name);
+    const capN=(draft.players[draft.captainIdx]||{}).name||d.contactName||"—";
+    const viceN=(draft.players[draft.viceIdx]||{}).name||"—";
     $("#app").innerHTML=shell(`
       <div class="review-sec"><h4>Team</h4>
         <div class="rv"><span>Name</span><b>${esc(d.teamName)} (${esc(d.shortName)})</b></div>
-        <div class="rv"><span>Category / batch</span><b>${esc(d.category)} · ${esc(d.batch||"—")}</b></div>
-        <div class="rv"><span>Captain</span><b>${esc(d.captainName)} · ${esc(draft.capPhone)}</b></div></div>
-      <div class="review-sec"><h4>Roster (${filled}/${s.playersPerTeam})</h4>${draft.players.map((p,i)=>`<div class="rv"><span>Player ${i+1}</span><b>${p.name?esc(p.name):'<span style="color:var(--amber)">empty</span>'}</b></div>`).join("")}</div>
-      <div class="review-sec"><h4>Guests (${draft.guests.length})</h4>${draft.guests.length?draft.guests.map(g=>`<div class="rv"><span>${esc(g.relation||'Guest')}</span><b>${esc(g.name)}</b></div>`).join(""):'<div class="rv"><span>None added</span><b>—</b></div>'}</div>
-      <div class="review-sec"><h4>Payment</h4><div class="rv"><span>Method</span><b>${esc(draft.payment.method||draft.payment.mode)}</b></div><div class="rv"><span>Reference</span><b>${esc(draft.payment.txn||'—')}</b></div><div class="rv"><span>Amount</span><b>৳${esc(s.teamFee)}</b></div></div>
+        <div class="rv"><span>Category · batch</span><b>${esc(d.category)} · ${esc(d.exam||"")} ${esc(d.batch||"")}</b></div>
+        <div class="rv"><span>Captain</span><b>${esc(capN)}</b></div>
+        <div class="rv"><span>Vice-captain</span><b>${esc(viceN)}</b></div>
+        <div class="rv"><span>Contact</span><b>${esc(d.contactName||"")} · ${esc(draft.capPhone)}</b></div></div>
+      <div class="review-sec"><h4>Roster (${filled.length}/${s.playersPerTeam})</h4>${draft.players.map((p,i)=>`<div class="rv"><span>Player ${i+1}${i===draft.captainIdx?" (C)":i===draft.viceIdx?" (V)":""}</span><b>${p.name?esc(p.name):'<span style="color:var(--amber)">empty</span>'}</b></div>`).join("")}</div>
+      <div class="review-sec"><h4>Payment</h4><div class="rv"><span>Method</span><b>${esc(draft.payment.method||(draft.payment.mode==="bkash"?"bKash":"Offline / cash"))}</b></div><div class="rv"><span>Reference</span><b>${esc(draft.payment.txn||'At the desk')}</b></div><div class="rv"><span>Amount</span><b>৳${esc(s.teamFee)}</b></div></div>
       <div class="note-box"><span class="i">✓</span><div>By submitting you confirm the roster is accurate and your team accepts the tournament rules.</div></div>
-      <div class="form-actions"><button class="btn btn-ghost" onclick="renderTeamReg(4)">← Back</button><button class="btn btn-pitch" id="submit-btn" onclick="teamSubmit()">Submit registration ✓</button></div>`);
+      <div class="form-actions"><button class="btn btn-ghost" onclick="renderTeamReg(2)">← Back</button><button class="btn btn-pitch" id="submit-btn" onclick="teamSubmit()">Submit registration ✓</button></div>`);
   }
 }
-function playerRow(p,i){ return `<div class="player-row"><div class="pn">${i+1}</div>
-  <input placeholder="Player ${i+1} name" value="${esc(p.name||'')}" oninput="draft.players[${i}].name=this.value;const r=this.closest('.player-row').querySelector('.st');r.className='st '+(this.value?'green':'gray');r.textContent=this.value?'Ready':'Empty'">
+function playerRow(p,i){ return `<div class="player-row pr-cv"><div class="pn">${i+1}</div>
+  <input placeholder="Player ${i+1} name" value="${esc(p.name||'')}" oninput="draft.players[${i}].name=this.value">
   <input placeholder="Mobile" value="${esc(p.phone||'')}" oninput="draft.players[${i}].phone=this.value">
-  <span class="st ${p.name?'green':'gray'}">${p.name?'Ready':'Empty'}</span></div>`; }
-function guestRow(g,i){ return `<div class="player-row" style="grid-template-columns:1fr 1fr 1fr auto">
-  <input placeholder="Guest name" value="${esc(g.name||'')}" oninput="draft.guests[${i}].name=this.value">
-  <input placeholder="Mobile" value="${esc(g.phone||'')}" oninput="draft.guests[${i}].phone=this.value">
-  <input placeholder="Relation" value="${esc(g.relation||'')}" oninput="draft.guests[${i}].relation=this.value">
-  <button class="btn btn-sm btn-line" onclick="draft.guests.splice(${i},1);renderTeamReg(3)">✕</button></div>`; }
-function addGuestRow(){ if(draft.guests.length>=App.settings.guestsPerTeam)return; draft.guests.push({}); renderTeamReg(3); }
+  <div class="cv"><button type="button" class="cvb ${draft.captainIdx===i?'on c':''}" title="Captain" onclick="setCV('c',${i})">C</button><button type="button" class="cvb ${draft.viceIdx===i?'on v':''}" title="Vice-captain" onclick="setCV('v',${i})">V</button></div></div>`; }
+function setCV(role,i){
+  if(role==="c"){ draft.captainIdx=i; if(draft.viceIdx===i) draft.viceIdx=-1; }
+  else { draft.viceIdx=i; if(draft.captainIdx===i) draft.captainIdx=-1; }
+  $$("#players .player-row").forEach((row,idx)=>{
+    const c=row.querySelector(".cvb.c, .cvb:nth-child(1)"); // refresh both buttons
+  });
+  // re-render just the players list to reflect selection
+  const box=$("#players"); if(box) box.innerHTML=draft.players.map((p,idx)=>playerRow(p,idx)).join("");
+}
 
 function selectPay(mode){
-  draft.payment.mode=mode;
-  $$("#pm .pay-opt").forEach((el,i)=>el.classList.toggle("sel",(mode==="bkash"&&i===0)||(mode!=="bkash"&&i===1)));
+  draft.payment.mode = mode==="bkash"?"bkash":"offline";
+  $$("#pm .pay-opt").forEach((el,i)=>el.classList.toggle("sel",(draft.payment.mode==="offline"&&i===0)||(draft.payment.mode==="bkash"&&i===1)));
   const body=$("#pay-body"); if(!body)return;
-  if(mode==="bkash"){
-    body.innerHTML=`<div class="note-box"><span class="i">📲</span><div>${cfg.bkash.enabled?'You will be redirected to bKash to pay ৳'+esc(App.settings.teamFee)+'. After payment you return here automatically.':'bKash is in sandbox/demo mode. For now, continue and the payment is marked pending — switch to live in config when ready.'}</div></div>`;
+  const s=App.settings;
+  if(draft.payment.mode==="bkash"){
+    body.innerHTML=`
+      <div class="bkash-pay">
+        <div class="bkash-qr">${s.bkashQR?`<img src="${s.bkashQR}" alt="bKash merchant QR">`:`<div class="qr-empty">Merchant QR will appear here<br><small>Admin can upload it in the panel</small></div>`}</div>
+        <div class="bkash-info">
+          <div class="note-box" style="margin:0 0 10px"><span class="i">📲</span><div>Scan the merchant QR in your bKash app (or send to <b>${esc(s.bkashNumber||"—")}</b>), pay <b>৳${esc(s.teamFee)}</b>, then enter the Transaction ID below.</div></div>
+          ${field("p-txn","bKash Transaction ID",{ph:"e.g. 9X8Y7Z6A",val:draft.payment.txn,help:"From your bKash confirmation SMS."})}
+          ${field("p-sender","Sender number",{type:"tel",ph:"Number you paid from",val:draft.payment.sender})}
+        </div>
+      </div>`;
   } else {
-    const p=draft.payment;
-    body.innerHTML=`<div class="grid2"><div>${field("p-method","Method",{type:"select",options:App.settings.paymentNumbers.map(n=>n.method).concat(["Bank","Cash","Other"]),val:p.method})}</div><div>${field("p-txn","Transaction ID",{req:true,ph:"e.g. 9X8Y7Z",val:p.txn})}</div></div>
-      <div class="note-box" style="margin-top:8px"><span class="i">🔢</span><div>Send to: ${App.settings.paymentNumbers.map(n=>`<b>${esc(n.method)}</b> ${esc(n.number)}`).join(" · ")}</div></div>
-      <div class="grid2"><div>${field("p-sender","Sender number",{type:"tel",req:true,ph:"Number you paid from",val:p.sender})}</div><div>${field("p-date","Payment date",{type:"date",req:true,val:p.date})}</div></div>
-      ${uploader("p-shot","Payment screenshot")}`;
-    if(p.shot)$("#p-shot-prev").innerHTML=`<img src="${p.shot}">`;
+    body.innerHTML=`<div class="note-box"><span class="i">🧾</span><div>Pay <b>৳${esc(s.teamFee)}</b> in cash at the registration desk, or transfer and note it below (optional). The organizers verify it on arrival.</div></div>
+      ${field("p-ref","Reference / note (optional)",{ph:"e.g. paid to coordinator, or bKash txn",val:draft.payment.txn})}`;
   }
 }
 function teamStep0(){
-  if(!validate([["cap-phone",isPhone,"Enter a valid mobile number"],["cap-otp",v=>v.replace(/\D/g,"").length>=6,"Enter the 6-digit code"]]))return;
-  if(teamRegs().some(r=>r.data.captainPhone===val("cap-phone"))){ setErr("cap-phone","This number already registered a team"); return; }
-  draft.capPhone=val("cap-phone"); draft.capEmail=val("cap-email"); renderTeamReg(1);
+  if(!validate([["t-name",nonEmpty,"Team name is required"],["t-short",nonEmpty,"Short tag is required"],["t-contact",nonEmpty,"Contact name is required"],["t-phone",isPhone,"Enter a valid mobile number"],["t-email",isEmail,"Enter a valid email"]]))return;
+  if(teamRegs().some(r=>(r.data.teamName||"").toLowerCase()===val("t-name").toLowerCase())){ setErr("t-name","A team with this name already exists"); return; }
+  draft.capPhone=val("t-phone"); draft.capEmail=val("t-email");
+  draft.data={ teamName:val("t-name"), shortName:val("t-short").slice(0,4).toUpperCase(), category:val("t-cat"),
+    exam:val("t-exam"), batch:val("t-year"), slogan:val("t-slogan"), contactName:val("t-contact"),
+    captainPhone:draft.capPhone, email:draft.capEmail, logo:uploadData["t-logo"]||draft.data.logo };
+  renderTeamReg(1);
 }
 function teamStep1(){
-  if(!validate([["t-name",nonEmpty,"Team name is required"],["t-short",nonEmpty,"Short tag is required"],["t-cap",nonEmpty,"Captain name is required"]]))return;
-  if(teamRegs().some(r=>(r.data.teamName||"").toLowerCase()===val("t-name").toLowerCase())){ setErr("t-name","A team with this name exists"); return; }
-  draft.data={teamName:val("t-name"),shortName:val("t-short").slice(0,4).toUpperCase(),category:val("t-cat"),batch:val("t-batch"),slogan:val("t-slogan"),c1:$("#t-c1").value,c2:$("#t-c2").value,captainName:val("t-cap"),viceName:val("t-vice"),captainPhone:draft.capPhone,email:draft.capEmail,logo:uploadData["t-logo"]||draft.data.logo};
+  const filled=draft.players.filter(p=>p.name);
+  if(filled.length<4){ toast("Add at least 4 players","warn"); return; }
+  if(draft.captainIdx<0 || !draft.players[draft.captainIdx] || !draft.players[draft.captainIdx].name){ toast("Pick your captain (C)","warn"); return; }
   renderTeamReg(2);
 }
-function teamStep2(){ if(draft.players.filter(p=>p.name).length<4){ toast("Add at least 4 players","warn"); return; } renderTeamReg(3); }
-function teamStep4(){
-  if(draft.payment.mode==="bkash"){ draft.payment={mode:"bkash",method:"bKash",txn:"(online)"}; renderTeamReg(5); return; }
-  if(!validate([["p-txn",nonEmpty,"Transaction ID is required"],["p-sender",isPhone,"Enter the sender number"],["p-date",nonEmpty,"Select the payment date"]]))return;
-  if(App.regs.some(r=>r.payment?.txn && r.payment.txn===val("p-txn"))){ setErr("p-txn","This transaction ID was already used"); return; }
-  draft.payment={mode:"manual",method:val("p-method"),txn:val("p-txn"),sender:val("p-sender"),date:val("p-date"),shot:uploadData["p-shot"]};
-  renderTeamReg(5);
+function teamStep2(){
+  if(draft.payment.mode==="bkash"){
+    draft.payment={mode:"bkash",method:"bKash",txn:(val("p-txn")||"").trim(),sender:(val("p-sender")||"").trim()};
+  } else {
+    draft.payment={mode:"offline",method:"Offline / cash",txn:(val("p-ref")||"").trim()};
+  }
+  renderTeamReg(3);
 }
 async function teamSubmit(){
-  const btn=$("#submit-btn"); btn.innerHTML='<span class="spinner"></span>'; btn.disabled=true;
+  const btn=$("#submit-btn"); if(btn){btn.innerHTML='<span class="spinner"></span>'; btn.disabled=true;}
   const s=App.settings;
-  const id=await Store.nextId("team","EXCAP-FT"+s.edition.slice(-2)+"-T",3);
+  // resilient ID (never blocks submission if the counter read is slow/blocked)
+  let id;
+  try{ id=await Promise.race([Store.nextId("team","EXCAP-FT"+s.edition.slice(-2)+"-T",3), new Promise((_,rej)=>setTimeout(()=>rej("t"),6000))]); }
+  catch(e){ id="EXCAP-FT"+s.edition.slice(-2)+"-T"+Date.now().toString(36).toUpperCase().slice(-5); }
+  const cap=draft.players[draft.captainIdx]||{}, vice=draft.players[draft.viceIdx]||{};
+  const data=Object.assign({}, draft.data, { captainName: cap.name||draft.data.contactName||"", viceName: vice.name||"" });
   const rec={ id,type:"team",status:"review",created:Date.now(),
-    data:draft.data, captainEmail:draft.capEmail,
-    players:draft.players.filter(p=>p.name).map(p=>({name:p.name,phone:p.phone,status:"registered"})),
-    guests:draft.guests.filter(g=>g.name),
-    payment:draft.payment, paymentStatus:draft.payment.mode==="bkash"?"pending":"submitted",
+    data, captainEmail:draft.capEmail,
+    players:draft.players.filter(p=>p.name).map((p,i)=>({name:p.name,phone:p.phone,role:i===draft.captainIdx?"Captain":i===draft.viceIdx?"Vice-captain":"Player",status:"registered"})),
+    guests:[], payment:draft.payment, paymentStatus:draft.payment.mode==="bkash"?(draft.payment.txn?"submitted":"pending"):"pending",
     contact:draft.capPhone };
-
-  // bKash online path: create payment then redirect
-  if(draft.payment.mode==="bkash" && cfg.bkash.enabled){
-    await Store.saveReg(rec); App.regs.unshift(rec);
-    try{
-      sessionStorage.setItem("excap_pending_reg",id);
-      const {bkashURL}=await Bkash.createPayment({amount:s.teamFee, ref:rec.contact, regId:id});
-      location.href=bkashURL; return;
-    }catch(e){ toast("bKash unavailable — saved as pending","warn"); }
-  }
-  await Store.saveReg(rec); App.regs.unshift(rec);
+  try{
+    await Store.saveReg(rec);
+  }catch(e){ toast("Could not submit — please try again","err"); if(btn){btn.disabled=false;btn.innerHTML="Submit registration ✓";} return; }
+  App.regs.unshift(rec);
   try{ App.publicTeams = await Store.listPublicTeams(); }catch(e){}
-  draft=null; renderConfirm("team",rec);
+  const saved=rec; draft=null; renderConfirm("team",saved);
 }
 
 /* ============================================================
    GUEST / VISITOR / STUDENT
    ============================================================ */
 registerRoute("register-guest",function(){
-  $("#app").innerHTML=anncHTML()+navHTML("register")+`<div class="wrap page"><div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span>
-    <h1 class="ph">Team guest</h1><p class="ph-sub">Attending with a registered team. You'll need the invite code from the captain.</p></div>
+  const gate=regGate("guest"); if(gate) return;
+  $("#app").innerHTML=anncHTML()+navHTML("register")+`<div class="wrap page"><div class="page-head"><span class="crumb" onclick="go('register')">← All options</span>
+    <h1 class="ph">Guest registration <span class="free-chip">FREE</span></h1><p class="ph-sub">For alumni guests and supporters. Free entry — you'll get a QR pass for the gate.</p></div>
     <div class="form-shell">
-      ${field("g-code","Team invite code",{req:true,ph:"EXCAP-FT26-T001",help:"Ask your captain."})}
+      <div class="note-box"><span class="i">🎉</span><div><b>Guest registration is free.</b> Fill this in and you'll receive a QR pass to show at the gate.</div></div>
       ${field("g-name","Full name",{req:true})}
-      <div class="grid2"><div>${field("g-phone","Mobile",{type:"tel",req:true,ph:"01XXXXXXXXX"})}</div><div>${field("g-cat","Category",{type:"select",options:["Family","Friend","Supporter","Other"]})}</div></div>
-      ${field("g-relation","Relationship with team",{ph:"e.g. captain's family"})}
-      ${field("g-email","Email",{type:"email"})}
-      ${uploader("g-photo","Photo")}
-      ${field("g-rules","",{type:"select",options:["I accept the venue rules","I do not accept"],help:"Venue rules acceptance"})}
-      <div class="form-actions"><span></span><button class="btn btn-pitch" id="submit-btn" onclick="submitGuest()">Submit ✓</button></div></div>
+      <div class="grid2"><div>${field("g-phone","Mobile",{type:"tel",req:true,ph:"01XXXXXXXXX"})}</div><div>${field("g-email","Email",{type:"email",req:true})}</div></div>
+      <div class="grid2"><div>${field("g-cat","Category",{type:"select",options:["Alumni"]})}</div>
+        <div><label class="fl">Batch</label><div class="grid2" style="gap:8px">
+          <select id="g-exam">${["SSC","HSC"].map(x=>`<option>${x}</option>`).join("")}</select>
+          <select id="g-year">${["",...REG_YEARS].map(y=>`<option value="${y}">${y||"Year"}</option>`).join("")}</select>
+        </div></div></div>
+      ${uploader("g-photo","Photo (optional)")}
+      <div class="form-actions"><button class="btn btn-ghost" onclick="go('register')">← Cancel</button><button class="btn btn-pitch" id="submit-btn" onclick="submitGuest()">Submit ✓</button></div></div>
   </div>`+footerHTML();
 });
 async function submitGuest(){
-  if(!validate([["g-code",nonEmpty,"Invite code required"],["g-name",nonEmpty,"Name required"],["g-phone",isPhone,"Valid mobile required"],["g-email",isEmail,"Valid email"]]))return;
-  const team=teamRegs().find(r=>r.id===val("g-code").toUpperCase());
-  if(!team){ setErr("g-code","No team found for this code"); return; }
-  if($("#g-rules").value.startsWith("I do not")){ toast("You must accept the venue rules","warn"); return; }
-  const btn=$("#submit-btn"); btn.innerHTML='<span class="spinner"></span>'; btn.disabled=true;
-  const id=await Store.nextId("guest","EXCAP-FT"+App.settings.edition.slice(-2)+"-G",4);
-  const rec={id,type:"guest",status:"review",created:Date.now(),data:{name:val("g-name"),category:val("g-cat"),relation:val("g-relation"),email:val("g-email"),photo:uploadData["g-photo"],teamId:team.id,teamName:team.data.teamName},contact:val("g-phone")};
-  await Store.saveReg(rec); App.regs.unshift(rec); renderConfirm("guest",rec);
+  if(!validate([["g-name",nonEmpty,"Name required"],["g-phone",isPhone,"Valid mobile required"],["g-email",isEmail,"Valid email required"]]))return;
+  const btn=$("#submit-btn"); if(btn){btn.innerHTML='<span class="spinner"></span>'; btn.disabled=true;}
+  let id;
+  try{ id=await Promise.race([Store.nextId("guest","EXCAP-FT"+App.settings.edition.slice(-2)+"-G",4), new Promise((_,rej)=>setTimeout(()=>rej("t"),6000))]); }
+  catch(e){ id="EXCAP-FT"+App.settings.edition.slice(-2)+"-G"+Date.now().toString(36).toUpperCase().slice(-5); }
+  const rec={ id,type:"guest",status:"review",created:Date.now(),
+    data:{ name:val("g-name"), category:"Alumni", exam:val("g-exam"), batch:val("g-year"), email:val("g-email"), photo:uploadData["g-photo"]||"" },
+    contact:val("g-phone") };
+  try{ await Store.saveReg(rec); }
+  catch(e){ toast("Could not submit — please try again","err"); if(btn){btn.disabled=false;btn.innerHTML="Submit ✓";} return; }
+  App.regs.unshift(rec); renderConfirm("guest",rec);
 }
 registerRoute("register-visitor",function(){
   $("#app").innerHTML=anncHTML()+navHTML("register")+`<div class="wrap page"><div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span>
@@ -582,23 +610,62 @@ async function submitVolunteer(){
    CONFIRMATION + bKash return handling
    ============================================================ */
 function renderConfirm(type,rec){
-  const titles={team:"Team registration submitted",guest:"Guest registration submitted",visitor:"Visitor registration submitted",student:"Student registration submitted",volunteer:"Volunteer application submitted"};
+  window._lastRec=rec;
+  const titles={team:"Team registration submitted",guest:"Guest registration submitted",volunteer:"Volunteer application submitted"};
   const name=rec.data.teamName||rec.data.name||"You";
   const approved=rec.status==="approved";
-  const msg=approved?"You're confirmed. Show this QR pass at the gate.":"Your registration is with the organizers for review. You'll get an email and SMS once it's approved, and your QR pass will activate.";
+  const msg=approved?"You're confirmed. Show this QR pass at the gate.":"Your registration is with the organizers for review. You'll get an email and SMS once it's approved, and your QR pass will activate at the gate.";
+  const e=emergencyInfo();
   $("#app").innerHTML=navHTML("")+`<div class="wrap page"><div class="confirm">
-    <div class="tick">${approved?'✓':'🕓'}</div><h1 class="ph" style="font-size:30px">${titles[type]}</h1>
-    <p class="ph-sub" style="margin:12px auto 0">${msg}</p>
+    <div class="tick">${approved?'✓':'🎉'}</div><h1 class="ph" style="font-size:30px">${titles[type]||"Registration submitted"}</h1>
+    <p class="ph-sub" style="margin:12px auto 0;max-width:560px">${msg}</p>
     <div style="margin-top:18px"><div style="font-size:12px;color:var(--muted-2);text-transform:uppercase;letter-spacing:.1em">Your registration ID</div><div class="id-chip">${rec.id}</div></div>
     <div class="ticket"><div class="tk-top"><b>${esc(type)} pass</b><span class="pill ${approved?'ok':'rev'}" style="background:rgba(255,255,255,.18);color:#fff;border:0">${approved?'Confirmed':'Pending'}</span></div>
       <div class="tk-body"><div class="qr">${qrSvg(rec.id)}</div><div class="tk-info">
         <div class="l">Name</div><div class="v">${esc(name)}</div>
         <div class="l">Venue · Date</div><div class="v">${esc(App.settings.venue)} · ${fmtDate(App.settings.tournamentDate)}</div>
         <div class="l">ID</div><div class="v num">${rec.id}</div></div></div></div>
-    <div class="form-actions" style="justify-content:center;margin-top:26px">
-      <button class="btn btn-ghost" onclick="go('home')">Back to home</button>
-      <button class="btn btn-primary" onclick="go('teams')">View teams</button></div>
+
+    <div class="conf-emerg">
+      <div class="ce-ic">🆘</div>
+      <div class="ce-tx"><b>Questions about your registration?</b><span>Contact ${esc(e.name||"our team")}${e.role?" · "+esc(e.role):""}</span></div>
+      <div class="ce-act">${e.phone?`<a class="btn btn-sm btn-primary" href="tel:${esc((e.phone||"").replace(/[^\d+]/g,""))}">📞 Call</a>`:""}${e.email?`<a class="btn btn-sm btn-line" href="mailto:${esc(e.email)}">✉ Email</a>`:""}</div>
+    </div>
+
+    <div class="form-actions" style="justify-content:center;margin-top:24px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="downloadRegPdf('${rec.id}')">⤓ Download PDF</button>
+      <button class="btn btn-line" onclick="go('home')">Back to home</button>
+      ${type==="team"?`<button class="btn btn-ghost" onclick="go('teams')">View teams</button>`:""}
+    </div>
   </div></div>`+footerHTML();
+}
+
+/* ---- printable registration sheet → PDF (works on member + admin) ---- */
+function regSheetHTML(rec){
+  const s=App.settings, d=rec.data||{};
+  const passes=[{code:rec.id,name:d.teamName||d.name||"Registrant",sub:(rec.type||"")+" pass"}];
+  if(rec.type==="team"){
+    (rec.players||[]).forEach((p,i)=>passes.push({code:rec.id+"#P"+(i+1),name:p.name||("Player "+(i+1)),sub:p.role||("Player "+(i+1))}));
+    (rec.guests||[]).forEach((g,i)=>passes.push({code:rec.id+"#G"+(i+1),name:g.name||("Guest "+(i+1)),sub:"Guest"}));
+  }
+  const rows=Object.entries(d).filter(([k,v])=>v && !["photo","logo"].includes(k)).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${esc(String(v))}</td></tr>`).join("");
+  const passHTML=passes.map(p=>`<div class="p"><div class="q">${(window.QR&&QR.svg)?QR.svg(p.code):qrSvg(p.code)}</div><b>${esc(p.name)}</b><span>${esc(p.sub)}</span><small>${esc(p.code)}</small></div>`).join("");
+  return `<div class="sheet">
+    <h1>${esc(s.tournamentName||"EX-CAP Football Tournament")} ${esc(s.edition||"")}</h1>
+    <div class="meta">Registration ID <b>${esc(rec.id)}</b> · Status: ${esc(rec.status)} · ${esc(new Date(rec.created).toLocaleString())}</div>
+    <h2>Details</h2><table>${rows}<tr><td>contact</td><td>${esc(rec.contact||"")}</td></tr></table>
+    <h2>QR passes — scan at the gate</h2><div class="passes">${passHTML}</div>
+    <div class="foot">Venue: ${esc(s.venue||"")} · Date: ${fmtDate(s.tournamentDate)} · Keep this for entry.</div>
+  </div>`;
+}
+function downloadRegPdf(id){
+  const rec=(App.regs||[]).find(r=>r.id===id) || (window._lastRec&&window._lastRec.id===id?window._lastRec:null);
+  if(!rec){ toast("Could not find this registration","err"); return; }
+  const w=window.open("","_blank");
+  if(!w){ toast("Allow pop-ups to download the PDF","warn"); return; }
+  const css=`*{font-family:Arial,Helvetica,sans-serif;color:#111;box-sizing:border-box}.sheet{max-width:720px;margin:0 auto;padding:24px}h1{font-size:20px;margin:0 0 4px}h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#555;border-bottom:1px solid #ddd;padding-bottom:6px;margin:22px 0 10px}.meta{font-size:12px;color:#666;margin-bottom:6px}table{width:100%;border-collapse:collapse;font-size:13px}td{padding:6px 4px;border-bottom:1px solid #eee;text-transform:capitalize}td:first-child{color:#888;width:35%}.passes{display:flex;flex-wrap:wrap;gap:14px}.p{width:150px;border:1px solid #ddd;border-radius:10px;padding:12px;text-align:center}.p .q{width:120px;height:120px;margin:0 auto 8px}.p .q svg{width:100%;height:100%}.p b{display:block;font-size:13px}.p span{font-size:11px;color:#666}.p small{display:block;font-size:9px;color:#999;margin-top:3px;word-break:break-all}.foot{margin-top:20px;font-size:11px;color:#888;border-top:1px solid #ddd;padding-top:10px}@media print{@page{margin:12mm}}`;
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(rec.id)} — EX-CAP</title><style>${css}</style></head><body>${regSheetHTML(rec)}<script>window.onload=function(){setTimeout(function(){window.print();},250);}<\/script></body></html>`);
+  w.document.close();
 }
 function renderInfo(title,msg,icon){
   $("#app").innerHTML=navHTML("")+`<div class="wrap page"><div class="confirm">

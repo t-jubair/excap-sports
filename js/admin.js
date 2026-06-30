@@ -137,14 +137,55 @@
   }
   async function setStatus(id,status){ const r=App.regs.find(x=>x.id===id); if(!r)return; r.status=status; await Store.saveReg(r); await Store.logAction("Changed status → "+status, r.id+" — "+(r.data.teamName||r.data.name||"")); toast("Marked "+status); renderAdmin(); }
   function viewReg(id){
-    const r=App.regs.find(x=>x.id===id); if(!r)return; const d=r.data;
-    const rows=r.type==="team"
-      ?[["Team",d.teamName+" ("+d.shortName+")"],["Category",d.category+" · "+(d.batch||"—")],["Slogan",d.slogan||"—"],["Captain",d.captainName+" · "+d.captainPhone],["Vice-captain",d.viceName||"—"],["Email",r.captainEmail||"—"],["Players",(r.players||[]).map((p,i)=>(i+1)+". "+p.name+" ("+(p.phone||"")+")").join("  ")||"—"],["Guests",(r.guests||[]).map(g=>g.name).join(", ")||"none"],["Payment",(r.payment?.method||"")+" · "+(r.payment?.txn||"")+" · "+(r.paymentStatus||"")]]
-      :Object.entries(d).filter(([k])=>!["photo","logo"].includes(k)).map(([k,v])=>[k,v||"—"]).concat([["Contact",r.contact]]);
-    showModal(`<h3>${r.id}</h3><p>${r.type} registration · ${r.status}</p>
-      ${rows.map(([k,v])=>`<div class="rv" style="padding:8px 0"><span style="text-transform:capitalize">${esc(k)}</span><b style="max-width:60%">${esc(String(v))}</b></div>`).join("")}
-      ${r.payment?.shot?`<img src="${r.payment.shot}" style="margin-top:12px;border-radius:10px;border:1px solid var(--line)">`:""}
-      <div class="form-actions">${r.status!=="approved"?`<button class="btn btn-pitch" onclick="closeModal();approveReg('${r.id}')">Approve & notify</button>`:"<span></span>"}<button class="btn btn-line" onclick="editReg('${r.id}')">✎ Edit</button>${r.type==="team"?`<button class="btn btn-line" onclick="passesModal('${r.id}')">QR passes</button>`:""}<button class="btn btn-ghost" onclick="closeModal()">Close</button></div>`);
+    const r=App.regs.find(x=>x.id===id); if(!r)return; const d=r.data||{};
+    const name=d.teamName||d.name||"Participant";
+    const sub=r.type==="team"?(d.category||"Team")+(d.batch?" · "+d.batch:""):(d.role||d.relation||r.type);
+    const tel=(r.contact||d.phone||d.captainPhone||"").replace(/[^\d+]/g,"");
+    const email=d.email||r.captainEmail||"";
+    const logo=d.logo||d.photo||"";
+    // detail rows by type
+    let rows;
+    if(r.type==="team"){
+      rows=[["Short name",d.shortName],["Category",d.category],["Batch",d.batch],["Slogan",d.slogan],
+        ["Captain",d.captainName],["Captain phone",d.captainPhone],["Vice-captain",d.viceName],["Email",r.captainEmail]];
+    } else {
+      rows=Object.entries(d).filter(([k])=>!["photo","logo","name"].includes(k)).map(([k,v])=>[flabel(k),v]);
+      rows.push(["Contact",r.contact]);
+    }
+    const detailHTML=rows.filter(([,v])=>v).map(([k,v])=>`<div class="pf-row"><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join("");
+    // squad
+    let squad="";
+    if(r.type==="team"){
+      const players=(r.players||[]).filter(p=>p&&p.name);
+      const guests=(r.guests||[]).filter(g=>g&&g.name);
+      if(players.length) squad+=`<div class="pf-sec">Players · ${players.length}</div><div class="pf-people">${players.map((p,i)=>`<div class="pf-person"><span class="pf-n">${i+1}</span><b>${esc(p.name)}</b><span class="pf-ph">${esc(p.phone||"")}</span></div>`).join("")}</div>`;
+      if(guests.length) squad+=`<div class="pf-sec">Guests · ${guests.length}</div><div class="pf-people">${guests.map((g,i)=>`<div class="pf-person"><span class="pf-n">G${i+1}</span><b>${esc(g.name)}</b><span class="pf-ph">${esc(g.phone||"")}</span></div>`).join("")}</div>`;
+    }
+    const pay=r.payment&&(r.payment.method||r.payment.txn)
+      ? `<div class="pf-sec">Payment</div><div class="pf-row"><span>Method</span><b>${esc(r.payment.method||"—")}</b></div><div class="pf-row"><span>Txn ID</span><b>${esc(r.payment.txn||"—")}</b></div><div class="pf-row"><span>Status</span><b>${esc(r.paymentStatus||"pending")}</b></div>${r.payment.shot?`<img src="${r.payment.shot}" style="margin-top:10px;border-radius:10px;border:1px solid var(--line);max-width:100%">`:""}`
+      : "";
+    showModal(`<div class="pf">
+      <div class="pf-head">
+        <div class="pf-ava">${logo?`<img src="${esc(logo)}" alt="">`:esc(initials(name))}</div>
+        <div class="pf-id">
+          <h3>${esc(name)}</h3>
+          <span class="pf-sub">${esc(sub)}</span>
+          <div class="pf-tags"><span class="pill ${r.status==='approved'?'ok':r.status==='rejected'?'rev':''}">${esc(r.status)}</span><span class="pf-code">${esc(r.id)}</span><span class="pf-type">${esc(r.type)}</span></div>
+        </div>
+      </div>
+      <div class="pf-quick">
+        ${tel?`<a class="pf-q" href="tel:${esc(tel)}">📞 Call</a>`:""}
+        ${email?`<a class="pf-q" href="mailto:${esc(email)}">✉ Email</a>`:""}
+        <span class="pf-q ghost">📅 ${fmtDateTime(r.created)}</span>
+      </div>
+      <div class="pf-body">${detailHTML}${squad}${pay}</div>
+      <div class="form-actions">
+        ${r.status!=="approved"?`<button class="btn btn-pitch" onclick="closeModal();approveReg('${r.id}')">Approve & notify</button>`:""}
+        <button class="btn btn-line" onclick="editReg('${r.id}')">✎ Edit all details</button>
+        ${r.type==="team"?`<button class="btn btn-line" onclick="passesModal('${r.id}')">QR passes</button>`:""}
+        <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      </div>
+    </div>`,"wide");
   }
 
   /* ---- full registration editor (works for every type + all member-filled fields) ---- */

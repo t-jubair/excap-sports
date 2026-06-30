@@ -50,8 +50,6 @@ function regPhase(){
 const REG_TYPES=[
   ["⚽","Register a team","For captains. Build your squad, invite guests and pay online or at the desk.",[["Approval","By organizers"],["You get","Team + player passes"]],"register-team","From captains building a squad"],
   ["🎟️","Team guest","For supporters invited by a registered team using the captain's invite code.",[["Approval","Yes"],["You get","Guest QR pass"]],"register-guest","Invited by a team captain"],
-  ["👥","Visitor","For alumni, guardians, club reps and supporters not attached to a team.",[["Approval","Yes"],["You get","Visitor QR pass"]],"register-visitor","Alumni & supporters"],
-  ["🎓","Current student","For current SCPSC students. ID collected online, checked at the gate.",[["Approval","Auto · ID at gate"],["You get","Student QR pass"]],"register-student","Current SCPSC students"],
   ["🤝","Volunteer","Join the crew that runs match day. Pick a role; organizers assign your zone and shift.",[["Approval","By organizers"],["You get","Crew pass + duty"]],"register-volunteer","Help run match day"]
 ];
 
@@ -90,7 +88,6 @@ function renderMaintenance(){
       <form class="maint-notify" onsubmit="maintNotify(event)">
         <input id="maint-email" type="email" placeholder="Email me when it's live" autocomplete="email">
         <button class="btn btn-primary" type="submit">Notify me</button>
-        
       </form>
 
       <div class="maint-socials">${socialLinks(cfg.socials,"soc")}</div>
@@ -115,7 +112,7 @@ function renderMaintenance(){
       </div>`:""}
     </div>
 
-    
+    <div class="maint-credit">Played at the ${esc(s.venue||"SCPSC field")} · Developed by ${esc(cfg.developer.name)}</div>
   </div>`+footerHTML();
   const reg=$("#maint-cd-reg"); if(reg && phase!=="closed"){ registerCountdown(reg, phase==="before"?s.regOpen:s.regDeadline); }
   const mm=$("#maint-cd-match"); if(mm){ registerCountdown(mm, s.tournamentDate); }
@@ -131,9 +128,9 @@ function maintNotify(e){
 registerRoute("home",renderHome);
 registerRoute("",renderHome);
 function renderHome(){
-  const s=App.settings, max=s.maxTeams, used=slotsUsed(), remaining=Math.max(0,max-used), pct=Math.min(100,Math.round(used/max*100));
+  const s=App.settings, used=slotsUsed(), confirmedN=confirmedTeams().length;
   const confirmed=confirmedTeams();
-  const stats=[[max,"Teams"],[max*s.playersPerTeam,"Players"],[2,"Fields"],[31,"Matches"],[20,"Min / match"],[getClubs().length,"Clubs"]];
+  const stats=[[used,"Teams in"],[s.playersPerTeam,"Per squad"],[2,"Fields"],[20,"Min / match"],[getClubs().length,"Clubs"]];
   const phase=regPhase();
   const reg=REG_TYPES;
   $("#app").innerHTML=anncHTML()+navHTML("home")+`
@@ -142,7 +139,7 @@ function renderHome(){
       <div>
         <span class="eyebrow"><span class="live"></span>${phase==="open"?"Registration open":phase==="before"?"Registration opening soon":"Registration closed"} · ${fmtDate(s.regDeadline)}</span>
         <h1 class="title">The SCPSC field<br><span class="g">is calling again</span></h1>
-        <p class="lead">EX-CAP brings students, players, alumni and the SCPSC community together through football. Build your team, claim a slot and play on home ground.</p>
+        <p class="lead">EX-CAP brings students, players, alumni and the SCPSC community together through football. Build your team and play on home ground — open to all, no cap on entries.</p>
         <div class="hero-cta">
           <button class="btn btn-primary" onclick="go('register')">Register now</button>
           <button class="btn btn-ghost" onclick="go('live')">▶ Live scoreboard</button>
@@ -154,9 +151,8 @@ function renderHome(){
         <div class="cd" id="cd-event">${["Days","Hours","Min","Sec"].map(k=>`<div class="cd-cell"><div class="v num">--</div><div class="k">${k}</div></div>`).join("")}</div>
         <div class="cd-cap">until ${fmtDate(s.tournamentDate)} · ${esc(s.venue)}</div>
         <div class="slots">
-          <div class="row"><span class="hc-label">Team slots</span><span class="big num"><b>${used}</b> / ${max}</span></div>
-          <div class="bar"><i style="width:0" id="slot-bar"></i></div>
-          <small><b style="color:var(--pitch)">${remaining}</b> slots remaining</small>
+          <div class="row"><span class="hc-label">Teams registered</span><span class="big num"><b>${used}</b></span></div>
+          <div class="row" style="margin-top:6px"><span class="hc-label">Confirmed</span><span class="big num" style="color:var(--pitch)"><b>${confirmedN}</b></span></div>
         </div>
       </div>
     </div>
@@ -235,7 +231,6 @@ function renderHome(){
   registerCountdown($$(".cd-mini")[0],s.regOpen);
   registerCountdown($$(".cd-mini")[1],s.regDeadline);
   registerCountdown($$(".cd-mini")[2],s.tournamentDate);
-  setTimeout(()=>{const b=$("#slot-bar");if(b)b.style.width=pct+"%";},300);
 
   // live + champions strips (real-time)
   if(window.clearLiveSubs) clearLiveSubs();
@@ -279,13 +274,13 @@ registerRoute("teams",function(){
   const list=teamRegs().filter(r=>["approved","review","submitted","waitlist"].includes(r.status));
   $("#app").innerHTML=anncHTML()+navHTML("teams")+`<div class="wrap page">
     <div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span><h1 class="ph">Teams</h1>
-    <p class="ph-sub">${confirmedTeams().length} confirmed · ${list.length} entries · ${Math.max(0,App.settings.maxTeams-slotsUsed())} slots remaining</p></div>
+    <p class="ph-sub">${confirmedTeams().length} confirmed · ${list.length} total entries</p></div>
     <div class="team-grid">${list.length?list.map(teamCard).join(""):`<div class="empty-wall">No teams yet.<br><br><button class="btn btn-primary" onclick="go('register-team')">Be the first</button></div>`}</div>
   </div>`+footerHTML();
 });
 registerRoute("tournament",function(){
   const s=App.settings;
-  const rows=[["Format","Group stage → knockouts"],["Teams",s.maxTeams],["Squad size",s.playersPerTeam+" players"],["Fields","2 (parallel matches)"],["Match length","20 minutes"],["Venue",s.venue],["Tournament date",fmtDate(s.tournamentDate)],["Registration",fmtDate(s.regOpen)+" → "+fmtDate(s.regDeadline)]];
+  const rows=[["Format","Group stage → knockouts"],["Teams","Open — no cap"],["Squad size",s.playersPerTeam+" players"],["Fields","2 (parallel matches)"],["Match length","20 minutes"],["Venue",s.venue],["Tournament date",fmtDate(s.tournamentDate)],["Registration",fmtDate(s.regOpen)+" → "+fmtDate(s.regDeadline)]];
   $("#app").innerHTML=anncHTML()+navHTML("tournament")+`<div class="wrap page">
     <div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span><h1 class="ph">Tournament format</h1>
     <p class="ph-sub">Groups and fixtures are generated automatically once registration closes.</p></div>
@@ -315,7 +310,7 @@ registerRoute("help",function(){
    ============================================================ */
 let draft=null;
 registerRoute("register",function(){
-  const s=App.settings, used=slotsUsed(), remaining=Math.max(0,s.maxTeams-used), phase=regPhase();
+  const s=App.settings, used=slotsUsed(), phase=regPhase();
   $("#app").innerHTML=anncHTML()+navHTML("register")+`
   <div class="wrap page">
     <div class="page-head center">
@@ -337,7 +332,7 @@ registerRoute("register",function(){
         </button>`).join("")}
     </div>
     <div class="reg-note note-box" style="max-width:none;margin-top:22px"><span class="i">🎟️</span>
-      <div><b>${remaining} team slot${remaining===1?"":"s"} remaining.</b> Guests need a captain's invite code. Students are auto-approved with ID checked at the gate. Everyone else is approved by the organizers — you'll get an email + SMS once you're in.</div>
+      <div><b>${used} team${used===1?"":"s"} registered so far.</b> Guests need a captain's invite code. Every entry is approved by the organizers — you'll get an email + SMS once you're in. There's no cap on teams, so bring your squad!</div>
     </div>
   </div>`+footerHTML();
   observeReveal();
@@ -347,7 +342,6 @@ registerRoute("register-team",()=>renderTeamReg());
 function renderTeamReg(step){
   const s=App.settings;
   if(regPhase()==="before") return renderInfo("Registration opens soon","Team registration opens on "+fmtDate(s.regOpen)+". Check back then to claim your slot.","🕓");
-  if(slotsUsed()>=s.maxTeams && !draft) return renderInfo("Team slots are full","All "+s.maxTeams+" slots are taken. Contact organizers to join the waiting list.","⏳");
   draft = draft || {data:{},players:Array.from({length:s.playersPerTeam},()=>({status:"empty"})),guests:[],payment:{},step:0};
   const st=typeof step==="number"?step:draft.step; draft.step=st;
   const steps=["Captain","Team","Players","Guests","Payment","Review"];

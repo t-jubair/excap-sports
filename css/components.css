@@ -1,5 +1,5 @@
 /* ============================================================
-   EX-CAP Sports â€” components.css
+   EX-CAP Sports — components.css
    ============================================================ */
 
 /* ---------- buttons ---------- */
@@ -527,218 +527,6 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
   .maint-notify{flex-direction:column}
 }
 
-
-/* ==========================================
-   NAV CTA + EMERGENCY BUTTON
-   ========================================== */
-   .nav-cta{
-      display:flex;
-      align-items:center;
-      gap:12px;
-    }
-    
-    .btn-emergency{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
-      height:48px;
-      padding:0 18px;
-      border:none;
-      border-radius:14px;
-      background:linear-gradient(135deg,#dc2626,#ef4444);
-      color:#ffffff;
-      font-size:13px;
-      font-weight:800;
-      letter-spacing:.03em;
-      text-transform:uppercase;
-      cursor:pointer;
-      white-space:nowrap;
-      box-shadow:0 10px 25px rgba(220,38,38,.22);
-      transition:all .25s ease;
-    }
-    
-    .btn-emergency:hover{
-      transform:translateY(-2px);
-      box-shadow:0 16px 35px rgba(220,38,38,.35);
-      background:linear-gradient(135deg,#b91c1c,#dc2626);
-    }
-    
-    .btn-emergency:active{
-      transform:translateY(0);
-    }
-    
-    /* ==========================================
-       EMERGENCY MODAL
-       ========================================== */
-    .em-modal{
-      width:min(100%,520px);
-      color:#111827;
-    }
-    
-    .em-header{
-      display:flex;
-      align-items:center;
-      gap:16px;
-      margin-bottom:24px;
-    }
-    
-    .em-icon{
-      width:58px;
-      height:58px;
-      border-radius:18px;
-      display:grid;
-      place-items:center;
-      font-size:26px;
-      background:linear-gradient(135deg,#dc2626,#ef4444);
-      color:#fff;
-      box-shadow:0 12px 24px rgba(220,38,38,.25);
-      flex:none;
-    }
-    
-    .em-header h3{
-      margin:0;
-      font-size:22px;
-      font-weight:900;
-      color:#111827;
-    }
-    
-    .em-header p{
-      margin:4px 0 0;
-      font-size:13px;
-      line-height:1.5;
-      color:#6b7280;
-    }
-    
-    /* ==========================================
-       CONTACT CARD
-       ========================================== */
-    .em-contact-box{
-      background:#ffffff;
-      border:1px solid #e5e7eb;
-      border-radius:20px;
-      padding:24px;
-      box-shadow:0 12px 30px rgba(0,0,0,.06);
-    }
-    
-    .em-contact-box h4{
-      margin:0;
-      font-size:20px;
-      font-weight:800;
-      color:#111827;
-    }
-    
-    .em-contact-box span{
-      display:block;
-      margin-top:8px;
-      font-size:13px;
-      font-weight:700;
-      color:#6b7280;
-      line-height:1.5;
-    }
-    
-    .em-phone{
-      margin-top:20px;
-      padding:14px 16px;
-      border-radius:14px;
-      background:#fef2f2;
-      border:1px solid #fecaca;
-      color:#dc2626;
-      font-size:17px;
-      font-weight:800;
-    }
-    
-    /* ==========================================
-       ACTION BUTTONS
-       ========================================== */
-    .em-actions{
-      display:flex;
-      gap:12px;
-      margin-top:24px;
-    }
-    
-    .em-call,
-    .em-mail{
-      flex:1;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:13px 16px;
-      border-radius:14px;
-      text-decoration:none;
-      font-size:14px;
-      font-weight:800;
-      transition:.2s;
-    }
-    
-    .em-call{
-      background:#16a34a;
-      color:#ffffff;
-    }
-    
-    .em-call:hover{
-      background:#15803d;
-      transform:translateY(-2px);
-    }
-    
-    .em-mail{
-      background:#eef2ff;
-      color:#4338ca;
-    }
-    
-    .em-mail:hover{
-      background:#e0e7ff;
-      transform:translateY(-2px);
-    }
-    
-    /* ==========================================
-       MAINTENANCE PAGE EMERGENCY BUTTON
-       ========================================== */
-    .maint-actions{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:12px;
-      margin-top:24px;
-      flex-wrap:wrap;
-    }
-    
-    /* ==========================================
-       MOBILE
-       ========================================== */
-    @media (max-width: 900px){
-      .nav-cta{
-        gap:8px;
-      }
-    
-      .btn-emergency{
-        padding:0 14px;
-        font-size:12px;
-      }
-    }
-    
-    @media (max-width: 768px){
-      .btn-emergency{
-        display:none;
-      }
-    }
-    
-    @media (max-width: 600px){
-      .em-header{
-        flex-direction:column;
-        align-items:flex-start;
-      }
-    
-      .em-actions{
-        flex-direction:column;
-      }
-    
-      .em-call,
-      .em-mail{
-        width:100%;
-      }
-    }
-
 /* maintenance badge (admins/preview viewing the live site) */
 #maint-badge{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9000;display:flex;align-items:center;gap:8px;background:#0b0e20;border:1px solid var(--line);color:var(--ink);font-size:12px;font-weight:700;padding:9px 16px;border-radius:999px;box-shadow:0 18px 40px -18px rgba(0,0,0,.8);animation:fadeUp .4s ease both;max-width:92vw}
 #maint-badge .mb-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 3px rgba(245,165,36,.25);animation:pulse 1.6s infinite;flex:none}
@@ -783,3 +571,64 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
 .club-edit{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;margin-bottom:10px}
 .club-edit .ck{font-size:11px;color:var(--muted-2);text-transform:uppercase;letter-spacing:.06em}
 @media(max-width:560px){.club-edit{grid-template-columns:1fr}}
+
+/* ============================================================
+   EMERGENCY / HELP — button, FAB and card modal
+   ============================================================ */
+.btn-soft{background:var(--grad-soft);border:1px solid var(--line);color:var(--ink)}
+.btn-soft:hover{border-color:rgba(124,58,237,.5)}
+.btn-block{width:100%;justify-content:center}
+
+#help-fab{position:fixed;right:18px;bottom:18px;z-index:8500;display:inline-flex;align-items:center;gap:8px;
+  background:var(--grad);color:#fff;border:0;border-radius:999px;padding:12px 18px;font-weight:800;font-size:13px;
+  letter-spacing:.02em;cursor:pointer;box-shadow:0 18px 40px -16px rgba(124,58,237,.8);animation:fabIn .4s ease both}
+#help-fab:hover{transform:translateY(-3px)}
+#help-fab .hf-ic{font-size:16px;line-height:1}
+@keyframes fabIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media(max-width:560px){#help-fab .hf-tx{display:none}#help-fab{padding:14px}}
+
+.modal.narrow{max-width:400px}
+.emerg-card{text-align:center}
+.emerg-card .emerg-ic{font-size:34px;margin-bottom:6px}
+.emerg-card h3{font-family:var(--font-display);font-size:22px;margin-bottom:6px}
+.emerg-msg{color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:18px}
+.emerg-person{display:flex;align-items:center;gap:12px;justify-content:center;background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:13px 16px;margin-bottom:16px;text-align:left}
+.emerg-person .ep-ava{width:46px;height:46px;border-radius:13px;background:var(--grad);display:grid;place-items:center;font-family:var(--font-display);font-weight:900;color:#fff;font-size:16px;flex:none}
+.emerg-person b{display:block;font-family:var(--font-display);font-size:15px}
+.emerg-person span{font-size:12px;color:var(--muted-2)}
+.emerg-actions{display:flex;flex-direction:column;gap:9px;margin-bottom:6px}
+.emerg-actions .btn{width:100%;justify-content:center}
+
+/* animated motion behind the nav logo */
+.nav .mark.logo-stage{position:relative;overflow:visible}
+.nav .mark .logo-aura{position:absolute;inset:-7px;z-index:0;border-radius:16px;pointer-events:none;
+  background:conic-gradient(from 0deg,rgba(124,58,237,.6),rgba(219,39,119,.55),rgba(22,192,98,.5),rgba(124,58,237,.6));
+  filter:blur(11px);opacity:.5;animation:auraSpin 8s linear infinite}
+.nav .mark img,.nav .mark .lf,.nav .mark span{position:relative;z-index:1}
+@media(prefers-reduced-motion:reduce){.nav .mark .logo-aura{animation:none}}
+
+/* ============================================================
+   ADMIN REGISTRANT PROFILE CARD
+   ============================================================ */
+.pf-head{display:flex;gap:15px;align-items:center;margin-bottom:14px}
+.pf-ava{width:60px;height:60px;border-radius:16px;background:var(--grad);display:grid;place-items:center;font-family:var(--font-display);font-weight:900;color:#fff;font-size:22px;flex:none;overflow:hidden}
+.pf-ava img{width:100%;height:100%;object-fit:cover}
+.pf-id h3{font-family:var(--font-display);font-size:20px;margin:0}
+.pf-id .pf-sub{font-size:13px;color:var(--muted);text-transform:capitalize}
+.pf-tags{display:flex;gap:8px;align-items:center;margin-top:7px;flex-wrap:wrap}
+.pf-code{font-size:11px;font-weight:700;color:var(--muted-2);background:var(--panel);border:1px solid var(--line-soft);padding:3px 8px;border-radius:6px}
+.pf-type{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#b794f6}
+.pf-quick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line-soft)}
+.pf-q{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--ink);background:var(--panel);border:1px solid var(--line);padding:8px 13px;border-radius:10px;text-decoration:none;transition:.15s}
+.pf-q:hover{border-color:rgba(124,58,237,.5)}
+.pf-q.ghost{color:var(--muted-2);background:transparent}
+.pf-body{max-height:48vh;overflow:auto;margin-bottom:6px}
+.pf-row{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px dashed var(--line-soft);font-size:13.5px}
+.pf-row span{color:var(--muted-2)}.pf-row b{text-align:right;max-width:62%}
+.pf-sec{font-family:var(--font-display);font-weight:800;font-size:13px;margin:14px 0 8px;color:var(--ink)}
+.pf-people{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pf-person{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line-soft);border-radius:10px;padding:8px 11px}
+.pf-person .pf-n{width:22px;height:22px;border-radius:7px;background:var(--grad-soft);display:grid;place-items:center;font-size:11px;font-weight:800;flex:none}
+.pf-person b{font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-person .pf-ph{font-size:11px;color:var(--muted-2)}
+@media(max-width:560px){.pf-people{grid-template-columns:1fr}.pf-row b{max-width:55%}}

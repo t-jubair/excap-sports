@@ -40,35 +40,33 @@
    function allTeams(){ return (App.isAdmin && App.regs && App.regs.length) ? App.regs.filter(r=>r.type==="team") : (App.publicTeams||[]); }
    /* affiliated clubs (admin-editable via settings.clubs) */
    function getClubs(){ return (App.settings && App.settings.clubs && App.settings.clubs.length) ? App.settings.clubs : (cfg.settings.clubs||[]); }
-
-  function openEmergencyCard(){
-    const e=(App.settings && App.settings.emergency) || cfg.emergency || {};
-    const tel=(e.phone||"").replace(/[^\d+]/g,"");
-  
-    showModal(`
-      <div class="em-modal">
-        <div class="em-header">
-          <div class="em-icon">🚨</div>
-          <div>
-            <h3>Emergency Contact</h3>
-            <p>Reach out immediately for urgent support</p>
-          </div>
-        </div>
-  
-        <div class="em-contact-box">
-          <h4>${e.name || "Emergency Support"}</h4>
-          <span>${e.role || ""}</span>
-  
-          <div class="em-phone">📞 ${e.phone || ""}</div>
-  
-          <div class="em-actions">
-            <a href="tel:${tel}" class="em-call">Call Now</a>
-            ${e.email ? `<a href="mailto:${e.email}" class="em-mail">Email</a>` : ""}
-          </div>
-        </div>
-      </div>
-    `);
-  }
+   /* emergency contact — opens as a nice card modal from a button/FAB */
+   function emergencyInfo(){ return (App.settings && App.settings.emergency) || cfg.emergency || {}; }
+   function emergencyModal(){
+     const e=emergencyInfo(); const tel=(e.phone||"").replace(/[^\d+]/g,"");
+     showModal(`<div class="emerg-card">
+       <div class="emerg-ic">🆘</div>
+       <h3>Need help?</h3>
+       <p class="emerg-msg">Facing a problem with registration or anything else? Reach our team directly — we're happy to help.</p>
+       <div class="emerg-person">
+         <div class="ep-ava">${esc(initials(e.name||"EX"))}</div>
+         <div><b>${esc(e.name||"")}</b><span>${esc(e.role||"")}</span></div>
+       </div>
+       <div class="emerg-actions">
+         ${e.phone?`<a class="btn btn-primary" href="tel:${esc(tel)}">📞 Call ${esc(e.phone)}</a>`:""}
+         ${e.email?`<a class="btn btn-line" href="mailto:${esc(e.email)}">✉ Email us</a>`:""}
+       </div>
+       <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="closeModal()">Close</button>
+     </div>`,"narrow");
+   }
+   /* floating help button shown on every page */
+   function ensureHelpFab(){
+     const e=emergencyInfo(); if(!e.phone && !e.email){ const x=document.getElementById("help-fab"); if(x)x.remove(); return; }
+     let b=document.getElementById("help-fab");
+     if(!b){ b=document.createElement("button"); b.id="help-fab"; b.type="button"; b.setAttribute("aria-label","Get help");
+       b.innerHTML=`<span class="hf-ic">🆘</span><span class="hf-tx">Need help?</span>`;
+       b.onclick=emergencyModal; document.body.appendChild(b); }
+   }
    function findTeam(id){ return (App.regs||[]).find(r=>r.id===id) || (App.publicTeams||[]).find(r=>r.id===id) || null; }
    function teamRegs(){ return allTeams(); }
    function confirmedTeams(){ return allTeams().filter(r=>r.status==="approved"); }
@@ -86,27 +84,24 @@
    /* ============================================================
       NAV + DRAWER
       ============================================================ */
-   const NAV=[["home","Home"],["live","Live"],["fixtures","Fixtures"],["teams","Teams"],["register","Register"],["help","Help"]];
+   const NAV=[["home","Home"],["live","Live"],["fixtures","Fixtures"],["teams","Teams"],["register","Register"]];
    function navHTML(active){
      return `
-       <header class="nav"><div class="wrap nav-in">
-       <div class="brand" onclick="go('home')"><div class="mark">${logoImg("tournament","EX")}</div>
+     <header class="nav"><div class="wrap nav-in">
+       <div class="brand" onclick="go('home')"><div class="mark logo-stage"><span class="logo-aura" aria-hidden="true"></span>${logoImg("tournament","EX")}</div>
          <div><b>EX-CAP</b><span>SCPSC Alumni Football</span></div></div>
        <nav class="links">${NAV.map(([h,l])=>`<a class="${active===h?'active':''}" onclick="go('${h}')">${l}</a>`).join("")}</nav>
        <div class="nav-cta">
-         <button class="btn btn-line" onclick="go('teams')">View teams</button>
-         <button class="btn btn-emergency" onclick="openEmergencyCard()">
-          🚨 Emergency
-         </button>
+         <button class="btn btn-soft" onclick="emergencyModal()">🆘 Help</button>
          <button class="btn btn-primary" onclick="go('register')">Register now</button>
        </div>
-       
        <button class="hamb" aria-label="Menu" onclick="$('#drawer').classList.add('open')">☰</button>
      </div></header>
      <div id="drawer" class="drawer">
        <button class="close" aria-label="Close" onclick="$('#drawer').classList.remove('open')">✕</button>
        ${NAV.map(([h,l])=>`<a onclick="$('#drawer').classList.remove('open');go('${h}')">${l}</a>`).join("")}
        <a onclick="$('#drawer').classList.remove('open');go('register')" style="color:var(--magenta)">Register now →</a>
+       <a onclick="$('#drawer').classList.remove('open');emergencyModal()">🆘 Need help?</a>
      </div>`;
    }
    function anncHTML(){
@@ -188,12 +183,12 @@
      const r=currentRoute();
      // public sees the holding page; admins (#admin / logged-in) and preview links pass through
      if(maintenanceActive() && !canBypassMaintenance() && r!=="admin" && r!=="unlock"){
-       renderMaintenance(); updateMaintBadge(); return;
+       renderMaintenance(); updateMaintBadge(); ensureHelpFab(); return;
      }
      const fn=Routes[r]||Routes.home;
      await fn();
      observeReveal(); animateCounts();
-     updateMaintBadge();
+     updateMaintBadge(); ensureHelpFab();
    }
    window.addEventListener("hashchange",route);
 
@@ -241,16 +236,23 @@
       BOOT
       ============================================================ */
    async function boot(){
-     try{ await Store.ready; }catch(e){}
-     try{ App.settings = await Store.getSettings(); }catch(e){ App.settings = {...cfg.settings}; }
-     try{ App.logos = await Store.getLogos(); }catch(e){ App.logos = {}; }
-     try{ App.publicTeams = await Store.listPublicTeams(); }catch(e){ App.publicTeams = []; }
-     App.regs = App.regs || [];   // populated only after admin signs in
+     // 1) INSTANT first paint from config defaults (no waiting on the network)
+     App.settings = App.settings || {...cfg.settings};
+     App.logos    = App.logos || {};
+     App.publicTeams = App.publicTeams || [];
+     App.regs = App.regs || [];
      applyPreviewParam();
      applyBrand((App.settings && App.settings.brand) || cfg.brand);
-     Notify.initEmail();
-     // when Firebase restores/changes an admin session, lift the maintenance gate
+     route();                                  // page is visible immediately
+
+     // 2) Hydrate from the backend, then refresh
+     try{ await Store.ready; }catch(e){}
+     try{ App.settings = await Store.getSettings(); }catch(e){}
+     try{ App.logos = await Store.getLogos(); }catch(e){}
+     try{ App.publicTeams = await Store.listPublicTeams(); }catch(e){}
+     applyBrand((App.settings && App.settings.brand) || cfg.brand);
+     if(window.Notify && Notify.initEmail) Notify.initEmail();
      if(Store.onAuth) Store.onAuth(u=>{ App.authed=!!u; route(); });
-     route();
+     route();                                  // re-render with live data
    }
    document.addEventListener("DOMContentLoaded",boot);

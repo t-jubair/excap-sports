@@ -40,10 +40,7 @@ function footerHTML(){
   const statusTxt=phase==="open"?"Registrations open":phase==="before"?"Opening soon":"Registrations closed";
   const link=(label,route,icon)=>`<a onclick="go('${route}')">${svgIcon(icon||"arrow")} ${label}</a>`;
   return `<footer class="site-foot">
-    <div class="foot-banner" aria-hidden="true">
-      <picture><source srcset="assets/footer-banner.webp" type="image/webp"><img src="assets/footer-banner.png" alt="" loading="lazy"></picture>
-      <div class="foot-banner-fade"></div>
-    </div>
+
 
     <div class="wrap foot-shell">
       <div class="foot-card">

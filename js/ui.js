@@ -40,19 +40,35 @@
    function allTeams(){ return (App.isAdmin && App.regs && App.regs.length) ? App.regs.filter(r=>r.type==="team") : (App.publicTeams||[]); }
    /* affiliated clubs (admin-editable via settings.clubs) */
    function getClubs(){ return (App.settings && App.settings.clubs && App.settings.clubs.length) ? App.settings.clubs : (cfg.settings.clubs||[]); }
-   /* emergency contact bar — shown at the top of every page */
-   function emergencyBar(){
-     const e=(App.settings && App.settings.emergency) || cfg.emergency || {}; if(!e.phone && !e.email) return "";
-     const tel=(e.phone||"").replace(/[^\d+]/g,"");
-     return `<div class="emerg-bar"><div class="wrap emerg-in">
-       <span class="emerg-tag">⚠ Registration help</span>
-       <span class="emerg-name"><b>${esc(e.name||"")}</b>${e.role?` · <span class="emerg-role">${esc(e.role)}</span>`:""}</span>
-       <span class="emerg-links">
-         ${e.phone?`<a href="tel:${esc(tel)}" class="emerg-link">📞 ${esc(e.phone)}</a>`:""}
-         ${e.email?`<a href="mailto:${esc(e.email)}" class="emerg-link">✉ ${esc(e.email)}</a>`:""}
-       </span>
-     </div></div>`;
-   }
+
+  function openEmergencyCard(){
+    const e=(App.settings && App.settings.emergency) || cfg.emergency || {};
+    const tel=(e.phone||"").replace(/[^\d+]/g,"");
+  
+    showModal(`
+      <div class="em-modal">
+        <div class="em-header">
+          <div class="em-icon">🚨</div>
+          <div>
+            <h3>Emergency Contact</h3>
+            <p>Reach out immediately for urgent support</p>
+          </div>
+        </div>
+  
+        <div class="em-contact-box">
+          <h4>${e.name || "Emergency Support"}</h4>
+          <span>${e.role || ""}</span>
+  
+          <div class="em-phone">📞 ${e.phone || ""}</div>
+  
+          <div class="em-actions">
+            <a href="tel:${tel}" class="em-call">Call Now</a>
+            ${e.email ? `<a href="mailto:${e.email}" class="em-mail">Email</a>` : ""}
+          </div>
+        </div>
+      </div>
+    `);
+  }
    function findTeam(id){ return (App.regs||[]).find(r=>r.id===id) || (App.publicTeams||[]).find(r=>r.id===id) || null; }
    function teamRegs(){ return allTeams(); }
    function confirmedTeams(){ return allTeams().filter(r=>r.status==="approved"); }
@@ -72,15 +88,19 @@
       ============================================================ */
    const NAV=[["home","Home"],["live","Live"],["fixtures","Fixtures"],["teams","Teams"],["register","Register"],["help","Help"]];
    function navHTML(active){
-     return emergencyBar()+`
-     <header class="nav"><div class="wrap nav-in">
+     return `
+       <header class="nav"><div class="wrap nav-in">
        <div class="brand" onclick="go('home')"><div class="mark">${logoImg("tournament","EX")}</div>
          <div><b>EX-CAP</b><span>SCPSC Alumni Football</span></div></div>
        <nav class="links">${NAV.map(([h,l])=>`<a class="${active===h?'active':''}" onclick="go('${h}')">${l}</a>`).join("")}</nav>
        <div class="nav-cta">
          <button class="btn btn-line" onclick="go('teams')">View teams</button>
+         <button class="btn btn-emergency" onclick="openEmergencyCard()">
+          🚨 Emergency
+         </button>
          <button class="btn btn-primary" onclick="go('register')">Register now</button>
        </div>
+       
        <button class="hamb" aria-label="Menu" onclick="$('#drawer').classList.add('open')">☰</button>
      </div></header>
      <div id="drawer" class="drawer">

@@ -61,7 +61,7 @@ const REG_TYPES=[
 function renderMaintenance(){
   const s=App.settings, c=cfg.contact, clubs=getClubs();
   const phase=regPhase();
-  $("#app").innerHTML=emergencyBar()+`
+  $("#app").innerHTML=`
   <div class="maint">
     <div class="maint-bg" aria-hidden="true">${pitchLines()}</div>
     <span class="maint-ball b1">⚽</span><span class="maint-ball b2">⚽</span>
@@ -90,6 +90,7 @@ function renderMaintenance(){
       <form class="maint-notify" onsubmit="maintNotify(event)">
         <input id="maint-email" type="email" placeholder="Email me when it's live" autocomplete="email">
         <button class="btn btn-primary" type="submit">Notify me</button>
+        
       </form>
 
       <div class="maint-socials">${socialLinks(cfg.socials,"soc")}</div>

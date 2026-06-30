@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0a0d1c">
   <title>EX-CAP Football Tournament · SCPSC Alumni</title>
-  <meta name="description" content="Register for the EX-CAP Football Tournament — the SCPSC alumni reunion on home ground. Teams, guests, visitors and current students welcome.">
+  <meta name="description"
+    content="Register for the EX-CAP Football Tournament — the SCPSC alumni reunion on home ground. Teams, guests, visitors and current students welcome.">
 
   <!-- Open Graph -->
   <meta property="og:title" content="EX-CAP Football Tournament">
@@ -15,7 +17,9 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
 
   <!-- Styles -->
   <link rel="stylesheet" href="css/theme.css?v=3">
@@ -26,13 +30,14 @@
   <!-- EmailJS SDK (client-side email) -->
   <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <!-- Real scannable QR codes (passes) -->
-  <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@2.0.4/qrcode.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@2.0.4/qrcode.js"></script>
   <!-- QR camera scanner (admin check-in only) -->
-  <script defer src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <link rel="manifest" href="assets/manifest.webmanifest">
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
 </head>
+
 <body>
   <div id="app"><!-- app renders here --></div>
 
@@ -59,8 +64,9 @@
       window.dispatchEvent(new Event('pwaInstallReady'));
     });
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { }));
     }
   </script>
 </body>
+
 </html>

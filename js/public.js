@@ -727,8 +727,149 @@ function downloadRegPdf(id) {
   if (!rec) { toast("Could not find this registration", "err"); return; }
   const w = window.open("", "_blank");
   if (!w) { toast("Allow pop-ups to download the PDF", "warn"); return; }
-  const css = `*{font-family:Arial,Helvetica,sans-serif;color:#111;box-sizing:border-box}.sheet{max-width:720px;margin:0 auto;padding:24px}h1{font-size:20px;margin:0 0 4px}h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#555;border-bottom:1px solid #ddd;padding-bottom:6px;margin:22px 0 10px}.meta{font-size:12px;color:#666;margin-bottom:6px}table{width:100%;border-collapse:collapse;font-size:13px}td{padding:6px 4px;border-bottom:1px solid #eee;text-transform:capitalize}td:first-child{color:#888;width:35%}.passes{display:flex;flex-wrap:wrap;gap:14px}.p{width:150px;border:1px solid #ddd;border-radius:10px;padding:12px;text-align:center}.p .q{width:120px;height:120px;margin:0 auto 8px;display:block}.p .q svg{display:block;width:120px;height:120px}.p b{display:block;font-size:13px}.p span{font-size:11px;color:#666}.p small{display:block;font-size:9px;color:#999;margin-top:3px;word-break:break-all}.foot{margin-top:20px;font-size:11px;color:#888;border-top:1px solid #ddd;padding-top:10px}@media print{@page{margin:12mm}}`;
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(rec.id)} — EX-CAP</title><style>${css}</style></head><body>${regSheetHTML(rec)}<script>window.onload=function(){setTimeout(function(){window.print();},250);}<\/script></body></html>`);
+
+  const s = App.settings, d = rec.data || {};
+  const name = d.teamName || d.name || "Registrant";
+  const email = d.email || rec.captainEmail || "";
+  const phone = rec.contact || d.phone || d.captainPhone || "";
+  const category = d.category || "";
+  const batch = [d.sscBatch && "SSC " + d.sscBatch, d.hscBatch && "HSC " + d.hscBatch].filter(Boolean).join(" · ") || d.batch || "";
+  const typeLabel = { team: "Team registration", guest: "Guest pass", visitor: "Visitor pass", volunteer: "Volunteer application", student: "Student pass" }[rec.type] || "Registration";
+  const statusLabel = rec.status === "approved" ? "Approved" : rec.status === "review" ? "Under review" : rec.status;
+  const statusColor = rec.status === "approved" ? "#16a34a" : "#d97706";
+
+  // primary pass QR + (for teams) player + guest passes
+  const passes = [{ code: rec.id, name, sub: typeLabel }];
+  if (rec.type === "team") {
+    (rec.players || []).forEach((p, i) => passes.push({ code: rec.id + "#P" + (i + 1), name: p.name || ("Player " + (i + 1)), sub: p.role || ("Player " + (i + 1)) }));
+    (rec.guests || []).forEach((g, i) => passes.push({ code: rec.id + "#G" + (i + 1), name: g.name || ("Guest " + (i + 1)), sub: "Guest" }));
+  }
+
+  // build detail rows in nice human form (only fields that have values)
+  const detailRows = [
+    ["Name", name],
+    rec.type === "team" ? ["Category", category] : null,
+    rec.type === "team" ? ["Batch", batch] : null,
+    rec.type !== "team" && category ? ["Category", category] : null,
+    rec.type !== "team" && batch ? ["Batch", batch] : null,
+    d.captainName ? ["Captain", d.captainName] : null,
+    d.viceName ? ["Vice-captain", d.viceName] : null,
+    d.preferredRole ? ["Preferred role", d.preferredRole] : null,
+    d.availability ? ["Availability", d.availability] : null,
+    d.tshirt ? ["T-shirt size", d.tshirt] : null,
+    ["Phone", phone],
+    email ? ["Email", email] : null,
+    ["Registration ID", rec.id],
+    ["Submitted", new Date(rec.created).toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })],
+    ["Status", statusLabel]
+  ].filter(Boolean);
+
+  const detailHTML = detailRows.map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td class="v">${esc(String(v))}</td></tr>`).join("");
+  const passHTML = passes.map(p => `<div class="pass"><div class="qr">${(window.QR && QR.svg) ? QR.svg(p.code) : qrSvg(p.code)}</div><div class="pn">${esc(p.name)}</div><div class="ps">${esc(p.sub)}</div><div class="pc">${esc(p.code)}</div></div>`).join("");
+
+  // logos (try admin-uploaded → asset file → nothing)
+  const logoTag = (key, fb) => {
+    const up = App.logos && App.logos[key];
+    if (up) return `<img class="lg" src="${up}" alt="">`;
+    return `<img class="lg" src="assets/logo-${key}.png" alt="" onerror="this.style.display='none'">`;
+  };
+
+  const html = `<!doctype html><html><head><meta charset="utf-8">
+<title>${esc(rec.id)} — ${esc(s.tournamentName || "EX-CAP")}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#f5f6fa;color:#0f1424;font-family:'Inter',system-ui,Arial,sans-serif;font-size:13px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .sheet{max-width:760px;margin:24px auto;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 20px 50px -30px rgba(0,0,0,.35);border:1px solid #e6e8f0}
+
+  /* header */
+  .head{position:relative;padding:26px 32px 22px;background:linear-gradient(120deg,#7c3aed,#db2777);color:#fff;overflow:hidden}
+  .head::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.09)}
+  .head-top{display:flex;align-items:center;gap:14px;position:relative;z-index:1}
+  .head-logos{display:flex;gap:8px}
+  .head-logos .lg{width:44px;height:44px;border-radius:11px;background:#fff;padding:5px;object-fit:contain}
+  .head-title{flex:1;min-width:0}
+  .head-title h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:20px;letter-spacing:-.01em;line-height:1.15;text-transform:uppercase}
+  .head-title .k{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.85;margin-top:4px}
+  .id-strip{position:relative;z-index:1;margin-top:18px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .id-strip .l{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.75}
+  .id-strip .id{font-family:'Archivo',sans-serif;font-weight:900;font-size:17px;letter-spacing:.02em}
+  .id-strip .status{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;background:#fff;color:${statusColor};border-radius:999px;padding:5px 12px}
+
+  /* body */
+  .body{padding:26px 32px 22px}
+  .sec-h{font-family:'Archivo',sans-serif;font-weight:800;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7c3aed;margin:22px 0 10px;border-bottom:2px solid #ece5fa;padding-bottom:6px}
+  .sec-h:first-child{margin-top:0}
+  table.det{width:100%;border-collapse:collapse}
+  table.det td{padding:9px 0;border-bottom:1px solid #eef0f7;vertical-align:top;font-size:12.5px}
+  table.det td.k{color:#6b7280;width:38%;font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:11px}
+  table.det td.v{color:#0f1424;font-weight:600;text-align:right}
+  table.det tr:last-child td{border-bottom:0}
+
+  /* pass cards */
+  .passes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:4px}
+  .pass{background:#fff;border:1px solid #e2e5f0;border-radius:14px;padding:14px 12px;text-align:center;box-shadow:0 6px 16px -12px rgba(0,0,0,.2);break-inside:avoid;page-break-inside:avoid}
+  .pass .qr{width:150px;height:150px;margin:0 auto 10px;background:#fff;border:1px solid #eceef5;border-radius:10px;padding:8px;display:block}
+  .pass .qr svg{display:block;width:100%;height:100%}
+  .pass .pn{font-family:'Archivo',sans-serif;font-weight:800;font-size:13px;color:#0f1424;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pass .ps{font-size:11px;color:#6b7280;margin-top:2px;text-transform:capitalize}
+  .pass .pc{font-size:9px;color:#9aa1b4;margin-top:6px;font-family:'Inter',monospace;word-break:break-all;letter-spacing:.02em}
+
+  /* footer */
+  .foot{background:#f7f8fc;padding:16px 32px;border-top:1px solid #eceef5;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:11px;color:#6b7280}
+  .foot b{color:#0f1424}
+  .foot .brand{font-family:'Archivo',sans-serif;font-weight:800;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#7c3aed}
+
+  @media print{
+    html,body{background:#fff}
+    .sheet{margin:0;box-shadow:none;border:0;max-width:none;border-radius:0}
+    .passes{grid-template-columns:repeat(3,1fr)}
+    @page{margin:10mm;size:A4}
+  }
+  @media (max-width:520px){ .passes{grid-template-columns:repeat(2,1fr)} }
+</style>
+</head><body>
+  <div class="sheet">
+    <div class="head">
+      <div class="head-top">
+        <div class="head-logos">${logoTag("scpsc")}${logoTag("tournament")}${logoTag("excap")}</div>
+        <div class="head-title">
+          <h1>${esc(s.tournamentName || "EX-CAP Football Tournament")} ${esc(s.edition || "")}</h1>
+          <div class="k">${esc(typeLabel)} · ${esc(s.venue || "SCPSC field")}</div>
+        </div>
+      </div>
+      <div class="id-strip">
+        <div><div class="l">Registration ID</div><div class="id">${esc(rec.id)}</div></div>
+        <div class="status">${esc(statusLabel)}</div>
+      </div>
+    </div>
+
+    <div class="body">
+      <div class="sec-h">Registration details</div>
+      <table class="det">${detailHTML}</table>
+
+      <div class="sec-h">QR passes — scan at the gate</div>
+      <div class="passes">${passHTML}</div>
+    </div>
+
+    <div class="foot">
+      <span>Venue: <b>${esc(s.venue || "SCPSC field")}</b> · Date: <b>${fmtDate(s.tournamentDate)}</b> · Keep this for entry.</span>
+      <span class="brand">EX-CAP · Alumni of SCPSC</span>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('load', function(){
+      requestAnimationFrame(function(){
+        setTimeout(function(){ window.print(); }, 700);
+      });
+    });
+    window.addEventListener('afterprint', function(){ setTimeout(function(){ window.close(); }, 400); });
+  <\/script>
+</body></html>`;
+  w.document.write(html);
   w.document.close();
 }
 function renderInfo(title, msg, icon) {

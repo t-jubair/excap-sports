@@ -86,6 +86,14 @@
       } else {
         await fb.setDoc(fb.doc(db,"registrations",rec.id), rec, {merge:true});
       }
+      Store.deleteReg = async function(id){
+        if(Store.mode==="local"){
+          const d=LS.read(); d.regs=(d.regs||[]).filter(r=>r.id!==id);
+          d.publicTeams=(d.publicTeams||[]).filter(r=>r.id!==id); LS.write(d); return;
+        }
+        await fb.deleteDoc(fb.doc(db,"registrations",id));
+        try{ await fb.deleteDoc(fb.doc(db,"public_teams",id)); }catch(e){}
+      };
       // mirror teams to a PII-free public collection the public site can read
       if(rec.type==="team"){ try{ await Store.savePublicTeam(rec); }catch(e){} }
     };

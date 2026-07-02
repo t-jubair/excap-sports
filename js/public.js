@@ -462,6 +462,27 @@ function previewBrand(id){
   </div>`, "wide");
 }
 
+async function downloadBrandFile(url, filename){
+  try{
+    toast("Downloading…");
+    const r = await fetch(url);
+    if(!r.ok) throw new Error("Failed to fetch");
+    const blob = await r.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename || "brand-material";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(blobUrl), 100);
+    toast("Downloaded ✓");
+  }catch(e){
+    window.open(url, "_blank");
+    toast("Opened in new tab — right-click to save", "warn");
+  }
+}
+
 function copyBrandLink(id){
   const url = "https://sports.excapscpsc.com/#brand"+(id?"-"+id:"");
   const done = ()=>toast("Link copied — ready to share ✓");

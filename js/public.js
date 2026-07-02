@@ -384,24 +384,29 @@ registerRoute("brand", function(){
 
 function brandCard(item, idx, highlightId){
   const isImg = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(item.url||"") || (item.mime||"").startsWith("image/");
+  const filename = `${(item.title||"brand").replace(/[^a-zA-Z0-9]/g,"_")}${bi_ext(item.mime)}`;
   return `<div class="brand-item ${highlightId===item.id?'highlight':''} reveal" id="brand-${esc(item.id)}" data-cat="${esc(item.category||"General")}" style="animation-delay:${idx*40}ms">
     <div class="bi-preview" onclick="previewBrand('${esc(item.id)}')">
       ${isImg ? `<img src="${esc(item.url)}" alt="${esc(item.title)}" loading="lazy">` : `<div class="bi-file-ic">${bi_fileIcon(item.mime)}</div>`}
       <div class="bi-overlay">
-        <div class="bi-zoom">🔍 Click to preview</div>
+        <div class="bi-zoom-btn">🔍 View</div>
       </div>
+      ${item.mime?`<span class="bi-badge">${esc((item.mime.split("/")[1]||"file").toUpperCase())}</span>`:""}
     </div>
     <div class="bi-body">
       <div class="bi-cat">${esc(item.category||"General")}</div>
       <b class="bi-title">${esc(item.title)}</b>
       ${item.description?`<span class="bi-desc">${esc(item.description)}</span>`:""}
-      <div class="bi-meta">
-        ${item.mime?`<span class="chip">${esc((item.mime.split("/")[1]||"file").toUpperCase())}</span>`:""}
-        ${item.size?`<span class="chip">${bi_fmtSize(item.size)}</span>`:""}
-      </div>
-      <div class="bi-actions">
-        <a class="btn btn-primary btn-sm" href="${esc(item.url)}" download="${esc(item.title||"brand")}${bi_ext(item.mime)}" target="_blank">⤓ Download</a>
-        <button class="btn btn-line btn-sm" onclick="copyBrandLink('${esc(item.id)}')" title="Copy link">🔗</button>
+      <div class="bi-footer">
+        <span class="bi-size">${bi_fmtSize(item.size||0)}</span>
+        <div class="bi-actions">
+          <button class="bi-btn dl" onclick="downloadBrandFile('${esc(item.url)}','${esc(filename)}')" title="Download">
+            <span class="bi-btn-ic">⤓</span><span class="bi-btn-tx">Download</span>
+          </button>
+          <button class="bi-btn share" onclick="copyBrandLink('${esc(item.id)}')" title="Copy shareable link">
+            <span class="bi-btn-ic">🔗</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>`;

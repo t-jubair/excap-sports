@@ -569,54 +569,112 @@ function bkAdminCard(item){
 function editBrandItem(id){
   const existing = id ? (App.brand||[]).find(x=>x.id===id) : null;
   const item = existing || { id: "BR"+Date.now().toString(36).toUpperCase(), title:"", description:"", category:"Logos", url:"", path:"", mime:"", size:0, order:(App.brand||[]).length };
-  showModal(`<div style="max-width:520px">
-    <h3 style="margin:0 0 4px">${existing?"Edit":"Add"} brand material</h3>
-    <p style="color:var(--muted-2);font-size:12.5px;margin:0 0 18px">High-resolution files preserve quality for print, jerseys and social media.</p>
-
-    <div class="fld"><label class="fl">Title <span class="req">*</span></label>
-      <input id="bk-title" value="${esc(item.title)}" placeholder="e.g. EX-CAP main logo, Facebook cover photo…">
-    </div>
-    <div class="grid2">
-      <div class="fld"><label class="fl">Category</label>
-        <select id="bk-cat">
-          ${["Logos","Cover Photos","Posters","Icons","Fonts","Guidelines","Photos","Other"].map(c=>`<option ${item.category===c?"selected":""}>${c}</option>`).join("")}
-        </select>
-      </div>
-      <div class="fld"><label class="fl">Display order</label>
-        <input id="bk-order" type="number" value="${item.order||0}" placeholder="0">
+  showModal(`<div class="bk-editor">
+    <div class="bk-ed-head">
+      <div class="bk-ed-ic">${existing?"✎":"＋"}</div>
+      <div>
+        <h3>${existing?"Edit material":"Add brand material"}</h3>
+        <p>High-resolution files preserve quality for print, jerseys and social media.</p>
       </div>
     </div>
-    <div class="fld"><label class="fl">Description</label>
-      <textarea id="bk-desc" placeholder="Short description — where and how to use">${esc(item.description||"")}</textarea>
-    </div>
 
-    ${item.url ? `
-      <div class="fld"><label class="fl">Current file</label>
-        <div class="bk-current-file">
-          <div class="bcf-prev">${/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(item.url) ? `<img src="${esc(item.url)}" alt="">` : `<div style="font-size:28px">${bi_fileIcon(item.mime)}</div>`}</div>
-          <div class="bcf-info">
-            <b>${esc(item.mime||"file")}</b>
-            <span>${bi_fmtSize(item.size)}</span>
-            <a href="${esc(item.url)}" target="_blank" style="color:var(--purple);font-size:11px">Open in new tab ↗</a>
+    <div class="bk-ed-body">
+      <div class="bk-ed-col-left">
+        <div class="bk-ed-drop" id="bk-drop">
+          <div class="bk-drop-inner" id="bk-drop-inner">
+            ${item.url ? `
+              <div class="bk-drop-current">
+                ${/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(item.url) ? `<img src="${esc(item.url)}" alt="">` : `<div class="bk-drop-file">${bi_fileIcon(item.mime)}</div>`}
+                <div class="bk-drop-info">
+                  <b>Current file</b>
+                  <span>${esc(item.mime||"file")} · ${bi_fmtSize(item.size)}</span>
+                </div>
+              </div>
+            ` : `
+              <div class="bk-drop-empty">
+                <div class="bk-drop-emoji">📤</div>
+                <b>Drop file here or click to browse</b>
+                <span>PNG · JPG · SVG · PDF · ZIP · up to 25 MB</span>
+              </div>
+            `}
           </div>
+          <input type="file" id="bk-file" accept="image/*,.pdf,.zip,.svg" style="position:absolute;inset:0;opacity:0;cursor:pointer">
+        </div>
+        <div id="bk-progress" style="display:none;margin-top:12px">
+          <div class="bk-bar"><div class="bk-bar-in" id="bk-bar"></div></div>
+          <span id="bk-pct">Uploading… 0%</span>
         </div>
       </div>
-    `:""}
 
-    <div class="fld"><label class="fl">${item.url?"Replace with new file":"Upload file"} ${!item.url?'<span class="req">*</span>':''}</label>
-      <input type="file" id="bk-file" accept="image/*,.pdf,.zip,.svg" style="width:100%">
-      <div class="help">Recommended: high resolution PNG/JPG/SVG. Max 25 MB per file.</div>
-    </div>
-    <div id="bk-progress" style="display:none;margin-top:8px">
-      <div class="bk-bar"><div class="bk-bar-in" id="bk-bar"></div></div>
-      <span id="bk-pct" style="font-size:11px;color:var(--muted);margin-top:4px;display:block">Uploading… 0%</span>
+      <div class="bk-ed-col-right">
+        <div class="fld">
+          <label class="fl">Title <span class="req">*</span></label>
+          <input id="bk-title" value="${esc(item.title)}" placeholder="e.g. EX-CAP main logo">
+        </div>
+        <div class="grid2">
+          <div class="fld">
+            <label class="fl">Category</label>
+            <select id="bk-cat">
+              ${["Logos","Cover Photos","Posters","Icons","Fonts","Guidelines","Photos","Other"].map(c=>`<option ${item.category===c?"selected":""}>${c}</option>`).join("")}
+            </select>
+          </div>
+          <div class="fld">
+            <label class="fl">Order</label>
+            <input id="bk-order" type="number" value="${item.order||0}">
+          </div>
+        </div>
+        <div class="fld">
+          <label class="fl">Description</label>
+          <textarea id="bk-desc" placeholder="Where and how to use">${esc(item.description||"")}</textarea>
+        </div>
+      </div>
     </div>
 
-    <div class="form-actions" style="margin-top:16px">
+    <div class="bk-ed-foot">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" id="bk-save" onclick="saveBrandItem('${esc(item.id)}')">💾 Save material</button>
+      <button class="btn btn-primary" id="bk-save" onclick="saveBrandItem('${esc(item.id)}')">💾 ${existing?"Save changes":"Add material"}</button>
     </div>
   </div>`, "wide");
+
+  // Live filename preview on file selection
+  setTimeout(()=>{
+    const f = document.getElementById("bk-file");
+    if(!f) return;
+    f.addEventListener("change", ()=>{
+      if(!f.files[0]) return;
+      const file = f.files[0];
+      const inner = document.getElementById("bk-drop-inner");
+      const isImg = file.type.startsWith("image/");
+      if(isImg){
+        const reader = new FileReader();
+        reader.onload = e => {
+          inner.innerHTML = `<div class="bk-drop-current">
+            <img src="${e.target.result}" alt="">
+            <div class="bk-drop-info"><b>${esc(file.name)}</b><span>${bi_fmtSize(file.size)} · Ready to upload</span></div>
+          </div>`;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        inner.innerHTML = `<div class="bk-drop-current">
+          <div class="bk-drop-file">${bi_fileIcon(file.type)}</div>
+          <div class="bk-drop-info"><b>${esc(file.name)}</b><span>${bi_fmtSize(file.size)} · Ready to upload</span></div>
+        </div>`;
+      }
+      // Autofill title from filename if empty
+      const titleInput = document.getElementById("bk-title");
+      if(titleInput && !titleInput.value){
+        titleInput.value = file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g," ").replace(/\b\w/g, c=>c.toUpperCase());
+      }
+    });
+
+    // Drag & drop styling
+    const drop = document.getElementById("bk-drop");
+    ["dragover","dragenter"].forEach(evt=>drop.addEventListener(evt, e=>{e.preventDefault();drop.classList.add("dragging");}));
+    ["dragleave","drop"].forEach(evt=>drop.addEventListener(evt, e=>{e.preventDefault();drop.classList.remove("dragging");}));
+    drop.addEventListener("drop", e=>{
+      if(e.dataTransfer.files[0]){ f.files = e.dataTransfer.files; f.dispatchEvent(new Event("change")); }
+    });
+  }, 50);
 }
 
 async function saveBrandItem(id){

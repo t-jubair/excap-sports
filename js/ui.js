@@ -176,10 +176,10 @@ function rampTo(el, to) {
 const Routes = {};
 function registerRoute(name, fn) { Routes[name] = fn; }
 function go(hash) { if (location.hash === "#" + hash) route(); else location.hash = hash; }
-function currentRoute() {
-  const h = location.hash.replace(/^#/, "").split("?")[0];
-  // support "confirm-<id>" style hashes → route "confirm"
-  if (h.startsWith("confirm-")) return "confirm";
+function currentRoute(){
+  const h = location.hash.replace(/^#/,"").split("?")[0];
+  if(h.startsWith("confirm-")) return "confirm";
+  if(h.startsWith("brand-")) return "brand";                  // ← ADD THIS LINE
   return h;
 }
 

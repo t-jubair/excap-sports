@@ -536,7 +536,7 @@ registerRoute("register", function () {
   }).join("")}
     </div>
     <div class="reg-note note-box" style="max-width:none;margin-top:22px"><span class="i">🎟️</span>
-      <div><b>${used} team${used === 1 ? "" : "s"} registered so far.</b> Guest registration is free. Every entry is approved by the organizers — you'll get an email + SMS and a QR pass once you're in. There's no cap on teams, so bring your squad!</div>
+      <div>Guest registration is free. Every entry is approved by the organizers — you'll get an email + SMS and a QR pass once you're in. There's no cap on teams, so bring your squad!</div>
     </div>
   </div>`+ footerHTML();
   observeReveal();
@@ -729,6 +729,30 @@ async function teamSubmit() {
       Notify.sendSMS({ to: rec.contact, message: `EX-CAP: ${rec.type} registration received. ID ${rec.id}. Approval SMS to follow.` });
     }
   } catch (e) { }
+  try{
+    const shortId = rec.id.replace("EXCAP-FT26-","");
+    const name = rec.data.teamName || rec.data.name || "there";
+
+    // Email (registration received)
+    if(rec.data.email || rec.captainEmail){
+      Notify.sendBroadcastEmail({
+        toEmail: rec.data.email || rec.captainEmail,
+        toName: name,
+        subject: "We received your EX-CAP registration",
+        message: `Great news — we've received your ${rec.type} registration (ID: ${rec.id}).\n\nOur organizers will review it and confirm by SMS + email shortly. Once approved, your QR pass activates and you can use it at the gate.\n\nUse the buttons below to download your provisional pass or read the tournament rules.`
+      });
+    }
+
+    // SMS (registration received) — professional format
+    if(rec.contact){
+      const smsBody =
+        `Dear ${name},\n\n` +
+        `We've received your ${rec.type} registration (${shortId}) for the EX-CAP Football Tournament. ` +
+        `Our organizers will review it and confirm shortly by SMS + email.\n\n` +
+        `Regards,\nEX-CAP Team`;
+      Notify.sendSMS({ to: rec.contact, message: smsBody });
+    }
+  }catch(e){ console.warn("Post-submit notify failed", e); }
 }
 
 /* ============================================================
@@ -791,6 +815,30 @@ async function submitGuest() {
     }
   } catch (e) { }
   App.regs.unshift(rec); renderConfirm("guest", rec);
+  try{
+    const shortId = rec.id.replace("EXCAP-FT26-","");
+    const name = rec.data.teamName || rec.data.name || "there";
+
+    // Email (registration received)
+    if(rec.data.email || rec.captainEmail){
+      Notify.sendBroadcastEmail({
+        toEmail: rec.data.email || rec.captainEmail,
+        toName: name,
+        subject: "We received your EX-CAP registration",
+        message: `Great news — we've received your ${rec.type} registration (ID: ${rec.id}).\n\nOur organizers will review it and confirm by SMS + email shortly. Once approved, your QR pass activates and you can use it at the gate.\n\nUse the buttons below to download your provisional pass or read the tournament rules.`
+      });
+    }
+
+    // SMS (registration received) — professional format
+    if(rec.contact){
+      const smsBody =
+        `Dear ${name},\n\n` +
+        `We've received your ${rec.type} registration (${shortId}) for the EX-CAP Football Tournament. ` +
+        `Our organizers will review it and confirm shortly by SMS + email.\n\n` +
+        `Regards,\nEX-CAP Team`;
+      Notify.sendSMS({ to: rec.contact, message: smsBody });
+    }
+  }catch(e){ console.warn("Post-submit notify failed", e); }
 }
 
 /* ============================================================
@@ -920,6 +968,30 @@ async function submitVisitor() {
   try { await Store.saveReg(rec); }
   catch (e) { toast("Could not submit — please try again", "err"); if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; } return; }
   App.regs.unshift(rec); renderConfirm("visitor", rec);
+  try{
+    const shortId = rec.id.replace("EXCAP-FT26-","");
+    const name = rec.data.teamName || rec.data.name || "there";
+
+    // Email (registration received)
+    if(rec.data.email || rec.captainEmail){
+      Notify.sendBroadcastEmail({
+        toEmail: rec.data.email || rec.captainEmail,
+        toName: name,
+        subject: "We received your EX-CAP registration",
+        message: `Great news — we've received your ${rec.type} registration (ID: ${rec.id}).\n\nOur organizers will review it and confirm by SMS + email shortly. Once approved, your QR pass activates and you can use it at the gate.\n\nUse the buttons below to download your provisional pass or read the tournament rules.`
+      });
+    }
+
+    // SMS (registration received) — professional format
+    if(rec.contact){
+      const smsBody =
+        `Dear ${name},\n\n` +
+        `We've received your ${rec.type} registration (${shortId}) for the EX-CAP Football Tournament. ` +
+        `Our organizers will review it and confirm shortly by SMS + email.\n\n` +
+        `Regards,\nEX-CAP Team`;
+      Notify.sendSMS({ to: rec.contact, message: smsBody });
+    }
+  }catch(e){ console.warn("Post-submit notify failed", e); }
 }
 
 /* ============================================================
@@ -978,6 +1050,30 @@ async function submitVolunteer() {
   try { await Store.saveReg(rec); }
   catch (e) { toast("Could not submit — please try again", "err"); if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; } return; }
   App.regs.unshift(rec); renderConfirm("volunteer", rec);
+  try{
+    const shortId = rec.id.replace("EXCAP-FT26-","");
+    const name = rec.data.teamName || rec.data.name || "there";
+
+    // Email (registration received)
+    if(rec.data.email || rec.captainEmail){
+      Notify.sendBroadcastEmail({
+        toEmail: rec.data.email || rec.captainEmail,
+        toName: name,
+        subject: "We received your EX-CAP registration",
+        message: `Great news — we've received your ${rec.type} registration (ID: ${rec.id}).\n\nOur organizers will review it and confirm by SMS + email shortly. Once approved, your QR pass activates and you can use it at the gate.\n\nUse the buttons below to download your provisional pass or read the tournament rules.`
+      });
+    }
+
+    // SMS (registration received) — professional format
+    if(rec.contact){
+      const smsBody =
+        `Dear ${name},\n\n` +
+        `We've received your ${rec.type} registration (${shortId}) for the EX-CAP Football Tournament. ` +
+        `Our organizers will review it and confirm shortly by SMS + email.\n\n` +
+        `Regards,\nEX-CAP Team`;
+      Notify.sendSMS({ to: rec.contact, message: smsBody });
+    }
+  }catch(e){ console.warn("Post-submit notify failed", e); }
 }
 
 /* ============================================================

@@ -775,7 +775,7 @@ async function teamSubmit() {
       const shortId = rec.id.replace("EXCAP-FT26-", "");
       Notify.sendSMS({
         to: rec.contact,
-        message: `Reg ${shortId} received. Approval SMS + email to follow.`
+        message: `Dear ${rec.data.teamName || rec.data.name || "there"},\nYour registration is received. Your EX-CAP Football Tournament Registration ID is ${rec.id}.\nRegards,\nEX-CAP`
       });
     }
   } catch (e) { }
@@ -851,7 +851,7 @@ try {
     const shortId = rec.id.replace("EXCAP-FT26-", "");
     Notify.sendSMS({
       to: rec.contact,
-      message: `Reg ${shortId} received. Approval SMS + email to follow.`
+      message: `Dear ${rec.data.teamName || rec.data.name || "there"},\nYour registration is received. Your EX-CAP Football Tournament Registration ID is ${rec.id}.\nRegards,\nEX-CAP`
     });
   }
 } catch (e) { }
@@ -1009,7 +1009,7 @@ async function submitVisitor() {
       const shortId = rec.id.replace("EXCAP-FT26-", "");
       Notify.sendSMS({
         to: rec.contact,
-        message: `Reg ${shortId} received. Approval SMS + email to follow.`
+        message: `Dear ${rec.data.teamName || rec.data.name || "there"},\nYour registration is received. Your EX-CAP Football Tournament Registration ID is ${rec.id}.\nRegards,\nEX-CAP`
       });
     }
   } catch (e) { }

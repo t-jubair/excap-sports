@@ -132,15 +132,8 @@
   /* SMS via serverless function. `to` may be a number, comma string, or array. */
   /* SMS template wrapper — always adds "EX-CAP:" prefix and "- EX-CAP" sign-off,
  so every SMS looks professional and identifiable. */
-  function _formatSMS(rawMessage) {
-    const body = String(rawMessage || "").trim();
-    // If message already starts with EX-CAP prefix, keep as is
-    const withPrefix = body.startsWith("EX-CAP") ? body : "EX-CAP: " + body;
-    // Add sign-off if not already there
-    const withSignoff = /(-\s*EX-CAP|EX-CAP Team|Regards)/i.test(withPrefix)
-      ? withPrefix
-      : withPrefix + "\n- EX-CAP";
-    return withSignoff;
+ function _formatSMS(rawMessage){
+  return String(rawMessage||"").trim();
   }
 
   Notify.sendSMS = async function ({ to, message }) {
@@ -158,7 +151,10 @@
   /* Approval fires email + SMS (best-effort, never throws). */
   Notify.onApproved = async function (rec, settings) {
     const name = rec.data.teamName || rec.data.name || "Participant";
-    const eventDate = new Date(settings.tournamentDate).toLocaleDateString();
+    const d = new Date(settings.tournamentDate);
+const day = d.getDate();
+const suffix = (day>=11 && day<=13) ? "th" : (day%10===1?"st":day%10===2?"nd":day%10===3?"rd":"th");
+const eventDate = `${day}${suffix} ${d.toLocaleDateString("en-GB",{month:"long"})}, ${d.getFullYear()} (${d.toLocaleDateString("en-GB",{weekday:"long"})})`;
     const results = {};
     if (rec.data.email || rec.captainEmail) {
       results.email = await Notify.sendApprovalEmail({
@@ -169,11 +165,7 @@
         rec: rec
       });
     }
-    if(rec.contact){
-      const shortId = rec.id.replace("EXCAP-FT26-","");
-      const smsBody = `Reg ${shortId} APPROVED. ${settings.venue}, ${eventDate}. Show QR pass at gate.`;
-      results.sms = await Notify.sendSMS({ to: rec.contact, message: smsBody });
-    }
+    const smsBody = `Dear ${name}\nYour ${rec.type} registration has been APPROVED for the EX-CAP Football Tournament.\nVenue: ${settings.venue}\nDate: ${eventDate}\nPlease show your QR pass at the gate. See the full details in your confirmation email.\nRegards,\nEX-CAP`;
     return results;
   };
 

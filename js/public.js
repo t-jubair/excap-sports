@@ -68,9 +68,9 @@ function regGate(type) {
 
 /* small batch field helper — TWO independent SSC + HSC year selects */
 function batchFields(idPrefix, d = {}) {
-  return `<div class="fld"><label class="fl">SSC batch (year) <span class="opt">(optional)</span></label>
+  return `<div class="fld"><label class="fl">SSC batch (year) <span class="opt">*</span></label>
     <select id="${idPrefix}-ssc">${["", ...REG_YEARS].map(y => `<option value="${y}" ${d.sscBatch === y ? "selected" : ""}>${y || "Select SSC year"}</option>`).join("")}</select></div>
-  <div class="fld"><label class="fl">HSC batch (year) <span class="opt">(optional)</span></label>
+  <div class="fld"><label class="fl">HSC batch (year) <span class="opt">*</span></label>
     <select id="${idPrefix}-hsc">${["", ...REG_YEARS].map(y => `<option value="${y}" ${d.hscBatch === y ? "selected" : ""}>${y || "Select HSC year"}</option>`).join("")}</select></div>`;
 }
 
@@ -190,16 +190,66 @@ function renderHome() {
 
   <div class="ball-band"><div class="line"></div><div class="foot-ball ball-roll"></div></div>
 
-  <section class="block"><div class="wrap">
-    <div class="cd-strip">
-      <div class="cd-mini ${phase !== "before" ? "done" : ""}" data-fmt="compact"><div class="lbl">Registration opens</div><div class="t">—</div><div class="sub">${fmtDate(s.regOpen)}</div></div>
-      <div class="cd-mini ${phase === "closed" ? "done" : ""}" data-fmt="compact"><div class="lbl">Registration closes</div><div class="t">—</div><div class="sub">${fmtDate(s.regDeadline)}</div></div>
-      <div class="cd-mini" data-fmt="compact"><div class="lbl">Tournament kick-off</div><div class="t">—</div><div class="sub">${fmtDate(s.tournamentDate)}</div></div>
+  <section class="block at-glance-sec"><div class="wrap">
+    <div class="section-head center">
+      <div>
+        <div class="kicker">At a glance</div>
+        <h2 class="sec">The tournament in one view</h2>
+        <p class="sec-sub">Key dates, format, prize pool and rules — everything you need before match day.</p>
+      </div>
     </div>
-  </div></section>
 
-  <section class="block" style="padding-top:0"><div class="wrap">
-    <div class="stats">${stats.map(([v, k]) => `<div class="stat reveal"><div class="v num" data-count="${v}">0</div><div class="k">${k}</div></div>`).join("")}</div>
+    <div class="ag-count-row">
+      <div class="ag-count reveal ${phase !== "before" ? "done" : ""}" data-fmt="compact">
+        <div class="ag-c-lbl">Registration opens</div>
+        <div class="ag-c-val t">—</div>
+        <div class="ag-c-sub">${fmtDate(s.regOpen)}</div>
+      </div>
+      <div class="ag-count reveal d1 ${phase === "closed" ? "done" : ""}" data-fmt="compact">
+        <div class="ag-c-lbl">Registration closes</div>
+        <div class="ag-c-val t">—</div>
+        <div class="ag-c-sub">${fmtDate(s.regDeadline)}</div>
+      </div>
+      <div class="ag-count reveal d2 accent" data-fmt="compact">
+        <div class="ag-c-lbl">Tournament kick-off</div>
+        <div class="ag-c-val t">—</div>
+        <div class="ag-c-sub">${fmtDate(s.tournamentDate)}</div>
+      </div>
+    </div>
+
+    <div class="ag-facts">
+      <div class="ag-fact reveal"><span class="ag-f-ic">⚽</span><b>7-a-side · Futsal</b><span>20 min · barefoot · Chinese bar goals</span></div>
+      <div class="ag-fact reveal d1"><span class="ag-f-ic">🏆</span><b>Prize pool</b><span>Champion · runners-up · Golden Ball · Golden Gloves</span></div>
+      <div class="ag-fact reveal d2"><span class="ag-f-ic">👕</span><b>Player kit</b><span>Aprons, wristbands, anklets, gloves — provided</span></div>
+      <div class="ag-fact reveal d3"><span class="ag-f-ic">📋</span><b>Fair play</b><span>Full rules + code of conduct on file</span></div>
+    </div>
+
+    <div class="ag-links">
+      <button class="ag-link reveal" onclick="go('tournament')">
+        <span class="ag-l-ic">📖</span>
+        <b>Tournament Info</b>
+        <span>Format, prize pool, facilities</span>
+        <span class="ag-l-arr">→</span>
+      </button>
+      <button class="ag-link reveal d1" onclick="go('conduct')">
+        <span class="ag-l-ic">🤝</span>
+        <b>Code of Conduct</b>
+        <span>Safety rules & fair play</span>
+        <span class="ag-l-arr">→</span>
+      </button>
+      <button class="ag-link reveal d2" onclick="go('register-team')">
+        <span class="ag-l-ic">⚽</span>
+        <b>Register a team</b>
+        <span>Build your squad</span>
+        <span class="ag-l-arr">→</span>
+      </button>
+      <button class="ag-link reveal d3" onclick="go('register-guest')">
+        <span class="ag-l-ic">🎟️</span>
+        <b>Guest entry</b>
+        <span>Free QR pass</span>
+        <span class="ag-l-arr">→</span>
+      </button>
+    </div>
   </div></section>
 
   <section class="block" id="home-live-sec" style="padding-top:0;display:none"><div class="wrap">
@@ -210,20 +260,9 @@ function renderHome() {
 
   <section class="block" id="home-champ-sec" style="padding-top:0;display:none"><div class="wrap" id="home-champ"></div></section>
 
-  <section class="block"><div class="wrap">
-    <div class="section-head"><div><div class="kicker">Choose your entry</div><h2 class="sec">Register in minutes</h2><p class="sec-sub">Three clear paths. Every approved registration gets a QR pass for gate check-in.</p></div>
-      <button class="btn btn-line" onclick="go('register')">All options →</button></div>
-    <div class="reg-quick">${reg.map(([ic, t, desc, meta, r, tag], i) => `
-      <button class="rq reveal d${i}" onclick="go('${r}')"><span class="rq-ic">${ic}</span><span class="rq-t">${t}</span><span class="rq-sub">${tag}</span></button>`).join("")}
-    </div>
-    <div class="center" style="margin-top:22px"><button class="btn btn-primary" onclick="go('register')">Open registration hub →</button></div>
-  </div></section>
 
-  <section class="block" style="background:var(--navy-2)"><div class="wrap">
-    <div class="section-head"><div><div class="kicker">Teams entering the field</div><h2 class="sec">Confirmed teams</h2><p class="sec-sub">Approved squads appear here automatically. Private details are never shown publicly.</p></div>
-      <button class="btn btn-line" onclick="go('teams')">View all teams</button></div>
-    <div class="team-grid">${confirmed.length ? confirmed.slice(0, 8).map(teamCard).join("") : `<div class="empty-wall">No confirmed teams yet — be the first to claim a slot.<br><br><button class="btn btn-primary" onclick="go('register-team')">Register your team</button></div>`}</div>
-  </div></section>
+
+
 
   <section class="block eco-block"><div class="wrap">
     <div class="section-head" style="justify-content:center;text-align:center"><div>
@@ -258,9 +297,9 @@ function renderHome() {
   `+ footerHTML();
 
   registerCountdown($("#cd-event"), s.tournamentDate);
-  registerCountdown($$(".cd-mini")[0], s.regOpen);
-  registerCountdown($$(".cd-mini")[1], s.regDeadline);
-  registerCountdown($$(".cd-mini")[2], s.tournamentDate);
+  registerCountdown($$(".ag-count")[0], s.regOpen);
+  registerCountdown($$(".ag-count")[1], s.regDeadline);
+  registerCountdown($$(".ag-count")[2], s.tournamentDate);
 
   // live + champions strips (real-time)
   if (window.clearLiveSubs) clearLiveSubs();
@@ -311,26 +350,159 @@ registerRoute("teams", function () {
 });
 registerRoute("tournament", function () {
   const s = App.settings;
-  const rows = [["Format", "Group stage → knockouts"], ["Teams", "Open — no cap"], ["Squad size", s.playersPerTeam + " players"], ["Fields", "2 (parallel matches)"], ["Match length", "20 minutes"], ["Venue", s.venue], ["Tournament date", fmtDate(s.tournamentDate)], ["Registration", fmtDate(s.regOpen) + " → " + fmtDate(s.regDeadline)]];
-  $("#app").innerHTML = anncHTML() + navHTML("tournament") + `<div class="wrap page">
-    <div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span><h1 class="ph">Tournament format</h1>
-    <p class="ph-sub">Groups and fixtures are generated automatically once registration closes.</p></div>
-    <div class="form-shell" style="max-width:560px">${rows.map(([k, v]) => `<div class="rv" style="padding:13px 0"><span>${k}</span><b>${esc(String(v))}</b></div>`).join("")}
-    <div class="note-box" style="margin-top:20px"><span class="i">📋</span><div>Group draw, fixtures, live scores and the knockout bracket appear here once organizers publish them.</div></div>
-    <div class="form-actions" style="justify-content:center"><button class="btn btn-primary" onclick="go('register-team')">Register your team</button></div></div>
-  </div>`+ footerHTML();
+  $("#app").innerHTML = anncHTML() + navHTML("tournament") + `
+    <div class="wrap page tournament-page">
+      <div class="page-head">
+        <span class="crumb" onclick="go('home')">← Back to home</span>
+        <div class="ti-eyebrow">Everything you need to know</div>
+        <h1 class="ph">Tournament Info & Rules</h1>
+        <p class="ph-sub">Format, rules, prize pool and player facilities for the ${esc(s.tournamentName || "EX-CAP Football Tournament")} ${esc(s.edition || "")}.</p>
+      </div>
+
+      <div class="ti-hero">
+        <div class="ti-hero-card">
+          <div class="ti-hc-lbl">Venue</div>
+          <div class="ti-hc-v">${esc(s.venue || "SCPSC field")}</div>
+        </div>
+        <div class="ti-hero-card">
+          <div class="ti-hc-lbl">Match date</div>
+          <div class="ti-hc-v">${fmtDate(s.tournamentDate)}</div>
+        </div>
+        <div class="ti-hero-card">
+          <div class="ti-hc-lbl">Squad size</div>
+          <div class="ti-hc-v">${s.playersPerTeam} on field</div>
+        </div>
+        <div class="ti-hero-card">
+          <div class="ti-hc-lbl">Match length</div>
+          <div class="ti-hc-v">20 minutes</div>
+        </div>
+      </div>
+
+      <!-- Registration -->
+      <section class="ti-sec">
+        <div class="ti-sec-h"><span class="ti-num">01</span><h2>Registration</h2></div>
+        <div class="ti-sec-b">
+          <div class="ti-list">
+            <div class="ti-li"><span class="ti-dot"></span><div><b>Batch-wise teams</b> get priority in slot allocation.</div></div>
+            <div class="ti-li"><span class="ti-dot"></span><div><b>Multiple teams</b> from a single batch are allowed.</div></div>
+            <div class="ti-li"><span class="ti-dot"></span><div><b>Mixed-batch teams</b> may be considered if slots remain available.</div></div>
+          </div>
+          <div class="ti-cta">
+            <button class="btn btn-primary" onclick="go('register-team')">Register your team →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Format -->
+      <section class="ti-sec">
+        <div class="ti-sec-h"><span class="ti-num">02</span><h2>Tournament Format</h2></div>
+        <div class="ti-sec-b">
+          <div class="ti-grid2">
+            <div class="ti-fact"><div class="ti-fact-ic">⚽</div><div><b>Squad</b><span>7 players on field, 4 substitutes</span></div></div>
+            <div class="ti-fact"><div class="ti-fact-ic">⏱️</div><div><b>Duration</b><span>20 minutes per match</span></div></div>
+            <div class="ti-fact"><div class="ti-fact-ic">📏</div><div><b>Field</b><span>Standard futsal size</span></div></div>
+            <div class="ti-fact"><div class="ti-fact-ic">🥅</div><div><b>Goal post</b><span>Chinese bar goals</span></div></div>
+            <div class="ti-fact"><div class="ti-fact-ic">👣</div><div><b>Play style</b><span>Matches played barefoot</span></div></div>
+            <div class="ti-fact"><div class="ti-fact-ic">🏆</div><div><b>Structure</b><span>Group stage → knockouts → final</span></div></div>
+          </div>
+          <div class="ti-note">
+            <b>Groups are drawn carefully:</b> teams from the same batch will <b>not</b> face each other in the final. Groups will be arranged to keep the bracket fair and exciting.
+          </div>
+        </div>
+      </section>
+      
+      <!-- Prize Pool -->
+      <section class="ti-sec ti-prize-sec">
+        <div class="ti-sec-h"><span class="ti-num">03</span><h2>Prize Pool</h2></div>
+        <div class="ti-sec-b">
+          <div class="prize-grid">
+            <div class="prize champ">
+              <div class="prize-medal">🥇</div>
+              <div class="prize-lbl">Champion</div>
+              <div class="prize-sub">Trophy + Medals</div>
+            </div>
+            <div class="prize runner">
+              <div class="prize-medal">🥈</div>
+              <div class="prize-lbl">Runners-Up</div>
+              <div class="prize-sub">Trophy + Medals</div>
+            </div>
+          </div>
+
+          <div class="prize-awards">
+            <div class="pa"><span class="pa-ic">⚽</span><div><b>Golden Ball</b><span>Top scorer of the tournament</span></div></div>
+            <div class="pa"><span class="pa-ic">🧤</span><div><b>Golden Gloves</b><span>Best goalkeeper of the tournament</span></div></div>
+            <div class="pa"><span class="pa-ic">🌟</span><div><b>Player of the Tournament</b><span>Standout performer overall</span></div></div>
+            <div class="pa"><span class="pa-ic">🏅</span><div><b>Man of the Match</b><span>Crest awarded every match</span></div></div>
+          </div>
+        </div>
+      </section>
+      <!-- Fees -->
+      <section class="ti-sec">
+        <div class="ti-sec-h"><span class="ti-num">04</span><h2>Registration Fees</h2></div>
+        <div class="ti-sec-b">
+          <div class="ti-grid2">
+            <div class="ti-fact"><div class="ti-fact-ic">💳</div><div><b>Team entry</b><span>৳${esc(App.settings.teamFee)} per team · pay via bKash</span></div></div>
+            <div class="ti-fact"><div class="ti-fact-ic">🎟️</div><div><b>Guest entry</b><span>Free — QR pass for the gate</span></div></div>
+          </div>
+          <div class="ti-note">
+            Team payment is <b>bKash only</b>. Scan the merchant QR shown during registration, then enter your sending number and transaction ID. Organizers verify and approve.
+          </div>
+        </div>
+      </section>
+      <!-- Player Facilities -->
+      <section class="ti-sec">
+        <div class="ti-sec-h"><span class="ti-num">04</span><h2>Player Facilities</h2></div>
+        <div class="ti-sec-b">
+          <p class="ti-lead">Every registered team gets kit and match-day support to make the experience professional and comfortable.</p>
+          <div class="fac-grid">
+            <div class="fac"><span class="fac-ic">👕</span><div><b>Aprons</b><span>Provided to every team — returnable after each match</span></div></div>
+            <div class="fac"><span class="fac-ic">〰️</span><div><b>Wristbands</b><span>For all players</span></div></div>
+            <div class="fac"><span class="fac-ic">🦵</span><div><b>Anklets</b><span>For all players</span></div></div>
+            <div class="fac"><span class="fac-ic">🧤</span><div><b>Gloves</b><span>8 pairs for goalkeepers</span></div></div>
+            <div class="fac"><span class="fac-ic">🍎</span><div><b>Snacks & refreshments</b><span>Provided during match day</span></div></div>
+            <div class="fac"><span class="fac-ic">💧</span><div><b>Hydration</b><span>Water available at every match</span></div></div>
+          </div>
+          <div class="ti-note ti-warn">
+            <b>Returnable items:</b> aprons and goalkeeper gloves must be returned <b>after every match</b>. Please keep them clean and undamaged.
+          </div>
+        </div>
+      </section>
+
+      <!-- Schedule -->
+      <section class="ti-sec">
+        <div class="ti-sec-h"><span class="ti-num">05</span><h2>Key dates</h2></div>
+        <div class="ti-sec-b">
+          <div class="ti-dates">
+            <div class="ti-date"><div class="td-lbl">Registration opens</div><div class="td-v">${fmtDate(s.regOpen)}</div></div>
+            <div class="ti-date"><div class="td-lbl">Registration closes</div><div class="td-v">${fmtDate(s.regDeadline)}</div></div>
+            <div class="ti-date accent"><div class="td-lbl">Match day</div><div class="td-v">${fmtDate(s.tournamentDate)}</div></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="ti-final-cta">
+        <h3>Ready to enter the field?</h3>
+        <p>Build your squad and claim your slot. Approval is by organizers — you'll get a QR pass for the gate once you're in.</p>
+        <div class="row2" style="justify-content:center;flex-wrap:wrap;gap:10px">
+          <button class="btn btn-primary" onclick="go('register-team')">Register a team</button>
+          <button class="btn btn-line" onclick="go('register-guest')">Guest registration (Free)</button>
+          <button class="btn btn-ghost" onclick="emergencyModal()">🆘 Contact organizers</button>
+        </div>
+      </div>
+    </div>` + footerHTML();
 });
 registerRoute("help", function () {
   const s = App.settings;
   const faqs = [
-    ["How do I register a team?", `Pick “Register a team”, add team details and at least 4 players, mark your captain (C) and vice-captain (V), pay the entry fee via bKash (enter your sending number and transaction ID), then submit. Organizers approve it and your QR passes activate.`],
+    ["How do I register a team?", `Pick "Register a team", add team details and at least 6 players, mark your captain (C) and vice-captain (V), pay the entry fee via bKash (enter your sending number and transaction ID), then submit. Organizers approve it and your QR passes activate.`],
     ["What's the entry fee?", `৳${s.teamFee} per team. Pay via bKash to the merchant QR shown during registration, then enter the sending number and transaction ID.`],
     ["Is guest registration free?", `Yes — guest registration is free. You'll get a QR pass to show at the gate.`],
+    ["Where can I read the rules?", `Full rules, format, prize pool and player facilities are on the <b class="link-in-faq" onclick="go('tournament')">Tournament Info & Rules</b> page. Player safety and behaviour rules are on the <b class="link-in-faq" onclick="go('conduct')">Code of Conduct & Safety</b> page.`],
     ["When does registration close?", `${fmtDate(s.regDeadline)}. Contact the organizers if you need help after that.`]
   ];
   $("#app").innerHTML = anncHTML() + navHTML("help") + `<div class="wrap page">
     <div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span><h1 class="ph">Help & FAQ</h1></div>
-    <div class="form-shell" style="max-width:680px">${faqs.map(([q, a]) => `<div class="review-sec"><h4 style="color:var(--ink);text-transform:none;font-size:15px;font-family:var(--font-body);font-weight:700">${esc(q)}</h4><p style="color:var(--muted);font-size:14px;margin:6px 0 0">${esc(a)}</p></div>`).join("")}
+    <div class="form-shell" style="max-width:680px">${faqs.map(([q, a]) => `<div class="review-sec"><h4 style="color:var(--ink);text-transform:none;font-size:15px;font-family:var(--font-body);font-weight:700">${esc(q)}</h4><p style="color:var(--muted);font-size:14px;margin:6px 0 0">${a}</p></div>`).join("")}
     <div class="note-box"><span class="i">✉️</span><div>Still stuck? Contact organizers at <b>${esc(cfg.contact.email)}</b>.</div></div></div>
   </div>`+ footerHTML();
 });
@@ -468,7 +640,14 @@ function selectPay(mode) {
     </div>`;
 }
 function teamStep0() {
-  if (!validate([["t-name", nonEmpty, "Team name is required"], ["t-contact", nonEmpty, "Contact name is required"], ["t-phone", isPhone, "Enter a valid mobile number"], ["t-email", isEmail, "Enter a valid email"]])) return;
+  if (!validate([
+    ["t-name", nonEmpty, "Team name is required"],
+    ["t-contact", nonEmpty, "Contact name is required"],
+    ["t-phone", isPhone, "Enter a valid mobile number"],
+    ["t-email", isEmail, "Enter a valid email"],
+    ["t-ssc", nonEmpty, "SSC batch year is required"],
+    ["t-hsc", nonEmpty, "HSC batch year is required"]
+  ])) return;
   if (teamRegs().some(r => (r.data.teamName || "").toLowerCase() === val("t-name").toLowerCase())) { setErr("t-name", "A team with this name already exists"); return; }
   draft.capPhone = val("t-phone"); draft.capEmail = val("t-email");
   draft.data = {
@@ -516,15 +695,29 @@ async function teamSubmit() {
   };
   try { await Store.saveReg(rec); }
   catch (e) {
-    toast("Could not submit — please try again", "err");
+    const em = emergencyInfo();
+    showModal(`<div class="emerg-card">
+      <div class="emerg-ic" style="background:rgba(220,38,38,.12);border-color:#dc2626">⚠️</div>
+      <h3>Registration didn't go through</h3>
+      <p class="emerg-msg">We couldn't save your registration right now. Please check your internet and try again — or contact us directly and we'll register you manually.</p>
+      <div class="emerg-person">
+        <div class="ep-ava">${esc(initials(em.name||"EX"))}</div>
+        <div><b>${esc(em.name||"")}</b><span>${esc(em.role||"")}</span></div>
+      </div>
+      <div class="emerg-actions">
+        ${em.phone?`<a class="btn btn-primary" href="tel:${esc((em.phone||"").replace(/[^\\d+]/g,""))}">📞 Call ${esc(em.phone)}</a>`:""}
+        ${em.email?`<a class="btn btn-line" href="mailto:${esc(em.email)}">✉ Email us</a>`:""}
+      </div>
+      <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="closeModal()">Try again</button>
+    </div>`, "narrow");
     if (btn) { btn.disabled = false; btn.innerHTML = "Submit registration ✓"; }
     return;
   }
   App.regs.unshift(rec);
   try { App.publicTeams = await Store.listPublicTeams(); } catch (e) { }
   const saved = rec; draft = null; renderConfirm("team", saved);
-  try{
-    if(rec.data.email || rec.captainEmail){
+  try {
+    if (rec.data.email || rec.captainEmail) {
       Notify.sendBroadcastEmail({
         toEmail: rec.data.email || rec.captainEmail,
         toName: rec.data.teamName || rec.data.name || "there",
@@ -532,10 +725,10 @@ async function teamSubmit() {
         message: `Hi,\n\nWe've received your ${rec.type} registration (ID: ${rec.id}). Organizers will review it and confirm shortly. You'll get another email + SMS once approved.\n\n— EX-CAP Team`
       });
     }
-    if(rec.contact){
+    if (rec.contact) {
       Notify.sendSMS({ to: rec.contact, message: `EX-CAP: ${rec.type} registration received. ID ${rec.id}. Approval SMS to follow.` });
     }
-  }catch(e){}
+  } catch (e) { }
 }
 
 /* ============================================================
@@ -566,7 +759,13 @@ registerRoute("register-guest", function () {
   </div>`+ footerHTML();
 });
 async function submitGuest() {
-  if (!validate([["g-name", nonEmpty, "Name required"], ["g-phone", isPhone, "Valid mobile required"], ["g-email", isEmail, "Valid email required"]])) return;
+  if (!validate([
+  ["g-name", nonEmpty, "Name required"],
+  ["g-phone", isPhone, "Valid mobile required"],
+  ["g-email", isEmail, "Valid email required"],
+  ["g-ssc", nonEmpty, "SSC batch year is required"],
+  ["g-hsc", nonEmpty, "HSC batch year is required"]
+])) return;
   const btn = $("#submit-btn"); if (btn) { btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true; }
   let id;
   try { id = await Promise.race([Store.nextId("guest", "EXCAP-FT" + App.settings.edition.slice(-2) + "-G", 4), new Promise((_, rej) => setTimeout(() => rej("t"), 6000))]); }
@@ -578,6 +777,19 @@ async function submitGuest() {
   };
   try { await Store.saveReg(rec); }
   catch (e) { toast("Could not submit — please try again", "err"); if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; } return; }
+  try {
+    if (rec.data.email) {
+      Notify.sendBroadcastEmail({
+        toEmail: rec.data.email,
+        toName: rec.data.name || "there",
+        subject: "We received your EX-CAP registration",
+        message: `Great news — we've received your guest registration. Your ID is ${rec.id}. You'll get a confirmation email + SMS once organizers approve it, and your QR pass activates at the gate.`
+      });
+    }
+    if (rec.contact) {
+      Notify.sendSMS({ to: rec.contact, message: `EX-CAP: Guest registration received. ID ${rec.id}. Approval SMS to follow.` });
+    }
+  } catch (e) { }
   App.regs.unshift(rec); renderConfirm("guest", rec);
 }
 
@@ -607,6 +819,91 @@ registerRoute("register-visitor", function () {
 
       <div class="form-actions"><button class="btn btn-ghost" onclick="go('home')">← Cancel</button><button class="btn btn-pitch" id="submit-btn" onclick="submitVisitor()">Submit ✓</button></div></div>
   </div>`+ footerHTML();
+});
+registerRoute("conduct", function () {
+  $("#app").innerHTML = anncHTML() + navHTML("") + `
+    <div class="wrap page tournament-page">
+      <div class="page-head">
+        <span class="crumb" onclick="go('tournament')">← Tournament info</span>
+        <div class="ti-eyebrow">Respect · Safety · Fair Play</div>
+        <h1 class="ph">Code of Conduct & Safety</h1>
+        <p class="ph-sub">Every player, captain, guest and volunteer accepts these rules on registration. Breaches may lead to disqualification or removal from the tournament.</p>
+      </div>
+
+      <!-- Code of conduct -->
+      <section class="ti-sec">
+        <div class="ti-sec-h"><span class="ti-num">01</span><h2>Code of Conduct</h2></div>
+        <div class="ti-sec-b">
+          <p class="ti-lead">The EX-CAP tournament is an alumni reunion first — a football match second. Please help everyone enjoy it.</p>
+          <div class="ti-list">
+            <div class="ti-li"><span class="ti-dot"></span><div><b>Respect for all.</b> Treat opponents, referees, organizers, volunteers and spectators with respect at all times.</div></div>
+            <div class="ti-li"><span class="ti-dot"></span><div><b>Zero tolerance for abuse.</b> Verbal, physical, or discriminatory abuse — including insults, threats, or offensive language — will result in immediate removal.</div></div>
+            <div class="ti-li"><span class="ti-dot"></span><div><b>Referee decisions are final.</b> Disputes should be raised calmly by the captain only, after the whistle. No arguing during play.</div></div>
+            <div class="ti-li"><span class="ti-dot"></span><div><b>Fair play.</b> No deliberate fouls, diving, time-wasting, or unsportsmanlike behaviour.</div></div>
+            <div class="ti-li"><span class="ti-dot"></span><div><b>Team responsibility.</b> Captains are responsible for their squad and guests' conduct on and off the pitch.</div></div>
+            <div class="ti-li"><span class="ti-dot"></span><div><b>Facility care.</b> Keep the SCPSC field clean. Bin all waste. Return borrowed items (aprons, gloves) undamaged after the tournament.</div></div>
+            <div class="ti-li"><span class="ti-dot"></span><div><b>No substances.</b> Smoking, alcohol and any intoxicants are strictly prohibited on the venue.</div></div>
+            <div class="ti-li"><span class="ti-dot"></span><div><b>Photography.</b> Organizers may photograph or record the event for promotional use. Notify organizers if you wish to opt out.</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Safety rules -->
+      <section class="ti-sec">
+        <div class="ti-sec-h"><span class="ti-num">02</span><h2>Safety Rules</h2></div>
+        <div class="ti-sec-b">
+          <div class="fac-grid">
+            <div class="fac"><span class="fac-ic">👣</span><div><b>Barefoot play</b><span>Matches are played barefoot — no boots, studs or spikes allowed on the field</span></div></div>
+            <div class="fac"><span class="fac-ic">🚫</span><div><b>No jewellery</b><span>Remove rings, chains, watches and hard bracelets before entering the field</span></div></div>
+            <div class="fac"><span class="fac-ic">🩹</span><div><b>Injury protocol</b><span>Stop play immediately for any injury. First-aid support will be on-site</span></div></div>
+            <div class="fac"><span class="fac-ic">🩺</span><div><b>Fitness self-declaration</b><span>Players confirm they are medically fit to play. Inform organizers of any condition</span></div></div>
+            <div class="fac"><span class="fac-ic">💧</span><div><b>Stay hydrated</b><span>Water is available at all times. Rest during breaks — no push-through if unwell</span></div></div>
+            <div class="fac"><span class="fac-ic">👕</span><div><b>Proper kit</b><span>Wear the provided apron, wristband and anklets during matches</span></div></div>
+            <div class="fac"><span class="fac-ic">🧤</span><div><b>Goalkeepers</b><span>Use the provided gloves. Avoid dangerous slides near attackers</span></div></div>
+            <div class="fac"><span class="fac-ic">⚠️</span><div><b>No dangerous tackles</b><span>Sliding tackles, high kicks and tackles from behind carry an immediate card</span></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Emergency -->
+      <section class="ti-sec">
+        <div class="ti-sec-h"><span class="ti-num">03</span><h2>Emergency & Reporting</h2></div>
+        <div class="ti-sec-b">
+          <p class="ti-lead">If anything goes wrong on match day, contact the organizers immediately.</p>
+          <div class="ti-note">
+            <b>See an injury, a fight, or an unsafe situation?</b> Alert the nearest volunteer or organizer. First-aid support will be on-site throughout the tournament. For serious incidents, contact the emergency lead below.
+          </div>
+          <div style="text-align:center;margin-top:16px">
+            <button class="btn btn-primary" onclick="emergencyModal()">🆘 View emergency contact</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Acknowledgement -->
+      <section class="ti-sec">
+        <div class="ti-sec-h"><span class="ti-num">04</span><h2>Acknowledgement</h2></div>
+        <div class="ti-sec-b">
+          <p class="ti-lead">By registering for the EX-CAP Football Tournament, every player, captain, guest and volunteer accepts:</p>
+          <div class="ti-list">
+            <div class="ti-li"><span class="ti-dot"></span><div>Full responsibility for their own conduct on and off the pitch.</div></div>
+            <div class="ti-li"><span class="ti-dot"></span><div>That they are medically fit to participate at their own risk.</div></div>
+            <div class="ti-li"><span class="ti-dot"></span><div>All decisions of the organizers on eligibility, disciplinary matters and results are final.</div></div>
+          </div>
+          <div class="ti-note ti-warn" style="margin-top:12px">
+            <b>Serious breaches</b> — violence, harassment, cheating, or damage to property — may lead to immediate disqualification, removal from the venue, and being barred from future EX-CAP events.
+          </div>
+        </div>
+      </section>
+
+      <div class="ti-final-cta">
+        <h3>Let's have a great tournament</h3>
+        <p>Football at its best — competitive on the pitch, family off it. Thanks for keeping the EX-CAP spirit alive.</p>
+        <div class="row2" style="justify-content:center;flex-wrap:wrap;gap:10px">
+          <button class="btn btn-primary" onclick="go('tournament')">← Tournament Info & Rules</button>
+          <button class="btn btn-line" onclick="go('register-team')">Register a team</button>
+        </div>
+      </div>
+    </div>` + footerHTML();
 });
 async function submitVisitor() {
   if (!validate([["v-name", nonEmpty, "Name required"], ["v-phone", isPhone, "Valid mobile required"], ["v-email", isEmail, "Valid email"]])) return;
@@ -686,6 +983,19 @@ async function submitVolunteer() {
 /* ============================================================
    CONFIRMATION + bKash return handling
    ============================================================ */
+
+// email link entry point: /#confirm-EXCAP-FT26-T001 → shows that reg's confirmation
+registerRoute("confirm", function () {
+  // hash looks like #confirm-<id>; strip prefix to get the id
+  const m = location.hash.match(/^#confirm-(.+)$/);
+  const id = m ? decodeURIComponent(m[1]) : "";
+  const rec = (App.regs || []).find(r => r.id === id) || (window._lastRec && window._lastRec.id === id ? window._lastRec : null);
+  if (!rec) {
+    renderInfo("Registration not found", `We couldn't find registration <b>${esc(id)}</b>. If this is your ID, please contact organizers.`, "🔍");
+    return;
+  }
+  renderConfirm(rec.type, rec);
+});
 function renderConfirm(type, rec) {
   window._lastRec = rec;
   const titles = { team: "Team registration submitted", guest: "Guest registration submitted", visitor: "Visitor registration submitted", volunteer: "Volunteer application submitted" };
@@ -727,12 +1037,48 @@ function regSheetHTML(rec) {
   }
   const rows = Object.entries(d).filter(([k, v]) => v && !["photo", "logo"].includes(k)).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(String(v))}</td></tr>`).join("");
   const passHTML = passes.map(p => `<div class="p"><div class="q">${(window.QR && QR.svg) ? QR.svg(p.code) : qrSvg(p.code)}</div><b>${esc(p.name)}</b><span>${esc(p.sub)}</span><small>${esc(p.code)}</small></div>`).join("");
+
   return `<div class="sheet">
     <h1>${esc(s.tournamentName || "EX-CAP Football Tournament")} ${esc(s.edition || "")}</h1>
     <div class="meta">Registration ID <b>${esc(rec.id)}</b> · Status: ${esc(rec.status)} · ${esc(new Date(rec.created).toLocaleString())}</div>
-    <h2>Details</h2><table>${rows}<tr><td>contact</td><td>${esc(rec.contact || "")}</td></tr></table>
-    <h2>QR passes — scan at the gate</h2><div class="passes">${passHTML}</div>
-    <div class="foot">Venue: ${esc(s.venue || "")} · Date: ${fmtDate(s.tournamentDate)} · Keep this for entry.</div>
+
+    <h2>Details</h2>
+    <table>${rows}<tr><td>contact</td><td>${esc(rec.contact || "")}</td></tr></table>
+
+    <h2>QR passes — scan at the gate</h2>
+    <div class="passes">${passHTML}</div>
+
+    <h2>Tournament essentials</h2>
+    <div class="rules-box">
+      <b>Format:</b> 7 players on field, 4 substitutes · 20 minutes per match · barefoot play · group stage → knockouts.<br>
+      <b>Venue:</b> ${esc(s.venue || "SCPSC field")} · <b>Match date:</b> ${fmtDate(s.tournamentDate)}
+    </div>
+
+    <h2>Code of Conduct (summary)</h2>
+    <ul class="rl">
+      <li>Respect all players, referees, organizers and spectators. Zero tolerance for abuse.</li>
+      <li>Referee decisions are final. Disputes only via captain, after the whistle.</li>
+      <li>Fair play only — no deliberate fouls, diving, or unsportsmanlike behaviour.</li>
+      <li>Captains are responsible for their squad and guests' conduct.</li>
+      <li>Keep the venue clean. Return borrowed items (aprons, gloves) undamaged after the tournament.</li>
+      <li>Smoking, alcohol and intoxicants are strictly prohibited on the venue.</li>
+    </ul>
+
+    <h2>Safety Rules (summary)</h2>
+    <ul class="rl">
+      <li><b>Barefoot play.</b> No boots, studs or spikes on the field.</li>
+      <li><b>Remove jewellery</b> — rings, chains, watches, hard bracelets — before playing.</li>
+      <li><b>Stop play for any injury.</b> First-aid support is on-site.</li>
+      <li><b>Fitness self-declaration:</b> players confirm they are medically fit to play.</li>
+      <li><b>Stay hydrated.</b> Water available at all times.</li>
+      <li><b>No dangerous tackles</b> — slides, high kicks, tackles from behind carry an immediate card.</li>
+    </ul>
+
+    <div class="foot">
+      By registering, you accept the Code of Conduct and Safety Rules in full.<br>
+      Full rules: sports.excapscpsc.com/#tournament · Conduct: sports.excapscpsc.com/#conduct<br>
+      Venue: ${esc(s.venue || "")} · Date: ${fmtDate(s.tournamentDate)} · Keep this for entry.
+    </div>
   </div>`;
 }
 function downloadRegPdf(id) {
@@ -830,6 +1176,18 @@ function downloadRegPdf(id) {
   .pass .ps{font-size:11px;color:#6b7280;margin-top:2px;text-transform:capitalize}
   .pass .pc{font-size:9px;color:#9aa1b4;margin-top:6px;font-family:'Inter',monospace;word-break:break-all;letter-spacing:.02em}
 
+  /* rules + conduct blocks */
+  .rules-box{background:#f4f6fb;border:1px solid #e2e5f0;border-radius:12px;padding:14px 16px;margin-top:4px;font-size:12px}
+  .rb-row{display:flex;gap:12px;padding:5px 0;border-bottom:1px dashed #e6e8f0}
+  .rb-row:last-child{border-bottom:0}
+  .rb-k{color:#7c3aed;font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:10px;width:100px;flex:none;padding-top:2px}
+  .rb-v{color:#0f1424;font-weight:600;flex:1;line-height:1.5}
+  ul.rl{margin:0;padding-left:20px;font-size:12px;line-height:1.7;color:#334155;break-inside:avoid;page-break-inside:avoid}
+  ul.rl li{margin-bottom:5px}
+  ul.rl li b{color:#0f1424;font-weight:700}
+  .ack-box{margin-top:18px;padding:12px 16px;background:linear-gradient(120deg,rgba(124,58,237,.06),rgba(219,39,119,.05));border:1px dashed rgba(124,58,237,.35);border-radius:10px;font-size:11.5px;color:#5b6275;line-height:1.6;text-align:center}
+  .ack-box b{color:#7c3aed;font-family:'Inter',monospace;font-weight:700}
+
   /* footer */
   .foot{background:#f7f8fc;padding:16px 32px;border-top:1px solid #eceef5;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:11px;color:#6b7280}
   .foot b{color:#0f1424}
@@ -839,6 +1197,8 @@ function downloadRegPdf(id) {
     html,body{background:#fff}
     .sheet{margin:0;box-shadow:none;border:0;max-width:none;border-radius:0}
     .passes{grid-template-columns:repeat(3,1fr)}
+    .sec-h{break-after:avoid;page-break-after:avoid}
+    ul.rl,.rules-box,.ack-box{break-inside:avoid;page-break-inside:avoid}
     @page{margin:10mm;size:A4}
   }
   @media (max-width:520px){ .passes{grid-template-columns:repeat(2,1fr)} }
@@ -865,6 +1225,41 @@ function downloadRegPdf(id) {
 
       <div class="sec-h">QR passes — scan at the gate</div>
       <div class="passes">${passHTML}</div>
+
+      <div class="sec-h">Tournament essentials</div>
+      <div class="rules-box">
+        <div class="rb-row"><span class="rb-k">Format</span><span class="rb-v">7 players on field · 4 substitutes · barefoot play</span></div>
+        <div class="rb-row"><span class="rb-k">Duration</span><span class="rb-v">20 minutes per match</span></div>
+        <div class="rb-row"><span class="rb-k">Field</span><span class="rb-v">Standard futsal size · Chinese bar goal posts</span></div>
+        <div class="rb-row"><span class="rb-k">Team fee</span><span class="rb-v">৳${esc(s.teamFee)} · bKash only · Guest entry free</span></div>
+        <div class="rb-row"><span class="rb-k">Venue</span><span class="rb-v">${esc(s.venue || "SCPSC field")}</span></div>
+        <div class="rb-row"><span class="rb-k">Match date</span><span class="rb-v">${fmtDate(s.tournamentDate)}</span></div>
+</div>
+
+      <div class="sec-h">Code of Conduct</div>
+      <ul class="rl">
+        <li>Respect all players, referees, organizers and spectators. Zero tolerance for abuse.</li>
+        <li>Referee decisions are final. Disputes only via captain, after the whistle.</li>
+        <li>Fair play only — no deliberate fouls, diving, or unsportsmanlike behaviour.</li>
+        <li>Captains are responsible for their squad and guests' conduct.</li>
+        <li>Aprons and gloves must be returned <b>after every match</b>. Keep them clean and undamaged.</li>
+        <li>Smoking, alcohol and intoxicants are strictly prohibited on the venue.</li>
+      </ul>
+
+      <div class="sec-h">Safety Rules</div>
+      <ul class="rl">
+        <li><b>Barefoot play.</b> No boots, studs or spikes on the field.</li>
+        <li><b>Remove jewellery</b> — rings, chains, watches, hard bracelets — before playing.</li>
+        <li><b>Stop play for any injury.</b> First-aid support is on-site.</li>
+        <li><b>Fitness self-declaration:</b> players confirm they are medically fit to play.</li>
+        <li><b>Stay hydrated.</b> Water available at all times.</li>
+        <li><b>No dangerous tackles</b> — slides, high kicks, tackles from behind carry an immediate card.</li>
+      </ul>
+
+      <div class="ack-box">
+        By registering, you accept the Code of Conduct and Safety Rules in full.<br>
+        Full details: <b>sports.excapscpsc.com/#tournament</b> · Conduct: <b>sports.excapscpsc.com/#conduct</b>
+      </div>
     </div>
 
     <div class="foot">

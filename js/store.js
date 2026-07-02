@@ -53,11 +53,21 @@
     /* ===== LOGOS (stored as base64 strings in one doc) ===== */
     Store.getLogos = async function(){
       if(Store.mode==="local"){ return LS.read().logos||{}; }
+      const out = {};
+      // NEW location: one doc per logo
       try{
         const snap=await fb.getDocs(fb.collection(db,"logos"));
-        const out={}; snap.forEach(d=>{ const v=d.data(); if(v && v.data) out[d.id]=v.data; });
-        return out;
-      }catch(e){ return {}; }
+        snap.forEach(d=>{ const v=d.data(); if(v && v.data) out[d.id]=v.data; });
+      }catch(e){}
+      // OLD location fallback: single config/logos doc — merge any keys not already loaded
+      try{
+        const legacy=await fb.getDoc(fb.doc(db,"config","logos"));
+        if(legacy.exists()){
+          const data=legacy.data();
+          Object.entries(data).forEach(([k,v])=>{ if(!out[k] && typeof v === "string") out[k] = v; });
+        }
+      }catch(e){}
+      return out;
     };
     Store.setLogo = async function(key,dataURL){
       if(Store.mode==="local"){ const d=LS.read(); d.logos=d.logos||{}; d.logos[key]=dataURL; LS.write(d); return; }

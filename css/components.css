@@ -670,13 +670,19 @@ select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(1
 .regctl .seg button.on[data-v=open]{background:var(--pitch)}
 .regctl .seg button.on[data-v=paused]{background:var(--amber);color:#1a1206}
 .regctl .seg button.on[data-v=closed]{background:#ef4444}
-
+.row-actions{display:flex;gap:6px;flex-wrap:nowrap}
+.row-actions .btn{padding:6px 9px;min-width:32px;font-size:13px}
+.tbl td:last-child{white-space:nowrap}
 /* admin bKash QR uploader */
 .bk-qr-row{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
 .bk-qr-box{width:120px;height:120px;border-radius:12px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;overflow:hidden;flex:none}
 .bk-qr-box img{width:100%;height:100%;object-fit:contain;padding:6px}
 .bk-qr-box .ph2{color:#999;font-size:12px}
-
+.tmpl-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.tmpl{text-align:left;background:var(--navy-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;transition:.15s;color:var(--ink)}
+.tmpl:hover{border-color:var(--purple);background:rgba(124,58,237,.08)}
+.tmpl b{display:block;font-size:14px;margin-bottom:3px}
+.tmpl span{font-size:12px;color:var(--muted-2)}
 /* hub per-type status */
 .hub-status{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;vertical-align:middle;margin-left:4px}
 .hub-status.open{color:#7ee6a6;background:rgba(22,192,98,.14)}
@@ -698,4 +704,21 @@ select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(1
 .form-shell .fl .req{color:var(--magenta);margin-left:4px}
 .form-shell .help{font-size:11.5px;color:var(--muted-2);margin:0}
 .form-shell input,.form-shell select,.form-shell textarea{width:100%}
+.bulk-chk, #bulk-all{
+   appearance:none; -webkit-appearance:none;
+   width:18px; height:18px; border-radius:4px;
+   border:2px solid var(--line);
+   background:var(--navy-2);
+   cursor:pointer; vertical-align:middle; margin:0;
+   position:relative; transition:.15s;
+ }
+ .bulk-chk:checked, #bulk-all:checked{
+   background:var(--purple); border-color:var(--purple);
+ }
+ .bulk-chk:checked::after, #bulk-all:checked::after{
+   content:"✓"; position:absolute; inset:0;
+   display:grid; place-items:center;
+   color:#fff; font-size:13px; font-weight:900; line-height:1;
+ }
+ .tbl tr:has(.bulk-chk:checked){ background:rgba(124,58,237,.08); }
 @media(max-width:560px){.form-shell .grid2{grid-template-columns:1fr;gap:0}}

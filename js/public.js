@@ -485,7 +485,7 @@ function teamStep0() {
 }
 function teamStep1() {
   const filled = draft.players.filter(p => p.name);
-  if (filled.length < 4) { toast("Add at least 4 players", "warn"); return; }
+  if (filled.length < 6) { toast("Add at least 6 players", "warn"); return; }
   if (draft.captainIdx < 0 || !draft.players[draft.captainIdx] || !draft.players[draft.captainIdx].name) { toast("Pick your captain (C)", "warn"); return; }
   renderTeamReg(2);
 }
@@ -523,6 +523,19 @@ async function teamSubmit() {
   App.regs.unshift(rec);
   try { App.publicTeams = await Store.listPublicTeams(); } catch (e) { }
   const saved = rec; draft = null; renderConfirm("team", saved);
+  try{
+    if(rec.data.email || rec.captainEmail){
+      Notify.sendBroadcastEmail({
+        toEmail: rec.data.email || rec.captainEmail,
+        toName: rec.data.teamName || rec.data.name || "there",
+        subject: "We received your EX-CAP registration",
+        message: `Hi,\n\nWe've received your ${rec.type} registration (ID: ${rec.id}). Organizers will review it and confirm shortly. You'll get another email + SMS once approved.\n\n— EX-CAP Team`
+      });
+    }
+    if(rec.contact){
+      Notify.sendSMS({ to: rec.contact, message: `EX-CAP: ${rec.type} registration received. ID ${rec.id}. Approval SMS to follow.` });
+    }
+  }catch(e){}
 }
 
 /* ============================================================

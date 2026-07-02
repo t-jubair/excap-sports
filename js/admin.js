@@ -166,9 +166,10 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function actions(r) {
-    return `<div style="display:flex;gap:6px;flex-wrap:wrap">
-      ${r.status !== "approved" ? `<button class="btn btn-sm btn-pitch" onclick="approveReg('${r.id}')">Approve</button>` : ""}
-      <button class="btn btn-sm btn-line" onclick="viewReg('${r.id}')">View</button>
+    return `<div class="row-actions">
+      ${r.status !== "approved" ? `<button class="btn btn-sm btn-pitch" onclick="approveReg('${r.id}')" title="Approve">✓</button>` : ""}
+      <button class="btn btn-sm btn-line" onclick="viewReg('${r.id}')" title="View profile">👁</button>
+      <button class="btn btn-sm btn-line" onclick="passesModal('${r.id}')" title="QR passes">▦</button>
       <button class="btn btn-sm btn-line" onclick="downloadRegPdf('${r.id}')" title="Download PDF">⤓</button>
       <button class="btn btn-sm btn-danger" onclick="deleteReg('${r.id}')" title="Delete">🗑</button>
     </div>`;
@@ -667,26 +668,95 @@
     return list.map(r => ({ name: r.data.teamName || r.data.name || "Participant", email: r.data.email || r.captainEmail || "", phone: r.contact || "" }));
   }
   function adminBroadcast() {
-    $("#admin-body").innerHTML = `<div class="panel" style="max-width:680px"><h3>Broadcast center</h3>
-        <p class="ph-help">Send a one-off email and/or SMS to a chosen audience.</p>
-        <div class="note-box"><span class="i">⚠️</span><div>Always run a small test to yourself first.</div></div>
-        <label class="fl">Audience</label>
-        <select id="bc-aud" onchange="bcCount()">${AUDIENCES.map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select>
-        <div class="help" id="bc-count" style="margin-top:8px"></div>
-        <label class="fl">Channel</label>
-        <div class="pay-methods" style="grid-template-columns:1fr 1fr 1fr">
-          <div class="pay-opt sel" id="ch-email" onclick="bcChan('email')"><div class="ic">✉️</div><b>Email</b><span>via EmailJS</span></div>
-          <div class="pay-opt" id="ch-sms" onclick="bcChan('sms')"><div class="ic">💬</div><b>SMS</b><span>via SMSQ</span></div>
-          <div class="pay-opt" id="ch-both" onclick="bcChan('both')"><div class="ic">📡</div><b>Both</b><span>Email + SMS</span></div>
-        </div>
-        ${field("bc-subject", "Email subject", { val: "EX-CAP Football Tournament" })}
-        ${field("bc-msg", "Message", { type: "textarea", req: true, ph: "Type your announcement…", help: "Keep SMS short — long messages cost multiple SMS credits." })}
-        <div class="form-actions">
-          <button class="btn btn-line" onclick="bcTest()">Send test to me</button>
-          <button class="btn btn-pitch" id="bc-send" onclick="bcSend()">Send broadcast →</button>
-        </div>
-        <div id="bc-result" style="margin-top:14px"></div></div>`;
-    bcChan(_bcChan); bcCount();
+    const rec = broadcastRecipients("all");
+    $("#admin-body").innerHTML = `<div class="panel" style="max-width:820px"><h3>Broadcast center</h3>
+      <p class="ph-help">Send email + SMS to individuals or entire audiences. Every send is logged.</p>
+  
+      <div class="tabs">
+        <button class="tab active" onclick="bcMode('bulk')">📡 Bulk broadcast</button>
+        <button class="tab" onclick="bcMode('single')">👤 Single recipient</button>
+        <button class="tab" onclick="bcMode('template')">📄 Templates</button>
+      </div>
+  
+      <div id="bc-panel"></div>
+    </div>`;
+    bcMode("bulk");
+  }
+  let _bcChan = "email", _bcMode = "bulk";
+  function bcMode(m){
+    _bcMode = m;
+    document.querySelectorAll(".tabs .tab").forEach((t,i)=>t.classList.toggle("active", ["bulk","single","template"][i]===m));
+    const p = $("#bc-panel");
+    if(m==="bulk") p.innerHTML = bcBulkUI();
+    else if(m==="single") p.innerHTML = bcSingleUI();
+    else p.innerHTML = bcTemplateUI();
+    if(m==="bulk") bcCount();
+  }
+  function bcBulkUI(){
+    return `
+      <label class="fl">Audience</label>
+      <select id="bc-aud" onchange="bcCount()">${AUDIENCES.map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select>
+      <div class="help" id="bc-count" style="margin-top:8px"></div>
+  
+      <label class="fl">Channel</label>
+      <div class="pay-methods" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="pay-opt ${_bcChan==='email'?'sel':''}" id="ch-email" onclick="bcChan('email')"><div class="ic">✉️</div><b>Email</b><span>via EmailJS</span></div>
+        <div class="pay-opt ${_bcChan==='sms'?'sel':''}" id="ch-sms" onclick="bcChan('sms')"><div class="ic">💬</div><b>SMS</b><span>via SMSQ</span></div>
+        <div class="pay-opt ${_bcChan==='both'?'sel':''}" id="ch-both" onclick="bcChan('both')"><div class="ic">📡</div><b>Both</b><span>Email + SMS</span></div>
+      </div>
+  
+      ${field("bc-subject", "Email subject", { val: "EX-CAP Football Tournament" })}
+      ${field("bc-msg", "Message", { type: "textarea", req: true, ph: "Type your announcement…", help: "SMS is limited to 160 chars per credit. Email supports full text." })}
+  
+      <div class="form-actions">
+        <button class="btn btn-line" onclick="bcTest()">📨 Send test to me</button>
+        <button class="btn btn-pitch" id="bc-send" onclick="bcSend()">Send broadcast →</button>
+      </div>
+      <div id="bc-result" style="margin-top:14px"></div>`;
+  }
+  function bcSingleUI(){
+    return `
+      <label class="fl">Recipient</label>
+      <select id="bc-single-to">
+        <option value="">— select a registrant —</option>
+        ${App.regs.map(r=>`<option value="${r.id}">${esc(r.data.teamName||r.data.name||r.id)} · ${r.type} · ${esc(r.contact||"")}</option>`).join("")}
+      </select>
+      <div class="grid2"><div>${field("bc-single-subject","Subject",{val:"A message from EX-CAP"})}</div>
+      <div>${field("bc-single-chan","Channel",{type:"select",options:["Email + SMS","Email only","SMS only"]})}</div></div>
+      ${field("bc-single-msg","Message",{type:"textarea",req:true,ph:"Personal note…"})}
+      <div class="form-actions"><button class="btn btn-pitch" onclick="bcSendSingle()">Send →</button></div>`;
+  }
+  function bcTemplateUI(){
+    return `<p class="ph-help">Pick a common template to prefill the broadcast form.</p>
+      <div class="tmpl-grid">
+        <button class="tmpl" onclick="bcUseTemplate('reminder')"><b>📅 Match-day reminder</b><span>Confirm tomorrow's schedule</span></button>
+        <button class="tmpl" onclick="bcUseTemplate('weather')"><b>🌦 Weather update</b><span>Delay / re-schedule notice</span></button>
+        <button class="tmpl" onclick="bcUseTemplate('thanks')"><b>🙏 Thank-you</b><span>Post-tournament wrap-up</span></button>
+        <button class="tmpl" onclick="bcUseTemplate('payment')"><b>💳 Payment pending</b><span>Nudge to complete payment</span></button>
+      </div>`;
+  }
+  const BC_TEMPLATES = {
+    reminder:{subject:"EX-CAP: Match day tomorrow",msg:"Reminder: your match is tomorrow at the SCPSC field. Please arrive 30 minutes before kick-off with your QR pass. See you there!"},
+    weather:{subject:"EX-CAP: Weather update",msg:"Due to weather, today's schedule has been adjusted. Please check the fixtures page for the latest kick-off times."},
+    thanks:{subject:"EX-CAP: Thank you!",msg:"Thanks for making the EX-CAP Football Tournament a success. See you next year!"},
+    payment:{subject:"EX-CAP: Payment reminder",msg:"Your team registration is submitted but payment is still pending. Please complete the bKash payment to confirm your slot."}
+  };
+  function bcUseTemplate(k){
+    const t=BC_TEMPLATES[k]; if(!t) return;
+    bcMode("bulk");
+    setTimeout(()=>{ $("#bc-subject").value=t.subject; $("#bc-msg").value=t.msg; toast("Template loaded — pick audience and send"); },50);
+  }
+  async function bcSendSingle(){
+    const id=$("#bc-single-to").value; if(!id){ toast("Pick a recipient","warn"); return; }
+    const r=App.regs.find(x=>x.id===id); if(!r) return;
+    const chan=$("#bc-single-chan").value, subject=val("bc-single-subject"), message=val("bc-single-msg");
+    if(!message){ setErr("bc-single-msg","Write a message first"); return; }
+    const email=r.data.email||r.captainEmail||"", phone=r.contact||"";
+    let sent=[];
+    if(chan!=="SMS only" && email){ const o=await Notify.sendBroadcastEmail({toEmail:email,toName:r.data.teamName||r.data.name,subject,message}); if(o.ok) sent.push("email"); }
+    if(chan!=="Email only" && phone){ const o=await Notify.sendSMS({to:phone,message}); if(o.ok) sent.push("SMS"); }
+    await Store.logAction("Single message ("+chan+")", r.id+" — "+sent.join(", "));
+    toast(sent.length?"Sent via "+sent.join(" + "):"Nothing sent (no email/phone)", sent.length?"":"warn");
   }
   let _bcChan = "email";
   function bcChan(c) { _bcChan = c;["email", "sms", "both"].forEach(k => $("#ch-" + k) && $("#ch-" + k).classList.toggle("sel", k === c)); }

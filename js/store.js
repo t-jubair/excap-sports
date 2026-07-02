@@ -53,16 +53,29 @@
     /* ===== LOGOS (stored as base64 strings in one doc) ===== */
     Store.getLogos = async function(){
       if(Store.mode==="local"){ return LS.read().logos||{}; }
-      const snap=await fb.getDoc(fb.doc(db,"config","logos"));
-      return snap.exists()? snap.data() : {};
+      try{
+        const snap=await fb.getDocs(fb.collection(db,"logos"));
+        const out={}; snap.forEach(d=>{ const v=d.data(); if(v && v.data) out[d.id]=v.data; });
+        return out;
+      }catch(e){ return {}; }
     };
     Store.setLogo = async function(key,dataURL){
       if(Store.mode==="local"){ const d=LS.read(); d.logos=d.logos||{}; d.logos[key]=dataURL; LS.write(d); return; }
-      await fb.setDoc(fb.doc(db,"config","logos"), {[key]:dataURL}, {merge:true});
+      await fb.setDoc(fb.doc(db,"logos",key), {data:dataURL, updated:Date.now()});
     };
     Store.removeLogo = async function(key){
       if(Store.mode==="local"){ const d=LS.read(); if(d.logos) delete d.logos[key]; LS.write(d); return; }
-      await fb.setDoc(fb.doc(db,"config","logos"), {[key]:fb.deleteField()}, {merge:true});
+      await fb.deleteDoc(fb.doc(db,"logos",key));
+    };
+    Store.deleteReg = async function(id){
+      if(Store.mode==="local"){
+        const d=LS.read();
+        d.regs=(d.regs||[]).filter(r=>r.id!==id);
+        d.publicTeams=(d.publicTeams||[]).filter(r=>r.id!==id);
+        LS.write(d); return;
+      }
+      await fb.deleteDoc(fb.doc(db,"registrations",id));
+      try{ await fb.deleteDoc(fb.doc(db,"public_teams",id)); }catch(e){}
     };
   
     /* ===== REGISTRATIONS ===== */

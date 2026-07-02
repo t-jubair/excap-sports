@@ -1338,19 +1338,38 @@ async function downloadRegPdf(id) {
     margin: [8, 8, 8, 8],
     filename,
     image: { type: "jpeg", quality: 0.95 },
-    html2canvas: { scale: 2, useCORS: true, allowTaint: true, backgroundColor: "#ffffff", logging: false, windowWidth: 760 },
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+      windowWidth: 760,
+      width: 760,
+      scrollX: 0,
+      scrollY: 0,
+      onclone: (clonedDoc) => {
+        // ensure the clone is visible for rasterization
+        const c = clonedDoc.body.lastElementChild;
+        if (c) { c.style.opacity = "1"; c.style.zIndex = "1"; }
+      }
+    },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait", compress: true },
     pagebreak: { mode: ["css", "legacy"] }
   };
-
-  html2pdf().set(opt).from(container).save().then(() => {
-    document.body.removeChild(container);
+  
+  // Wait a frame so images/fonts start loading, then generate
+  await new Promise(r => setTimeout(r, 250));
+  
+  try {
+    await html2pdf().set(opt).from(container).save();
     toast("PDF downloaded ✓");
-  }).catch(err => {
-    document.body.removeChild(container);
+  } catch (err) {
     console.error("PDF gen failed", err);
     toast("Could not generate PDF — try again", "err");
-  });
+  } finally {
+    if (container.parentNode) document.body.removeChild(container);
+  }
 }
 
 function renderInfo(title, msg, icon) {

@@ -87,7 +87,9 @@ function hexA(hex, a) { const m = hex.replace("#", ""); const r = parseInt(m.sli
 /* ============================================================
    NAV + DRAWER
    ============================================================ */
-const NAV = [["home", "Home"], ["live", "Live"], ["fixtures", "Fixtures"], ["teams", "Teams"], ["tournament", "Tournament"], ["register", "Register"]];
+const NAV=[["home","Home"],["fixtures","Fixtures"],["tournament","Rules"],["conduct","Code of Conduct"],["register","Register"]];
+// Hidden for now (add back when needed): ["live","Live"], ["teams","Teams"]
+
 function navHTML(active) {
   return `
      <header class="nav"><div class="wrap nav-in">

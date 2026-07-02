@@ -325,6 +325,149 @@ function renderHome() {
     });
   }
 }
+registerRoute("brand", function(){
+  const wanted = (location.hash.match(/^#brand-(.+)$/)||[])[1];
+  const items = App.brand || [];
+  const categories = [...new Set(items.map(i=>i.category||"General"))];
+  const total = items.length;
+  const totalSize = items.reduce((a,i)=>a+(i.size||0), 0);
+
+  $("#app").innerHTML = anncHTML()+navHTML("")+`
+    <div class="wrap page brand-page">
+      <div class="brand-hero">
+        <div class="bh-eyebrow">Brand & Media Kit</div>
+        <h1 class="bh-title">EX-CAP Brand Materials</h1>
+        <p class="bh-lead">Official logos, cover photos, posters and design assets — free for jerseys, banners, social media, or anywhere you want to represent the EX-CAP Football Tournament.</p>
+        ${total ? `
+          <div class="bh-stats">
+            <div class="bh-stat"><b>${total}</b><span>Materials</span></div>
+            <div class="bh-stat"><b>${categories.length}</b><span>Categories</span></div>
+            <div class="bh-stat"><b>${bi_fmtSize(totalSize)}</b><span>Total size</span></div>
+          </div>
+        `:""}
+        <div class="bh-actions">
+          <button class="btn btn-primary" onclick="copyBrandLink()">🔗 Share this page</button>
+          <button class="btn btn-line" onclick="go('home')">← Back to home</button>
+        </div>
+      </div>
+
+      ${!items.length ? `
+        <div class="brand-empty">
+          <div class="be-ic">📁</div>
+          <b>Brand materials coming soon</b>
+          <p>The organizers are preparing the media kit — check back shortly.</p>
+        </div>
+      ` : `
+        <nav class="brand-nav">
+          <button class="bn-chip active" onclick="filterBrand('all', event)">All (${total})</button>
+          ${categories.map(cat=>`
+            <button class="bn-chip" onclick="filterBrand('${esc(cat)}', event)">${esc(cat)} (${items.filter(i=>(i.category||"General")===cat).length})</button>
+          `).join("")}
+        </nav>
+
+        <div class="brand-grid" id="brand-grid">
+          ${items.map((item,idx)=>brandCard(item, idx, wanted)).join("")}
+        </div>
+      `}
+    </div>`+footerHTML();
+
+  if(wanted){
+    setTimeout(()=>{
+      const el = document.getElementById("brand-"+wanted);
+      if(el){
+        el.scrollIntoView({behavior:"smooth", block:"center"});
+        setTimeout(()=>previewBrand(wanted), 600);
+      }
+    }, 200);
+  }
+});
+
+function brandCard(item, idx, highlightId){
+  const isImg = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(item.url||"") || (item.mime||"").startsWith("image/");
+  return `<div class="brand-item ${highlightId===item.id?'highlight':''} reveal" id="brand-${esc(item.id)}" data-cat="${esc(item.category||"General")}" style="animation-delay:${idx*40}ms">
+    <div class="bi-preview" onclick="previewBrand('${esc(item.id)}')">
+      ${isImg ? `<img src="${esc(item.url)}" alt="${esc(item.title)}" loading="lazy">` : `<div class="bi-file-ic">${bi_fileIcon(item.mime)}</div>`}
+      <div class="bi-overlay">
+        <div class="bi-zoom">🔍 Click to preview</div>
+      </div>
+    </div>
+    <div class="bi-body">
+      <div class="bi-cat">${esc(item.category||"General")}</div>
+      <b class="bi-title">${esc(item.title)}</b>
+      ${item.description?`<span class="bi-desc">${esc(item.description)}</span>`:""}
+      <div class="bi-meta">
+        ${item.mime?`<span class="chip">${esc((item.mime.split("/")[1]||"file").toUpperCase())}</span>`:""}
+        ${item.size?`<span class="chip">${bi_fmtSize(item.size)}</span>`:""}
+      </div>
+      <div class="bi-actions">
+        <a class="btn btn-primary btn-sm" href="${esc(item.url)}" download="${esc(item.title||"brand")}${bi_ext(item.mime)}" target="_blank">⤓ Download</a>
+        <button class="btn btn-line btn-sm" onclick="copyBrandLink('${esc(item.id)}')" title="Copy link">🔗</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function filterBrand(cat, ev){
+  document.querySelectorAll(".bn-chip").forEach(c=>c.classList.remove("active"));
+  if(ev && ev.target) ev.target.classList.add("active");
+  document.querySelectorAll("#brand-grid .brand-item").forEach(el=>{
+    el.style.display = (cat==="all" || el.dataset.cat===cat) ? "" : "none";
+  });
+}
+
+function bi_fileIcon(mime){
+  if(!mime) return "📄";
+  if(mime.startsWith("image/")) return "🖼️";
+  if(mime.includes("pdf")) return "📕";
+  if(mime.includes("zip")||mime.includes("compressed")) return "🗜️";
+  return "📄";
+}
+function bi_fmtSize(bytes){
+  if(!bytes) return "—";
+  if(bytes<1024) return bytes+" B";
+  if(bytes<1024*1024) return (bytes/1024).toFixed(0)+" KB";
+  return (bytes/1024/1024).toFixed(1)+" MB";
+}
+function bi_ext(mime){
+  if(!mime) return "";
+  const m={"image/png":".png","image/jpeg":".jpg","image/gif":".gif","image/webp":".webp","image/svg+xml":".svg","application/pdf":".pdf","application/zip":".zip"};
+  return m[mime]||"";
+}
+
+function previewBrand(id){
+  const item = (App.brand||[]).find(x=>x.id===id); if(!item) return;
+  const isImg = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(item.url||"") || (item.mime||"").startsWith("image/");
+  showModal(`<div class="brand-preview">
+    <div class="bp-header">
+      <div class="bp-title"><b>${esc(item.title)}</b>${item.description?`<span>${esc(item.description)}</span>`:""}</div>
+      <div class="bp-meta">
+        <span class="chip">${esc(item.category||"General")}</span>
+        ${item.mime?`<span class="chip">${esc((item.mime.split("/")[1]||"file").toUpperCase())}</span>`:""}
+        ${item.size?`<span class="chip">${bi_fmtSize(item.size)}</span>`:""}
+      </div>
+    </div>
+    <div class="bp-body">
+      ${isImg ? `<img src="${esc(item.url)}" alt="">` : `<div class="bp-file"><div class="bp-file-ic">${bi_fileIcon(item.mime)}</div><b>${esc(item.title)}</b></div>`}
+    </div>
+    <div class="bp-actions">
+      <a class="btn btn-primary" href="${esc(item.url)}" download="${esc(item.title||"brand")}${bi_ext(item.mime)}" target="_blank">⤓ Download</a>
+      <button class="btn btn-line" onclick="copyBrandLink('${esc(id)}')">🔗 Copy link</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+    </div>
+  </div>`, "wide");
+}
+
+function copyBrandLink(id){
+  const url = "https://sports.excapscpsc.com/#brand"+(id?"-"+id:"");
+  const done = ()=>toast("Link copied — ready to share ✓");
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(done).catch(()=>{
+      prompt("Copy this link:", url);
+    });
+  } else {
+    prompt("Copy this link:", url);
+  }
+}
 function teamCard(r) {
   const d = r.data || {}, hue = teamHue(d.teamName);
   const st = r.status === "approved" ? ["ok", "Confirmed"] : r.status === "waitlist" ? ["wait", "Waiting list"] : ["rev", "Under review"];

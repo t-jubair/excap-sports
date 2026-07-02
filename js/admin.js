@@ -31,10 +31,24 @@ async function renderAdmin() {
         refreshNotifBadge();
       }
     });
+    
     Store.subscribeSettings(s => { if (s) App.settings = s; });
     Store.subscribeTickets(list => {
       App.tickets = list;
       if (currentRoute() === "admin") { refreshNotifBadge(); }
+    });
+    Store.subscribeRegs(list=>{
+      App.regs = list;
+      if(currentRoute()==="admin"){ adminRegistrations(); adminOverview(); refreshNotifBadge(); }
+    });
+    Store.subscribeSettings(s=>{ App.settings = s; });
+    Store.subscribeTickets(list=>{
+      App.tickets = list;
+      if(currentRoute()==="admin"){ refreshNotifBadge(); }
+    });
+    Store.subscribeBrand(list=>{                                        // ← ADD THIS BLOCK
+      App.brand = list;
+      if(currentRoute()==="admin" && adminTab==="brandkit") adminBrandKit();
     });
   }
   refreshNotifBadge();
@@ -128,7 +142,7 @@ async function renderAdmin() {
     document.addEventListener(evt, () => { window._userInteracted = true; }, { once: true });
   });
 
-  const tabs = [["dashboard", "📊", "Dashboard"], ["scoreboard", "🏟️", "Scoreboard"], ["results", "🏆", "Results & awards"], ["checkin", "📲", "Check-in"], ["teams", "⚽", "Teams"], ["registrations", "📋", "Registrations"], ["volunteers", "🤝", "Volunteers"], ["messages", "💬", "Messages"], ["payments", "💳", "Payments"], ["manual", "🧾", "Record payment"], ["broadcast", "📡", "Broadcast center"], ["branding", "🎨", "Branding & logos"], ["announcement", "📣", "Announcement"], ["settings", "⚙️", "Settings"], ["profile", "👤", "My profile"], ["log", "🗒️", "Activity log"]];
+  const tabs = [["dashboard", "📊", "Dashboard"], ["scoreboard", "🏟️", "Scoreboard"], ["results", "🏆", "Results & awards"], ["checkin", "📲", "Check-in"], ["teams", "⚽", "Teams"], ["registrations", "📋", "Registrations"], ["volunteers", "🤝", "Volunteers"], ["messages", "💬", "Messages"], ["payments", "💳", "Payments"], ["manual", "🧾", "Record payment"], ["broadcast", "📡", "Broadcast center"], ["brandkit", "🎨", "Brand kit"], ["branding", "🎨", "Branding & logos"], ["announcement", "📣", "Announcement"], ["settings", "⚙️", "Settings"], ["profile", "👤", "My profile"], ["log", "🗒️", "Activity log"]];
   const me = Store.adminInfo();
   $("#app").innerHTML = `<div class="admin-shell">
         <aside class="admin-side" id="aside">
@@ -150,7 +164,7 @@ async function renderAdmin() {
           </div><div id="admin-body"></div></main></div>`;
   if (window._ciScanner) { _ciScanner.stop && _ciScanner.stop(); window._ciScanner = null; }
   if (window._admMatchUnsub) { _admMatchUnsub(); window._admMatchUnsub = null; }
-  ({ dashboard: adminDashboard, scoreboard: adminScoreboard, results: adminResults, checkin: adminCheckin, teams: adminTeams, registrations: adminRegistrations, volunteers: adminVolunteers, messages: adminMessages, payments: adminPayments, manual: adminManual, broadcast: adminBroadcast, branding: adminBranding, announcement: adminAnnouncement, settings: adminSettings, profile: adminProfile, log: adminLog }[adminTab])();
+  ({ dashboard: adminDashboard, scoreboard: adminScoreboard, results: adminResults, checkin: adminCheckin, teams: adminTeams, registrations: adminRegistrations, volunteers: adminVolunteers, messages: adminMessages, payments: adminPayments, manual: adminManual, broadcast: adminBroadcast, branding: adminBranding, brandkit: adminBrandKit, announcement: adminAnnouncement, settings: adminSettings, profile: adminProfile, log: adminLog }[adminTab])();
 }
 async function refreshAdmin() {
   try {
@@ -492,6 +506,181 @@ function adminBranding() {
           <div class="grid2" style="max-width:420px"><div><label class="fl">Purple</label><div class="swatch"><input type="color" id="b-purple" value="${App.settings.brand?.purple || cfg.brand.purple}"></div></div>
           <div><label class="fl">Magenta</label><div class="swatch"><input type="color" id="b-magenta" value="${App.settings.brand?.magenta || cfg.brand.magenta}"></div></div></div>
           <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="saveColors()">Apply colours</button></div>`;
+}
+function adminBrandKit(){
+  const items = App.brand || [];
+  const categories = [...new Set(items.map(i=>i.category||"General"))];
+  const totalSize = items.reduce((a,i)=>a+(i.size||0),0);
+
+  $("#admin-body").innerHTML = `<div class="panel">
+    <div class="brandkit-head">
+      <div>
+        <h3>Brand kit</h3>
+        <p class="ph-help">Upload logos, cover photos, posters, and other brand materials. Public site: <a onclick="window.open('/#brand','_blank')" style="color:var(--purple);cursor:pointer">sports.excapscpsc.com/#brand ↗</a></p>
+      </div>
+      <button class="btn btn-primary" onclick="editBrandItem()">+ Add material</button>
+    </div>
+
+    <div class="bk-stats">
+      <div class="bk-stat"><div class="bk-s-ic">📦</div><div><b>${items.length}</b><span>Materials</span></div></div>
+      <div class="bk-stat"><div class="bk-s-ic">🗂️</div><div><b>${categories.length}</b><span>Categories</span></div></div>
+      <div class="bk-stat"><div class="bk-s-ic">💾</div><div><b>${bi_fmtSize(totalSize)}</b><span>Total storage</span></div></div>
+    </div>
+
+    ${items.length ? `
+      <div class="bk-grid">
+        ${items.map(item=>bkAdminCard(item)).join("")}
+      </div>
+    ` : `
+      <div class="empty-wall" style="padding:60px 20px;text-align:center">
+        <div style="font-size:56px;margin-bottom:14px;opacity:.5">🎨</div>
+        <b style="font-size:16px">No brand materials yet</b>
+        <p style="color:var(--muted-2);margin-top:8px;margin-bottom:20px">Add logos, posters, cover photos etc. that people can download from the public brand page.</p>
+        <button class="btn btn-primary" onclick="editBrandItem()">+ Add your first material</button>
+      </div>
+    `}
+  </div>`;
+}
+
+function bkAdminCard(item){
+  const isImg = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(item.url||"") || (item.mime||"").startsWith("image/");
+  return `<div class="bk-card">
+    <div class="bk-prev">
+      ${isImg ? `<img src="${esc(item.url)}" alt="">` : `<div class="bk-file-ic">${bi_fileIcon(item.mime)}</div>`}
+      <span class="bk-badge">${esc(item.category||"General")}</span>
+    </div>
+    <div class="bk-body">
+      <b>${esc(item.title)}</b>
+      ${item.description?`<span class="bk-desc">${esc(item.description)}</span>`:""}
+      <div class="bk-meta">
+        ${item.mime?`<span class="chip">${esc((item.mime.split("/")[1]||"file").toUpperCase())}</span>`:""}
+        <span class="chip">${bi_fmtSize(item.size||0)}</span>
+      </div>
+      <div class="bk-actions">
+        <button class="btn btn-sm btn-line" onclick="editBrandItem('${esc(item.id)}')">✎ Edit</button>
+        <a class="btn btn-sm btn-line" href="${esc(item.url)}" target="_blank">👁 View</a>
+        <button class="btn btn-sm btn-line" onclick="copyBrandLink('${esc(item.id)}')">🔗 Share</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteBrandItem('${esc(item.id)}')">🗑</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function editBrandItem(id){
+  const existing = id ? (App.brand||[]).find(x=>x.id===id) : null;
+  const item = existing || { id: "BR"+Date.now().toString(36).toUpperCase(), title:"", description:"", category:"Logos", url:"", path:"", mime:"", size:0, order:(App.brand||[]).length };
+  showModal(`<div style="max-width:520px">
+    <h3 style="margin:0 0 4px">${existing?"Edit":"Add"} brand material</h3>
+    <p style="color:var(--muted-2);font-size:12.5px;margin:0 0 18px">High-resolution files preserve quality for print, jerseys and social media.</p>
+
+    <div class="fld"><label class="fl">Title <span class="req">*</span></label>
+      <input id="bk-title" value="${esc(item.title)}" placeholder="e.g. EX-CAP main logo, Facebook cover photo…">
+    </div>
+    <div class="grid2">
+      <div class="fld"><label class="fl">Category</label>
+        <select id="bk-cat">
+          ${["Logos","Cover Photos","Posters","Icons","Fonts","Guidelines","Photos","Other"].map(c=>`<option ${item.category===c?"selected":""}>${c}</option>`).join("")}
+        </select>
+      </div>
+      <div class="fld"><label class="fl">Display order</label>
+        <input id="bk-order" type="number" value="${item.order||0}" placeholder="0">
+      </div>
+    </div>
+    <div class="fld"><label class="fl">Description</label>
+      <textarea id="bk-desc" placeholder="Short description — where and how to use">${esc(item.description||"")}</textarea>
+    </div>
+
+    ${item.url ? `
+      <div class="fld"><label class="fl">Current file</label>
+        <div class="bk-current-file">
+          <div class="bcf-prev">${/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(item.url) ? `<img src="${esc(item.url)}" alt="">` : `<div style="font-size:28px">${bi_fileIcon(item.mime)}</div>`}</div>
+          <div class="bcf-info">
+            <b>${esc(item.mime||"file")}</b>
+            <span>${bi_fmtSize(item.size)}</span>
+            <a href="${esc(item.url)}" target="_blank" style="color:var(--purple);font-size:11px">Open in new tab ↗</a>
+          </div>
+        </div>
+      </div>
+    `:""}
+
+    <div class="fld"><label class="fl">${item.url?"Replace with new file":"Upload file"} ${!item.url?'<span class="req">*</span>':''}</label>
+      <input type="file" id="bk-file" accept="image/*,.pdf,.zip,.svg" style="width:100%">
+      <div class="help">Recommended: high resolution PNG/JPG/SVG. Max 25 MB per file.</div>
+    </div>
+    <div id="bk-progress" style="display:none;margin-top:8px">
+      <div class="bk-bar"><div class="bk-bar-in" id="bk-bar"></div></div>
+      <span id="bk-pct" style="font-size:11px;color:var(--muted);margin-top:4px;display:block">Uploading… 0%</span>
+    </div>
+
+    <div class="form-actions" style="margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="bk-save" onclick="saveBrandItem('${esc(item.id)}')">💾 Save material</button>
+    </div>
+  </div>`, "wide");
+}
+
+async function saveBrandItem(id){
+  const btn = $("#bk-save"); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Saving…';
+  const existing = (App.brand||[]).find(x=>x.id===id) || { id, order:(App.brand||[]).length };
+  const item = {
+    ...existing,
+    title: val("bk-title"),
+    category: val("bk-cat"),
+    description: val("bk-desc"),
+    order: parseInt(val("bk-order"))||0,
+    updated: Date.now()
+  };
+  if(!item.title){ toast("Title required","warn"); btn.disabled=false; btn.innerHTML="💾 Save material"; return; }
+
+  const fileInput = $("#bk-file");
+  if(fileInput.files[0]){
+    const f = fileInput.files[0];
+    if(f.size > 25*1024*1024){ toast("File too large (max 25 MB)","err"); btn.disabled=false; btn.innerHTML="💾 Save material"; return; }
+    try{
+      $("#bk-progress").style.display="block";
+      const uploaded = await Store.uploadBrandFile(f, pct=>{
+        $("#bk-bar").style.width = pct+"%";
+        $("#bk-pct").textContent = `Uploading… ${pct}%`;
+      });
+      // If replacing, delete old file
+      if(item.path && item.path !== uploaded.path){
+        try{ await Store._fbSt.deleteObject(Store._fbSt.ref(Store._storage, item.path)); }catch(e){}
+      }
+      item.url = uploaded.url;
+      item.path = uploaded.path;
+      item.mime = uploaded.mime;
+      item.size = uploaded.size;
+    }catch(e){
+      toast("Upload failed: "+(e.message||"error"),"err");
+      btn.disabled=false; btn.innerHTML="💾 Save material"; return;
+    }
+  } else if(!item.url){
+    toast("Please upload a file","warn");
+    btn.disabled=false; btn.innerHTML="💾 Save material"; return;
+  }
+
+  try{
+    await Store.saveBrand(item);
+    await Store.logAction("Saved brand material", item.title);
+    toast(existing?"Material updated ✓":"Material added ✓");
+    closeModal();
+    adminBrandKit();
+  }catch(e){
+    toast("Save failed: "+e.message,"err");
+    btn.disabled=false; btn.innerHTML="💾 Save material";
+  }
+}
+
+async function deleteBrandItem(id){
+  const item = (App.brand||[]).find(x=>x.id===id); if(!item) return;
+  if(!confirm(`Delete "${item.title}"?\n\nThis will remove it from the public brand page. Cannot be undone.`)) return;
+  try{
+    await Store.deleteBrand(id, item.path);
+    await Store.logAction("Deleted brand material", item.title);
+    App.brand = (App.brand||[]).filter(x=>x.id!==id);
+    toast("Deleted");
+    adminBrandKit();
+  }catch(e){ toast("Delete failed: "+e.message,"err"); }
 }
 function clubEditRow(c, i) {
   return `<div class="club-edit" data-ci="${i}">

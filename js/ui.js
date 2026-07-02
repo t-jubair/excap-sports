@@ -87,7 +87,7 @@ function hexA(hex, a) { const m = hex.replace("#", ""); const r = parseInt(m.sli
 /* ============================================================
    NAV + DRAWER
    ============================================================ */
-const NAV=[["home","Home"],["fixtures","Fixtures"],["tournament","Rules"],["conduct","Code of Conduct"],["contact","Contact"],["register","Register"]];
+const NAV=[["home","Home"],["fixtures","Fixtures"],["tournament","Rules"],["conduct","Code of Conduct"],["contact","Contact"],["brand","Brand Kit"],["register","Register"]];
 // Hidden for now (add back when needed): ["live","Live"], ["teams","Teams"]
 
 function navHTML(active) {
@@ -254,6 +254,7 @@ async function boot() {
   App.settings = App.settings || { ...cfg.settings };
   App.logos = App.logos || {};
   App.publicTeams = App.publicTeams || [];
+  App.brand = App.brand || [];
   App.regs = App.regs || [];
   applyPreviewParam();
   applyBrand((App.settings && App.settings.brand) || cfg.brand);
@@ -296,5 +297,11 @@ async function boot() {
 
   // re-render once at the end
   if (App.authed || before !== after) route();
+  if(Store.subscribeBrand){
+    Store.subscribeBrand(list=>{
+      App.brand = list;
+      if(currentRoute()==="brand") route();
+    });
+  }
 }
 document.addEventListener("DOMContentLoaded", boot);

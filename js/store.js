@@ -11,7 +11,7 @@
    (function(){
     const cfg = window.EXCAP;
     const usingFirebase = cfg.firebase.apiKey && !cfg.firebase.apiKey.startsWith("PASTE_");
-    let db=null, auth=null, fb=null;
+    let db=null, auth=null, fb=null, storage=null, fbSt=null;
   
     /* ---------- localStorage fallback ---------- */
     const LS = {
@@ -29,10 +29,15 @@
       const appMod  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
       const fsMod   = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
       const authMod = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+      const stMod   = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js");
       const app = appMod.initializeApp(cfg.firebase);
       db = fsMod.getFirestore(app);
       auth = authMod.getAuth(app);
+      storage = stMod.getStorage(app);
       fb = { ...fsMod, ...authMod };
+      fbSt = stMod;
+      Store._storage = storage;
+      Store._fbSt = fbSt;
       authMod.onAuthStateChanged(auth, u=>{ Store.user=u; (Store._authCbs||[]).forEach(cb=>{try{cb(u);}catch(e){}}); });
       // Real-time listeners for registrations, settings, and logos
       Store.subscribeRegs = function(cb){
@@ -316,6 +321,61 @@ Store.subscribeTickets = function(cb){
       if(Store.mode==="local"){ const d=LS.read(); const t=(d.tickets||[]).find(x=>x.id===id); if(t)Object.assign(t,patch); LS.write(d); return; }
       await fb.setDoc(fb.doc(db,"tickets",id), patch, {merge:true});
     };
-  
+    /* ===== BRAND KIT (files in Firebase Storage, metadata in Firestore) ===== */
+    Store.subscribeBrand = function(cb){
+      if(Store.mode==="local"){ cb(LS.read().brand||[]); return ()=>{}; }
+      try{
+        return fb.onSnapshot(fb.collection(db,"brand"), snap=>{
+          const list=[]; snap.forEach(d=>list.push(d.data()));
+          list.sort((a,b)=>(a.order||0)-(b.order||0));
+          cb(list);
+        });
+      }catch(e){ return ()=>{}; }
+    };
+
+    Store.saveBrand = async function(item){
+      if(Store.mode==="local"){
+        const d=LS.read(); d.brand=d.brand||[];
+        const i=d.brand.findIndex(x=>x.id===item.id);
+        if(i>=0) d.brand[i]=item; else d.brand.push(item);
+        LS.write(d); return item;
+      }
+      await fb.setDoc(fb.doc(db,"brand",item.id), item);
+      return item;
+    };
+
+    Store.deleteBrand = async function(id, filePath){
+      if(Store.mode==="local"){
+        const d=LS.read(); d.brand=(d.brand||[]).filter(x=>x.id!==id); LS.write(d); return;
+      }
+      await fb.deleteDoc(fb.doc(db,"brand",id));
+      if(filePath){
+        try{ await fbSt.deleteObject(fbSt.ref(storage, filePath)); }catch(e){}
+      }
+    };
+
+    Store.uploadBrandFile = async function(file, onProgress){
+      if(Store.mode==="local"){
+        return new Promise((resolve,reject)=>{
+          const r=new FileReader();
+          r.onload=()=>resolve({url:r.result, path:"local/"+file.name, size:file.size, mime:file.type});
+          r.onerror=reject; r.readAsDataURL(file);
+        });
+      }
+      const cleanName = file.name.replace(/[^a-zA-Z0-9.\-_]/g,"_");
+      const path = "brand/"+Date.now()+"_"+cleanName;
+      const r = fbSt.ref(storage, path);
+      const task = fbSt.uploadBytesResumable(r, file, { contentType: file.type });
+      return new Promise((resolve,reject)=>{
+        task.on("state_changed",
+          snap=>{ if(onProgress) onProgress(Math.round(snap.bytesTransferred/snap.totalBytes*100)); },
+          err=>reject(err),
+          async ()=>{
+            const url = await fbSt.getDownloadURL(task.snapshot.ref);
+            resolve({url, path, size:file.size, mime:file.type});
+          }
+        );
+      });
+    };
     window.Store = Store;
   })();

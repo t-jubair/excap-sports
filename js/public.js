@@ -771,42 +771,15 @@ async function teamSubmit() {
   try { App.publicTeams = await Store.listPublicTeams(); } catch (e) { }
   const saved = rec; draft = null; renderConfirm("team", saved);
   try {
-    if (rec.data.email || rec.captainEmail) {
-      Notify.sendBroadcastEmail({
-        toEmail: rec.data.email || rec.captainEmail,
-        toName: rec.data.teamName || rec.data.name || "there",
-        subject: "We received your EX-CAP registration",
-        message: `Hi,\n\nWe've received your ${rec.type} registration (ID: ${rec.id}). Organizers will review it and confirm shortly. You'll get another email + SMS once approved.\n\n— EX-CAP Team`
-      });
-    }
     if (rec.contact) {
-      Notify.sendSMS({ to: rec.contact, message: `EX-CAP: ${rec.type} registration received. ID ${rec.id}. Approval SMS to follow.` });
+      const shortId = rec.id.replace("EXCAP-FT26-", "");
+      Notify.sendSMS({
+        to: rec.contact,
+        message: `Reg ${shortId} received. Approval SMS + email to follow.`
+      });
     }
   } catch (e) { }
-  try {
-    const shortId = rec.id.replace("EXCAP-FT26-", "");
-    const name = rec.data.teamName || rec.data.name || "there";
-
-    // Email (registration received)
-    if (rec.data.email || rec.captainEmail) {
-      Notify.sendBroadcastEmail({
-        toEmail: rec.data.email || rec.captainEmail,
-        toName: name,
-        subject: "We received your EX-CAP registration",
-        message: `Great news — we've received your ${rec.type} registration (ID: ${rec.id}).\n\nOur organizers will review it and confirm by SMS + email shortly. Once approved, your QR pass activates and you can use it at the gate.\n\nUse the buttons below to download your provisional pass or read the tournament rules.`
-      });
-    }
-
-    // SMS (registration received) — professional format
-    if (rec.contact) {
-      const smsBody =
-        `Dear ${name},\n\n` +
-        `We've received your ${rec.type} registration (${shortId}) for the EX-CAP Football Tournament. ` +
-        `Our organizers will review it and confirm shortly by SMS + email.\n\n` +
-        `Regards,\nEX-CAP Team`;
-      Notify.sendSMS({ to: rec.contact, message: smsBody });
-    }
-  } catch (e) { console.warn("Post-submit notify failed", e); }
+  
 }
 
 /* ============================================================
@@ -873,44 +846,17 @@ async function submitGuest() {
   if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; }
   return;
 }
-  try {
-    if (rec.data.email) {
-      Notify.sendBroadcastEmail({
-        toEmail: rec.data.email,
-        toName: rec.data.name || "there",
-        subject: "We received your EX-CAP registration",
-        message: `Great news — we've received your guest registration. Your ID is ${rec.id}. You'll get a confirmation email + SMS once organizers approve it, and your QR pass activates at the gate.`
-      });
-    }
-    if (rec.contact) {
-      Notify.sendSMS({ to: rec.contact, message: `EX-CAP: Guest registration received. ID ${rec.id}. Approval SMS to follow.` });
-    }
-  } catch (e) { }
-  App.regs.unshift(rec); renderConfirm("guest", rec);
-  try {
+try {
+  if (rec.contact) {
     const shortId = rec.id.replace("EXCAP-FT26-", "");
-    const name = rec.data.teamName || rec.data.name || "there";
-
-    // Email (registration received)
-    if (rec.data.email || rec.captainEmail) {
-      Notify.sendBroadcastEmail({
-        toEmail: rec.data.email || rec.captainEmail,
-        toName: name,
-        subject: "We received your EX-CAP registration",
-        message: `Great news — we've received your ${rec.type} registration (ID: ${rec.id}).\n\nOur organizers will review it and confirm by SMS + email shortly. Once approved, your QR pass activates and you can use it at the gate.\n\nUse the buttons below to download your provisional pass or read the tournament rules.`
-      });
-    }
-
-    // SMS (registration received) — professional format
-    if (rec.contact) {
-      const smsBody =
-        `Dear ${name},\n\n` +
-        `We've received your ${rec.type} registration (${shortId}) for the EX-CAP Football Tournament. ` +
-        `Our organizers will review it and confirm shortly by SMS + email.\n\n` +
-        `Regards,\nEX-CAP Team`;
-      Notify.sendSMS({ to: rec.contact, message: smsBody });
-    }
-  } catch (e) { console.warn("Post-submit notify failed", e); }
+    Notify.sendSMS({
+      to: rec.contact,
+      message: `Reg ${shortId} received. Approval SMS + email to follow.`
+    });
+  }
+} catch (e) { }
+  App.regs.unshift(rec); renderConfirm("guest", rec);
+  
 }
 
 /* ============================================================
@@ -1059,29 +1005,14 @@ async function submitVisitor() {
 }
   App.regs.unshift(rec); renderConfirm("visitor", rec);
   try {
-    const shortId = rec.id.replace("EXCAP-FT26-", "");
-    const name = rec.data.teamName || rec.data.name || "there";
-
-    // Email (registration received)
-    if (rec.data.email || rec.captainEmail) {
-      Notify.sendBroadcastEmail({
-        toEmail: rec.data.email || rec.captainEmail,
-        toName: name,
-        subject: "We received your EX-CAP registration",
-        message: `Great news — we've received your ${rec.type} registration (ID: ${rec.id}).\n\nOur organizers will review it and confirm by SMS + email shortly. Once approved, your QR pass activates and you can use it at the gate.\n\nUse the buttons below to download your provisional pass or read the tournament rules.`
+    if (rec.contact) {
+      const shortId = rec.id.replace("EXCAP-FT26-", "");
+      Notify.sendSMS({
+        to: rec.contact,
+        message: `Reg ${shortId} received. Approval SMS + email to follow.`
       });
     }
-
-    // SMS (registration received) — professional format
-    if (rec.contact) {
-      const smsBody =
-        `Dear ${name},\n\n` +
-        `We've received your ${rec.type} registration (${shortId}) for the EX-CAP Football Tournament. ` +
-        `Our organizers will review it and confirm shortly by SMS + email.\n\n` +
-        `Regards,\nEX-CAP Team`;
-      Notify.sendSMS({ to: rec.contact, message: smsBody });
-    }
-  } catch (e) { console.warn("Post-submit notify failed", e); }
+  } catch (e) { }
 }
 
 /* ============================================================

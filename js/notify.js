@@ -171,12 +171,7 @@
     }
     if(rec.contact){
       const shortId = rec.id.replace("EXCAP-FT26-","");
-      const smsBody =
-        `Dear ${name},\n\n` +
-        `Your ${rec.type} registration (${shortId}) has been APPROVED for the EX-CAP Football Tournament.\n\n` +
-        `Venue: ${settings.venue}\nDate: ${eventDate}\n\n` +
-        `Please show your QR pass at the gate. See the full details in your confirmation email.\n\n` +
-        `Regards,\nEX-CAP Team\nAlumni Association of SCPSC`;
+      const smsBody = `Reg ${shortId} APPROVED. ${settings.venue}, ${eventDate}. Show QR pass at gate.`;
       results.sms = await Notify.sendSMS({ to: rec.contact, message: smsBody });
     }
     return results;

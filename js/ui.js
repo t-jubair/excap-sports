@@ -252,6 +252,15 @@
 
      // 2) Hydrate from the backend, then re-render only if data actually changed
      try{ await Store.ready; }catch(e){}
+
+     // Wait briefly for Firebase to restore the previous session before deciding
+     // whether the user is an admin — otherwise a page refresh flashes them out.
+     await new Promise(res=>{
+       let done=false; const finish=()=>{ if(!done){done=true; res();} };
+       if(Store.onAuth) Store.onAuth(u=>{ App.authed=!!u; if(u){ App.isAdmin=true; } finish(); });
+       setTimeout(finish, 1200);   // don't wait forever if there's no session
+     });
+
      const before = JSON.stringify({s:App.settings, l:App.logos, t:App.publicTeams});
      try{ App.settings = await Store.getSettings(); }catch(e){}
      try{ App.logos = await Store.getLogos(); }catch(e){}
@@ -259,7 +268,15 @@
      const after = JSON.stringify({s:App.settings, l:App.logos, t:App.publicTeams});
      applyBrand((App.settings && App.settings.brand) || cfg.brand);
      if(window.Notify && Notify.initEmail) Notify.initEmail();
-     if(Store.onAuth) Store.onAuth(u=>{ App.authed=!!u; route(); });
-     if(before !== after) route();             // skip needless re-render (no flash)
+
+     // If the user is signed in, load their profile + registrations so admin panel
+     // works immediately after refresh instead of showing "Please log in".
+     if(App.authed){
+       try{ if(Store.getProfile) await Store.getProfile(); }catch(e){}
+       try{ App.regs = await Store.listRegs(); }catch(e){}
+     }
+
+     // re-render once at the end
+     if(App.authed || before !== after) route();
    }
    document.addEventListener("DOMContentLoaded",boot);

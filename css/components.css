@@ -1192,3 +1192,8 @@ select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(1
 .bk-ed-col-right .grid2{gap:12px}
 
 .bk-ed-foot{display:flex;justify-content:flex-end;gap:8px;padding-top:18px;border-top:1px solid var(--line)}
+.bi-preview img{opacity:0;transition:opacity .35s ease}
+.bi-preview img.loaded{opacity:1}
+.bi-preview::after{content:"";position:absolute;inset:20px;background:linear-gradient(110deg,transparent 30%,rgba(124,58,237,.08) 50%,transparent 70%);background-size:200% 100%;animation:brandShimmer 1.4s ease-in-out infinite;border-radius:8px;pointer-events:none;z-index:0}
+.brand-item:has(img.loaded) .bi-preview::after{display:none}
+@keyframes brandShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}

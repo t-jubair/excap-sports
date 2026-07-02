@@ -371,7 +371,8 @@ registerRoute("brand", function(){
       `}
     </div>`+footerHTML();
 
-  if(wanted){
+  if(wanted && !window.brandAutoOpened){
+    window._brandAutoOpened = wanted;
     setTimeout(()=>{
       const el = document.getElementById("brand-"+wanted);
       if(el){
@@ -387,7 +388,7 @@ function brandCard(item, idx, highlightId){
   const filename = `${(item.title||"brand").replace(/[^a-zA-Z0-9]/g,"_")}${bi_ext(item.mime)}`;
   return `<div class="brand-item ${highlightId===item.id?'highlight':''} reveal" id="brand-${esc(item.id)}" data-cat="${esc(item.category||"General")}" style="animation-delay:${idx*40}ms">
     <div class="bi-preview" onclick="previewBrand('${esc(item.id)}')">
-      ${isImg ? `<img src="${esc(item.url)}" alt="${esc(item.title)}" loading="lazy">` : `<div class="bi-file-ic">${bi_fileIcon(item.mime)}</div>`}
+    ${isImg ? `<img src="${esc(item.url)}" alt="${esc(item.title)}" loading="lazy" decoding="async" onload="this.classList.add('loaded')" onerror="this.classList.add('failed')">`: `<div class="bi-file-ic">${bi_fileIcon(item.mime)}</div>`}
       <div class="bi-overlay">
         <div class="bi-zoom-btn">🔍 View</div>
       </div>
@@ -455,7 +456,7 @@ function previewBrand(id){
       ${isImg ? `<img src="${esc(item.url)}" alt="">` : `<div class="bp-file"><div class="bp-file-ic">${bi_fileIcon(item.mime)}</div><b>${esc(item.title)}</b></div>`}
     </div>
     <div class="bp-actions">
-      <a class="btn btn-primary" href="${esc(item.url)}" download="${esc(item.title||"brand")}${bi_ext(item.mime)}" target="_blank">⤓ Download</a>
+      <button class="btn btn-primary" onclick="downloadBrandFile('${esc(item.url)}','${esc((item.title||'brand').replace(/[^a-zA-Z0-9]/g,'_'))}${bi_ext(item.mime)}')">⤓ Download</button>
       <button class="btn btn-line" onclick="copyBrandLink('${esc(id)}')">🔗 Copy link</button>
       <button class="btn btn-ghost" onclick="closeModal()">Close</button>
     </div>

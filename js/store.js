@@ -365,7 +365,10 @@ Store.subscribeTickets = function(cb){
       const cleanName = file.name.replace(/[^a-zA-Z0-9.\-_]/g,"_");
       const path = "brand/"+Date.now()+"_"+cleanName;
       const r = fbSt.ref(storage, path);
-      const task = fbSt.uploadBytesResumable(r, file, { contentType: file.type });
+      const task = fbSt.uploadBytesResumable(r, file, {
+        contentType: file.type,
+        cacheControl: "public, max-age=31536000, immutable"
+      });
       return new Promise((resolve,reject)=>{
         task.on("state_changed",
           snap=>{ if(onProgress) onProgress(Math.round(snap.bytesTransferred/snap.totalBytes*100)); },

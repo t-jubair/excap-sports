@@ -188,8 +188,10 @@ function maintenanceActive() { return !!(App.settings && App.settings.maintenanc
 function previewUnlocked() { try { return localStorage.getItem("excap_preview") === "1"; } catch (e) { return false; } }
 function canBypassMaintenance() { return !!(App.authed || App.isAdmin || previewUnlocked()); }
 
-async function route() {
-  window.scrollTo(0, 0);
+async function route(){
+  window.scrollTo(0,0);
+  // Reset brand auto-open flag when leaving a specific brand item
+  if (!location.hash.startsWith("#brand-")) window._brandAutoOpened = null;
   clearCountdowns();
   const r = currentRoute();
   // public sees the holding page; admins (#admin / logged-in) and preview links pass through
@@ -247,6 +249,12 @@ function lockPreview() { try { localStorage.removeItem("excap_preview"); } catch
    BOOT
    ============================================================ */
 async function boot() {
+  const hint1 = document.createElement("link");
+  hint1.rel = "dns-prefetch"; hint1.href = "https://firebasestorage.googleapis.com";
+  document.head.appendChild(hint1);
+  const hint2 = document.createElement("link");
+  hint2.rel = "preconnect"; hint2.href = "https://firebasestorage.googleapis.com"; hint2.crossOrigin = "";
+  document.head.appendChild(hint2);
   if ("scrollRestoration" in history) history.scrollRestoration = "manual";
   window.scrollTo(0, 0);
 

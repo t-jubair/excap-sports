@@ -1241,9 +1241,9 @@ async function downloadRegPdf(id) {
 
   // Build a hidden off-screen container in the CURRENT document (not a popup)
   const container = document.createElement("div");
-  container.style.cssText = "position:fixed;left:0;top:0;width:760px;background:#fff;color:#0f1424;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;z-index:-9999;opacity:0;pointer-events:none";
+  container.style.cssText = "position:fixed;left:0;top:0;width:794px;background:#fff;color:#0f1424;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;z-index:-9999;opacity:0;pointer-events:none;padding:0;margin:0";
   container.innerHTML = `
-    <div style="max-width:760px;margin:0 auto;background:#fff;border-radius:0;overflow:hidden">
+    <div style="width:794px;margin:0;background:#fff;overflow:hidden;box-sizing:border-box">
 
       <div style="position:relative;padding:26px 32px 22px;background:linear-gradient(120deg,#7c3aed,#db2777);color:#fff;overflow:hidden">
         <table role="presentation" style="width:100%" cellpadding="0" cellspacing="0"><tr>
@@ -1268,7 +1268,13 @@ async function downloadRegPdf(id) {
 
       <div style="padding:26px 32px 22px">
         <div style="font-family:Arial,sans-serif;font-weight:800;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7c3aed;margin:0 0 10px;border-bottom:2px solid #ece5fa;padding-bottom:6px">Registration details</div>
-        <table style="width:100%;border-collapse:collapse">${detailHTML.replace(/<td class="k">/g, '<td style="padding:9px 0;border-bottom:1px solid #eef0f7;color:#6b7280;width:38%;font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:11px">').replace(/<td class="v">/g, '<td style="padding:9px 0;border-bottom:1px solid #eef0f7;color:#0f1424;font-weight:600;text-align:right;font-size:12.5px">')}</table>
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+  ${detailRows.map(([k,v])=>`
+    <tr>
+      <td style="padding:10px 0;border-bottom:1px solid #eef0f7;color:#6b7280;width:38%;font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:11px;text-align:left;vertical-align:top">${esc(k)}</td>
+      <td style="padding:10px 0;border-bottom:1px solid #eef0f7;color:#0f1424;font-weight:600;text-align:right;font-size:12.5px;vertical-align:top;word-break:break-word">${esc(String(v))}</td>
+    </tr>`).join("")}
+</table>
 
         <div style="font-family:Arial,sans-serif;font-weight:800;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7c3aed;margin:22px 0 10px;border-bottom:2px solid #ece5fa;padding-bottom:6px">QR passes — scan at the gate</div>
         <table role="presentation" style="width:100%" cellpadding="0" cellspacing="0"><tr>
@@ -1343,7 +1349,7 @@ container.offsetHeight;
 
   const filename = `EX-CAP_${rec.id}.pdf`;
   const opt = {
-    margin: [8, 8, 8, 8],
+    margin: [6, 6, 6, 6],
     filename,
     image: { type: "jpeg", quality: 0.95 },
     html2canvas: {
@@ -1352,8 +1358,8 @@ container.offsetHeight;
       allowTaint: true,
       backgroundColor: "#ffffff",
       logging: false,
-      windowWidth: 760,
-      width: 760,
+      windowWidth: 794,
+      width: 794,
       scrollX: 0,
       scrollY: 0,
       onclone: (clonedDoc) => {
@@ -1372,7 +1378,7 @@ container.offsetHeight;
   };
   
   // Wait a frame so images/fonts start loading, then generate
-  await new Promise(r => setTimeout(r, 250));
+  await new Promise(r => setTimeout(r, 500));
   
   try {
     await html2pdf().set(opt).from(inner).save();

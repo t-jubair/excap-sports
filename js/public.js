@@ -1413,7 +1413,7 @@ function downloadRegPdf(id) {
         setTimeout(function(){ window.print(); }, 700);
       });
     });
-    window.addEventListener('afterprint', function(){ setTimeout(function(){ window.close(); }, 400); });
+    
   <\/script>
 </body></html>`;
   w.document.write(html);

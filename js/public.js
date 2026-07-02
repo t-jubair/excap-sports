@@ -1327,11 +1327,19 @@ async function downloadRegPdf(id) {
   `;
 
   // Add logo styling
-  const styleEl = document.createElement("style");
-  styleEl.textContent = ".lg{width:44px;height:44px;border-radius:11px;background:#fff;padding:5px;object-fit:contain;margin-right:6px;vertical-align:middle;display:inline-block}";
-  container.appendChild(styleEl);
+  // Wrap content in an inner div so the last child is content, not the style tag
+const inner = document.createElement("div");
+inner.id = "pdf-inner";
+inner.innerHTML = container.innerHTML;
+container.innerHTML = "";
+const styleEl = document.createElement("style");
+styleEl.textContent = "#pdf-inner .lg{width:44px;height:44px;border-radius:11px;background:#fff;padding:5px;object-fit:contain;margin-right:6px;vertical-align:middle;display:inline-block}";
+container.appendChild(styleEl);
+container.appendChild(inner);
+document.body.appendChild(container);
 
-  document.body.appendChild(container);
+// Force layout so browser knows the real height
+container.offsetHeight;
 
   const filename = `EX-CAP_${rec.id}.pdf`;
   const opt = {
@@ -1349,9 +1357,14 @@ async function downloadRegPdf(id) {
       scrollX: 0,
       scrollY: 0,
       onclone: (clonedDoc) => {
-        // ensure the clone is visible for rasterization
-        const c = clonedDoc.body.lastElementChild;
-        if (c) { c.style.opacity = "1"; c.style.zIndex = "1"; }
+        // Find all containers in the clone (should include ours) and make them visible
+        clonedDoc.querySelectorAll("body > div").forEach(el => {
+          if (el.querySelector("#pdf-inner")) {
+            el.style.opacity = "1";
+            el.style.zIndex = "1";
+            el.style.position = "static";
+          }
+        });
       }
     },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait", compress: true },
@@ -1362,7 +1375,7 @@ async function downloadRegPdf(id) {
   await new Promise(r => setTimeout(r, 250));
   
   try {
-    await html2pdf().set(opt).from(container).save();
+    await html2pdf().set(opt).from(inner).save();
     toast("PDF downloaded ✓");
   } catch (err) {
     console.error("PDF gen failed", err);

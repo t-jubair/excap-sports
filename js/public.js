@@ -348,6 +348,60 @@ registerRoute("teams", function () {
     <div class="team-grid">${list.length ? list.map(teamCard).join("") : `<div class="empty-wall">No teams yet.<br><br><button class="btn btn-primary" onclick="go('register-team')">Be the first</button></div>`}</div>
   </div>`+ footerHTML();
 });
+registerRoute("contact", function () {
+  $("#app").innerHTML = anncHTML() + navHTML("") + `
+    <div class="wrap page">
+      <div class="page-head">
+        <span class="crumb" onclick="go('home')">← Back to home</span>
+        <h1 class="ph">Contact us</h1>
+        <p class="ph-sub">Questions, feedback or need help? Send us a message and organizers will reply.</p>
+      </div>
+      <div class="form-shell" style="max-width:600px">
+        <div class="note-box"><span class="i">💬</span><div>All messages go directly to the organizers. Expect a reply within 24 hours.</div></div>
+        ${field("c-name", "Your name", { req: true })}
+        <div class="grid2">
+          ${field("c-phone", "Mobile", { type: "tel", req: true, ph: "01XXXXXXXXX" })}
+          ${field("c-email", "Email", { type: "email", req: true })}
+        </div>
+        ${field("c-subject", "Subject", { req: true, ph: "Registration query / feedback / other" })}
+        ${field("c-msg", "Your message", { type: "textarea", req: true, ph: "Type your message…" })}
+        <div class="form-actions">
+          <button class="btn btn-ghost" onclick="go('home')">← Cancel</button>
+          <button class="btn btn-primary" id="c-send" onclick="submitContact()">Send message →</button>
+        </div>
+      </div>
+    </div>` + footerHTML();
+});
+
+async function submitContact(){
+  if(!validate([
+    ["c-name", nonEmpty, "Name required"],
+    ["c-phone", isPhone, "Valid mobile required"],
+    ["c-email", isEmail, "Valid email required"],
+    ["c-subject", nonEmpty, "Subject required"],
+    ["c-msg", nonEmpty, "Message required"]
+  ])) return;
+
+  const btn = $("#c-send"); if(btn){ btn.innerHTML='<span class="spinner"></span>'; btn.disabled=true; }
+  const ticket = {
+    id: "MSG" + Date.now().toString(36).toUpperCase(),
+    name: val("c-name"),
+    email: val("c-email"),
+    phone: val("c-phone"),
+    subject: val("c-subject"),
+    message: val("c-msg"),
+    status: "open",
+    created: Date.now()
+  };
+  try{
+    await Store.saveTicket(ticket);
+    toast("Message sent! We'll reply within 24 hours.");
+    setTimeout(()=>go("home"), 1500);
+  }catch(e){
+    toast("Could not send — please try again", "err");
+    if(btn){ btn.innerHTML="Send message →"; btn.disabled=false; }
+  }
+}
 registerRoute("tournament", function () {
   const s = App.settings;
   $("#app").innerHTML = anncHTML() + navHTML("tournament") + `
@@ -800,7 +854,25 @@ async function submitGuest() {
     contact: val("g-phone")
   };
   try { await Store.saveReg(rec); }
-  catch (e) { toast("Could not submit — please try again", "err"); if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; } return; }
+  catch (e) {
+  const em = emergencyInfo();
+  showModal(`<div class="emerg-card">
+    <div class="emerg-ic" style="background:rgba(220,38,38,.12);border-color:#dc2626">⚠️</div>
+    <h3>Registration didn't go through</h3>
+    <p class="emerg-msg">We couldn't save your registration right now. Please check your internet and try again — or contact us directly and we'll register you manually.</p>
+    <div class="emerg-person">
+      <div class="ep-ava">${esc(initials(em.name||"EX"))}</div>
+      <div><b>${esc(em.name||"")}</b><span>${esc(em.role||"")}</span></div>
+    </div>
+    <div class="emerg-actions">
+      ${em.phone?`<a class="btn btn-primary" href="tel:${esc((em.phone||"").replace(/[^\d+]/g,""))}">📞 Call ${esc(em.phone)}</a>`:""}
+      ${em.email?`<a class="btn btn-line" href="mailto:${esc(em.email)}">✉ Email us</a>`:""}
+    </div>
+    <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="closeModal()">Try again</button>
+  </div>`, "narrow");
+  if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; }
+  return;
+}
   try {
     if (rec.data.email) {
       Notify.sendBroadcastEmail({
@@ -966,7 +1038,25 @@ async function submitVisitor() {
     contact: val("v-phone")
   };
   try { await Store.saveReg(rec); }
-  catch (e) { toast("Could not submit — please try again", "err"); if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; } return; }
+  catch (e) {
+  const em = emergencyInfo();
+  showModal(`<div class="emerg-card">
+    <div class="emerg-ic" style="background:rgba(220,38,38,.12);border-color:#dc2626">⚠️</div>
+    <h3>Registration didn't go through</h3>
+    <p class="emerg-msg">We couldn't save your registration right now. Please check your internet and try again — or contact us directly and we'll register you manually.</p>
+    <div class="emerg-person">
+      <div class="ep-ava">${esc(initials(em.name||"EX"))}</div>
+      <div><b>${esc(em.name||"")}</b><span>${esc(em.role||"")}</span></div>
+    </div>
+    <div class="emerg-actions">
+      ${em.phone?`<a class="btn btn-primary" href="tel:${esc((em.phone||"").replace(/[^\d+]/g,""))}">📞 Call ${esc(em.phone)}</a>`:""}
+      ${em.email?`<a class="btn btn-line" href="mailto:${esc(em.email)}">✉ Email us</a>`:""}
+    </div>
+    <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="closeModal()">Try again</button>
+  </div>`, "narrow");
+  if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; }
+  return;
+}
   App.regs.unshift(rec); renderConfirm("visitor", rec);
   try {
     const shortId = rec.id.replace("EXCAP-FT26-", "");
@@ -1048,7 +1138,25 @@ async function submitVolunteer() {
     contact: val("vol-phone")
   };
   try { await Store.saveReg(rec); }
-  catch (e) { toast("Could not submit — please try again", "err"); if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; } return; }
+  catch (e) {
+  const em = emergencyInfo();
+  showModal(`<div class="emerg-card">
+    <div class="emerg-ic" style="background:rgba(220,38,38,.12);border-color:#dc2626">⚠️</div>
+    <h3>Registration didn't go through</h3>
+    <p class="emerg-msg">We couldn't save your registration right now. Please check your internet and try again — or contact us directly and we'll register you manually.</p>
+    <div class="emerg-person">
+      <div class="ep-ava">${esc(initials(em.name||"EX"))}</div>
+      <div><b>${esc(em.name||"")}</b><span>${esc(em.role||"")}</span></div>
+    </div>
+    <div class="emerg-actions">
+      ${em.phone?`<a class="btn btn-primary" href="tel:${esc((em.phone||"").replace(/[^\d+]/g,""))}">📞 Call ${esc(em.phone)}</a>`:""}
+      ${em.email?`<a class="btn btn-line" href="mailto:${esc(em.email)}">✉ Email us</a>`:""}
+    </div>
+    <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="closeModal()">Try again</button>
+  </div>`, "narrow");
+  if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; }
+  return;
+}
   App.regs.unshift(rec); renderConfirm("volunteer", rec);
   try {
     const shortId = rec.id.replace("EXCAP-FT26-", "");

@@ -34,6 +34,39 @@
       auth = authMod.getAuth(app);
       fb = { ...fsMod, ...authMod };
       authMod.onAuthStateChanged(auth, u=>{ Store.user=u; (Store._authCbs||[]).forEach(cb=>{try{cb(u);}catch(e){}}); });
+      // Real-time listeners for registrations, settings, and logos
+      Store.subscribeRegs = function(cb){
+        if(Store.mode==="local"){ cb(LS.read().regs||[]); return ()=>{}; }
+        try{
+          return fb.onSnapshot(fb.collection(db,"registrations"), snap=>{
+            const list=[]; snap.forEach(d=>list.push(d.data()));
+            list.sort((a,b)=>(b.created||0)-(a.created||0));
+            cb(list);
+          });
+        }catch(e){
+          console.warn("Reg subscription failed, falling back", e);
+          return ()=>{};
+        }
+      };
+
+Store.subscribeSettings = function(cb){
+  if(Store.mode==="local"){ cb(LS.read().settings||{}); return ()=>{}; }
+  return fb.onSnapshot(fb.doc(db,"config","settings"), s=>{ if(s.exists()) cb(s.data()); });
+};
+
+Store.subscribeTickets = function(cb){
+  if(Store.mode==="local"){ cb(LS.read().tickets||[]); return ()=>{}; }
+  try{
+    return fb.onSnapshot(fb.collection(db,"tickets"), snap=>{
+      const list=[]; snap.forEach(d=>list.push(d.data()));
+      list.sort((a,b)=>(b.created||0)-(a.created||0));
+      cb(list);
+    });
+  }catch(e){
+    console.warn("Ticket subscription failed, falling back", e);
+    return ()=>{};
+  }
+};
     })();
   
     /* ===== SETTINGS ===== */

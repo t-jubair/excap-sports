@@ -758,7 +758,6 @@
     await Store.logAction("Single message ("+chan+")", r.id+" — "+sent.join(", "));
     toast(sent.length?"Sent via "+sent.join(" + "):"Nothing sent (no email/phone)", sent.length?"":"warn");
   }
-  let _bcChan = "email";
   function bcChan(c) { _bcChan = c;["email", "sms", "both"].forEach(k => $("#ch-" + k) && $("#ch-" + k).classList.toggle("sel", k === c)); }
   function bcCount() {
     const rec = broadcastRecipients($("#bc-aud").value);

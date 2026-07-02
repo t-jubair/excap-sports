@@ -24,7 +24,12 @@ async function renderAdmin() {
     // Now subscribe for live updates
     Store.subscribeRegs(list => {
       App.regs = list;
-      if (currentRoute() === "admin") { adminRegistrations(); adminOverview(); refreshNotifBadge(); }
+      if (currentRoute() === "admin") {
+        // Re-render whichever admin tab is currently open
+        const rerender = { dashboard: adminDashboard, registrations: adminRegistrations, teams: adminTeams, volunteers: adminVolunteers, checkin: adminCheckin, payments: adminPayments, messages: adminMessages }[adminTab];
+        if (rerender) rerender();
+        refreshNotifBadge();
+      }
     });
     Store.subscribeSettings(s => { if (s) App.settings = s; });
     Store.subscribeTickets(list => {
@@ -104,6 +109,8 @@ async function renderAdmin() {
   }
 
   function playNotifPing() {
+    // Chrome blocks audio until user interacts with page — skip silently if so
+    if (!window._userInteracted) return;
     try {
       const A = new (window.AudioContext || window.webkitAudioContext)();
       const o = A.createOscillator(), g = A.createGain();
@@ -115,6 +122,11 @@ async function renderAdmin() {
       o.start(); o.stop(A.currentTime + 0.3);
     } catch (e) { }
   }
+  
+  // Track first user interaction so we know when audio is allowed
+  ["click", "keydown", "touchstart"].forEach(evt => {
+    document.addEventListener(evt, () => { window._userInteracted = true; }, { once: true });
+  });
 
   const tabs = [["dashboard", "📊", "Dashboard"], ["scoreboard", "🏟️", "Scoreboard"], ["results", "🏆", "Results & awards"], ["checkin", "📲", "Check-in"], ["teams", "⚽", "Teams"], ["registrations", "📋", "Registrations"], ["volunteers", "🤝", "Volunteers"], ["messages", "💬", "Messages"], ["payments", "💳", "Payments"], ["manual", "🧾", "Record payment"], ["broadcast", "📡", "Broadcast center"], ["branding", "🎨", "Branding & logos"], ["announcement", "📣", "Announcement"], ["settings", "⚙️", "Settings"], ["profile", "👤", "My profile"], ["log", "🗒️", "Activity log"]];
   const me = Store.adminInfo();

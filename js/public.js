@@ -1178,23 +1178,11 @@ function regSheetHTML(rec) {
   </div>`;
 }
 
-async function downloadRegPdf(id) {
+function downloadRegPdf(id) {
   const rec = (App.regs || []).find(r => r.id === id) || (window._lastRec && window._lastRec.id === id ? window._lastRec : null);
   if (!rec) { toast("Could not find this registration", "err"); return; }
-
-  // wait up to 5 seconds for html2pdf CDN to finish loading
-  if (!window.html2pdf) {
-    toast("Loading PDF library…");
-    for (let i = 0; i < 50 && !window.html2pdf; i++) {
-      await new Promise(r => setTimeout(r, 100));
-    }
-    if (!window.html2pdf) {
-      toast("PDF library couldn't load — check your internet", "err");
-      return;
-    }
-  }
-
-  toast("Preparing PDF…");
+  const w = window.open("", "_blank");
+  if (!w) { toast("Allow pop-ups to download the PDF", "warn"); return; }
 
   const s = App.settings, d = rec.data || {};
   const name = d.teamName || d.name || "Registrant";
@@ -1239,156 +1227,140 @@ async function downloadRegPdf(id) {
     return `<img class="lg" src="${location.origin}/assets/logo-${key}.png" alt="" onerror="this.style.display='none'">`;
   };
 
-  // Build a hidden off-screen container in the CURRENT document (not a popup)
-  const container = document.createElement("div");
-  container.style.cssText = "position:fixed;left:0;top:0;width:794px;background:#fff;color:#0f1424;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;z-index:-9999;opacity:0;pointer-events:none;padding:0;margin:0";
-  container.innerHTML = `
-    <div style="width:794px;margin:0;background:#fff;overflow:hidden;box-sizing:border-box">
-
-      <div style="position:relative;padding:26px 32px 22px;background:linear-gradient(120deg,#7c3aed,#db2777);color:#fff;overflow:hidden">
-        <table role="presentation" style="width:100%" cellpadding="0" cellspacing="0"><tr>
-          <td style="width:auto;white-space:nowrap;vertical-align:middle">
-            ${logoTag("scpsc")}${logoTag("tournament")}${logoTag("excap")}
-          </td>
-          <td style="vertical-align:middle;padding-left:14px">
-            <h1 style="margin:0;font-weight:900;font-size:20px;letter-spacing:-.01em;text-transform:uppercase;color:#fff">${esc(s.tournamentName || "EX-CAP Football Tournament")} ${esc(s.edition || "")}</h1>
-            <div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.85;margin-top:4px;color:#fff">${esc(typeLabel)} · ${esc(s.venue || "SCPSC field")}</div>
-          </td>
-        </tr></table>
-        <table role="presentation" style="margin-top:18px;background:rgba(0,0,0,.22);border-radius:12px;width:100%" cellpadding="0" cellspacing="0"><tr>
-          <td style="padding:12px 16px;color:#fff">
-            <div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.75">Registration ID</div>
-            <div style="font-weight:900;font-size:17px;letter-spacing:.02em">${esc(rec.id)}</div>
-          </td>
-          <td style="padding:12px 16px;text-align:right">
-            <span style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;background:#fff;color:${statusColor};border-radius:999px;padding:5px 12px;display:inline-block">${esc(statusLabel)}</span>
-          </td>
-        </tr></table>
-      </div>
-
-      <div style="padding:26px 32px 22px">
-        <div style="font-family:Arial,sans-serif;font-weight:800;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7c3aed;margin:0 0 10px;border-bottom:2px solid #ece5fa;padding-bottom:6px">Registration details</div>
-        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-  ${detailRows.map(([k,v])=>`
-    <tr>
-      <td style="padding:10px 0;border-bottom:1px solid #eef0f7;color:#6b7280;width:38%;font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:11px;text-align:left;vertical-align:top">${esc(k)}</td>
-      <td style="padding:10px 0;border-bottom:1px solid #eef0f7;color:#0f1424;font-weight:600;text-align:right;font-size:12.5px;vertical-align:top;word-break:break-word">${esc(String(v))}</td>
-    </tr>`).join("")}
-</table>
-
-        <div style="font-family:Arial,sans-serif;font-weight:800;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7c3aed;margin:22px 0 10px;border-bottom:2px solid #ece5fa;padding-bottom:6px">QR passes — scan at the gate</div>
-        <table role="presentation" style="width:100%" cellpadding="0" cellspacing="0"><tr>
-          ${passes.map(p => `<td style="width:33.33%;padding:6px;vertical-align:top">
-            <div style="background:#fff;border:1px solid #e2e5f0;border-radius:14px;padding:14px 12px;text-align:center">
-              <div style="width:150px;height:150px;margin:0 auto 10px;background:#fff;border:1px solid #eceef5;border-radius:10px;padding:8px">${(window.QR && QR.svg) ? QR.svg(p.code) : qrSvg(p.code)}</div>
-              <div style="font-family:Arial,sans-serif;font-weight:800;font-size:13px;color:#0f1424">${esc(p.name)}</div>
-              <div style="font-size:11px;color:#6b7280;margin-top:2px;text-transform:capitalize">${esc(p.sub)}</div>
-              <div style="font-size:9px;color:#9aa1b4;margin-top:6px;font-family:monospace;word-break:break-all">${esc(p.code)}</div>
-            </div>
-          </td>`).join("")}
-        </tr></table>
-
-        <div style="font-family:Arial,sans-serif;font-weight:800;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7c3aed;margin:22px 0 10px;border-bottom:2px solid #ece5fa;padding-bottom:6px">Tournament essentials</div>
-        <div style="background:#f4f6fb;border:1px solid #e2e5f0;border-radius:12px;padding:14px 16px;font-size:12px;line-height:1.7;color:#334155">
-          <div><b style="color:#7c3aed">Format:</b> 7-a-side · 4 substitutes · barefoot play</div>
-          <div><b style="color:#7c3aed">Duration:</b> 20 minutes per match</div>
-          <div><b style="color:#7c3aed">Field:</b> Standard futsal size · Chinese bar goal posts</div>
-          <div><b style="color:#7c3aed">Team fee:</b> ৳${esc(s.teamFee)} · bKash only · Guest entry free</div>
-          <div><b style="color:#7c3aed">Venue:</b> ${esc(s.venue || "SCPSC field")}</div>
-          <div><b style="color:#7c3aed">Match date:</b> ${fmtDate(s.tournamentDate)}</div>
-        </div>
-
-        <div style="font-family:Arial,sans-serif;font-weight:800;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7c3aed;margin:22px 0 10px;border-bottom:2px solid #ece5fa;padding-bottom:6px">Code of Conduct</div>
-        <ul style="margin:0;padding-left:20px;font-size:12px;line-height:1.7;color:#334155">
-          <li>Respect all players, referees, organizers and spectators. Zero tolerance for abuse.</li>
-          <li>Referee decisions are final. Disputes only via captain, after the whistle.</li>
-          <li>Fair play only — no deliberate fouls, diving, or unsportsmanlike behaviour.</li>
-          <li>Captains are responsible for their squad and guests' conduct.</li>
-          <li>Aprons and gloves must be returned <b>after every match</b>. Keep them clean and undamaged.</li>
-          <li>Smoking, alcohol and intoxicants are strictly prohibited on the venue.</li>
-        </ul>
-
-        <div style="font-family:Arial,sans-serif;font-weight:800;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7c3aed;margin:22px 0 10px;border-bottom:2px solid #ece5fa;padding-bottom:6px">Safety Rules</div>
-        <ul style="margin:0;padding-left:20px;font-size:12px;line-height:1.7;color:#334155">
-          <li><b>Barefoot play.</b> No boots, studs or spikes on the field.</li>
-          <li><b>Remove jewellery</b> — rings, chains, watches, hard bracelets — before playing.</li>
-          <li><b>Stop play for any injury.</b> First-aid support is on-site.</li>
-          <li><b>Fitness self-declaration:</b> players confirm they are medically fit to play.</li>
-          <li><b>Stay hydrated.</b> Water available at all times.</li>
-          <li><b>No dangerous tackles</b> — slides, high kicks, tackles from behind carry an immediate card.</li>
-        </ul>
-
-        <div style="margin-top:18px;padding:12px 16px;background:linear-gradient(120deg,rgba(124,58,237,.06),rgba(219,39,119,.05));border:1px dashed rgba(124,58,237,.35);border-radius:10px;font-size:11.5px;color:#5b6275;line-height:1.6;text-align:center">
-          By registering, you accept the Code of Conduct and Safety Rules in full.<br>
-          Full details: <b style="color:#7c3aed">sports.excapscpsc.com/#tournament</b>
-        </div>
-      </div>
-
-      <div style="background:#f7f8fc;padding:16px 32px;border-top:1px solid #eceef5;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:11px;color:#6b7280">
-        <span>Venue: <b style="color:#0f1424">${esc(s.venue || "SCPSC field")}</b> · Date: <b style="color:#0f1424">${fmtDate(s.tournamentDate)}</b> · Keep this for entry.</span>
-        <span style="font-family:Arial,sans-serif;font-weight:800;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#7c3aed">EX-CAP · Alumni of SCPSC</span>
-      </div>
-
-    </div>
-  `;
-
-  // Add logo styling
-  // Wrap content in an inner div so the last child is content, not the style tag
-const inner = document.createElement("div");
-inner.id = "pdf-inner";
-inner.innerHTML = container.innerHTML;
-container.innerHTML = "";
-const styleEl = document.createElement("style");
-styleEl.textContent = "#pdf-inner .lg{width:44px;height:44px;border-radius:11px;background:#fff;padding:5px;object-fit:contain;margin-right:6px;vertical-align:middle;display:inline-block}";
-container.appendChild(styleEl);
-container.appendChild(inner);
-document.body.appendChild(container);
-
-// Force layout so browser knows the real height
-container.offsetHeight;
-
-  const filename = `EX-CAP_${rec.id}.pdf`;
-  const opt = {
-    margin: [6, 6, 6, 6],
-    filename,
-    image: { type: "jpeg", quality: 0.95 },
-    html2canvas: {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: "#ffffff",
-      logging: false,
-      windowWidth: 794,
-      width: 794,
-      scrollX: 0,
-      scrollY: 0,
-      onclone: (clonedDoc) => {
-        // Find all containers in the clone (should include ours) and make them visible
-        clonedDoc.querySelectorAll("body > div").forEach(el => {
-          if (el.querySelector("#pdf-inner")) {
-            el.style.opacity = "1";
-            el.style.zIndex = "1";
-            el.style.position = "static";
-          }
-        });
-      }
-    },
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait", compress: true },
-    pagebreak: { mode: ["css", "legacy"] }
-  };
-  
-  // Wait a frame so images/fonts start loading, then generate
-  await new Promise(r => setTimeout(r, 500));
-  
-  try {
-    await html2pdf().set(opt).from(inner).save();
-    toast("PDF downloaded ✓");
-  } catch (err) {
-    console.error("PDF gen failed", err);
-    toast("Could not generate PDF — try again", "err");
-  } finally {
-    if (container.parentNode) document.body.removeChild(container);
+  const html = `<!doctype html><html><head><meta charset="utf-8">
+<title>${esc(rec.id)} — ${esc(s.tournamentName || "EX-CAP")}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#f5f6fa;color:#0f1424;font-family:'Inter',system-ui,Arial,sans-serif;font-size:13px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .sheet{max-width:760px;margin:24px auto;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 20px 50px -30px rgba(0,0,0,.35);border:1px solid #e6e8f0}
+  .head{position:relative;padding:26px 32px 22px;background:linear-gradient(120deg,#7c3aed,#db2777);color:#fff;overflow:hidden}
+  .head::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.09)}
+  .head-top{display:flex;align-items:center;gap:14px;position:relative;z-index:1}
+  .head-logos{display:flex;gap:8px}
+  .head-logos .lg{width:44px;height:44px;border-radius:11px;background:#fff;padding:5px;object-fit:contain}
+  .head-title{flex:1;min-width:0}
+  .head-title h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:20px;letter-spacing:-.01em;line-height:1.15;text-transform:uppercase}
+  .head-title .k{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.85;margin-top:4px}
+  .id-strip{position:relative;z-index:1;margin-top:18px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .id-strip .l{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.75}
+  .id-strip .id{font-family:'Archivo',sans-serif;font-weight:900;font-size:17px;letter-spacing:.02em}
+  .id-strip .status{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;background:#fff;color:${statusColor};border-radius:999px;padding:5px 12px}
+  .body{padding:26px 32px 22px}
+  .sec-h{font-family:'Archivo',sans-serif;font-weight:800;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7c3aed;margin:22px 0 10px;border-bottom:2px solid #ece5fa;padding-bottom:6px}
+  .sec-h:first-child{margin-top:0}
+  table.det{width:100%;border-collapse:collapse}
+  table.det td{padding:9px 0;border-bottom:1px solid #eef0f7;vertical-align:top;font-size:12.5px}
+  table.det td.k{color:#6b7280;width:38%;font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:11px}
+  table.det td.v{color:#0f1424;font-weight:600;text-align:right}
+  table.det tr:last-child td{border-bottom:0}
+  .passes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:4px}
+  .pass{background:#fff;border:1px solid #e2e5f0;border-radius:14px;padding:14px 12px;text-align:center;box-shadow:0 6px 16px -12px rgba(0,0,0,.2);break-inside:avoid;page-break-inside:avoid}
+  .pass .qr{width:150px;height:150px;margin:0 auto 10px;background:#fff;border:1px solid #eceef5;border-radius:10px;padding:8px;display:block}
+  .pass .qr svg{display:block;width:100%;height:100%}
+  .pass .pn{font-family:'Archivo',sans-serif;font-weight:800;font-size:13px;color:#0f1424;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pass .ps{font-size:11px;color:#6b7280;margin-top:2px;text-transform:capitalize}
+  .pass .pc{font-size:9px;color:#9aa1b4;margin-top:6px;font-family:'Inter',monospace;word-break:break-all;letter-spacing:.02em}
+  .rules-box{background:#f4f6fb;border:1px solid #e2e5f0;border-radius:12px;padding:14px 16px;margin-top:4px;font-size:12px}
+  .rb-row{display:flex;gap:12px;padding:5px 0;border-bottom:1px dashed #e6e8f0}
+  .rb-row:last-child{border-bottom:0}
+  .rb-k{color:#7c3aed;font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:10px;width:100px;flex:none;padding-top:2px}
+  .rb-v{color:#0f1424;font-weight:600;flex:1;line-height:1.5}
+  ul.rl{margin:0;padding-left:20px;font-size:12px;line-height:1.7;color:#334155;break-inside:avoid;page-break-inside:avoid}
+  ul.rl li{margin-bottom:5px}
+  ul.rl li b{color:#0f1424;font-weight:700}
+  .ack-box{margin-top:18px;padding:12px 16px;background:linear-gradient(120deg,rgba(124,58,237,.06),rgba(219,39,119,.05));border:1px dashed rgba(124,58,237,.35);border-radius:10px;font-size:11.5px;color:#5b6275;line-height:1.6;text-align:center}
+  .ack-box b{color:#7c3aed;font-family:'Inter',monospace;font-weight:700}
+  .foot{background:#f7f8fc;padding:16px 32px;border-top:1px solid #eceef5;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:11px;color:#6b7280}
+  .foot b{color:#0f1424}
+  .foot .brand{font-family:'Archivo',sans-serif;font-weight:800;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#7c3aed}
+  @media print{
+    html,body{background:#fff}
+    .sheet{margin:0;box-shadow:none;border:0;max-width:none;border-radius:0}
+    .passes{grid-template-columns:repeat(3,1fr)}
+    .sec-h{break-after:avoid;page-break-after:avoid}
+    ul.rl,.rules-box,.ack-box{break-inside:avoid;page-break-inside:avoid}
+    @page{margin:10mm;size:A4}
   }
+</style>
+</head><body>
+  <div class="sheet">
+    <div class="head">
+      <div class="head-top">
+        <div class="head-logos">${logoTag("scpsc")}${logoTag("tournament")}${logoTag("excap")}</div>
+        <div class="head-title">
+          <h1>${esc(s.tournamentName || "EX-CAP Football Tournament")} ${esc(s.edition || "")}</h1>
+          <div class="k">${esc(typeLabel)} · ${esc(s.venue || "SCPSC field")}</div>
+        </div>
+      </div>
+      <div class="id-strip">
+        <div><div class="l">Registration ID</div><div class="id">${esc(rec.id)}</div></div>
+        <div class="status">${esc(statusLabel)}</div>
+      </div>
+    </div>
+
+    <div class="body">
+      <div class="sec-h">Registration details</div>
+      <table class="det">${detailHTML}</table>
+
+      <div class="sec-h">QR passes — scan at the gate</div>
+      <div class="passes">${passHTML}</div>
+
+      <div class="sec-h">Tournament essentials</div>
+      <div class="rules-box">
+        <div class="rb-row"><span class="rb-k">Format</span><span class="rb-v">7-a-side · 4 substitutes · barefoot play</span></div>
+        <div class="rb-row"><span class="rb-k">Duration</span><span class="rb-v">20 minutes per match</span></div>
+        <div class="rb-row"><span class="rb-k">Field</span><span class="rb-v">Standard futsal size · Chinese bar goal posts</span></div>
+        <div class="rb-row"><span class="rb-k">Team fee</span><span class="rb-v">৳${esc(s.teamFee)} · bKash only · Guest entry free</span></div>
+        <div class="rb-row"><span class="rb-k">Venue</span><span class="rb-v">${esc(s.venue || "SCPSC field")}</span></div>
+        <div class="rb-row"><span class="rb-k">Match date</span><span class="rb-v">${fmtDate(s.tournamentDate)}</span></div>
+      </div>
+
+      <div class="sec-h">Code of Conduct</div>
+      <ul class="rl">
+        <li>Respect all players, referees, organizers and spectators. Zero tolerance for abuse.</li>
+        <li>Referee decisions are final. Disputes only via captain, after the whistle.</li>
+        <li>Fair play only — no deliberate fouls, diving, or unsportsmanlike behaviour.</li>
+        <li>Captains are responsible for their squad and guests' conduct.</li>
+        <li>Aprons and gloves must be returned <b>after every match</b>. Keep them clean and undamaged.</li>
+        <li>Smoking, alcohol and intoxicants are strictly prohibited on the venue.</li>
+      </ul>
+
+      <div class="sec-h">Safety Rules</div>
+      <ul class="rl">
+        <li><b>Barefoot play.</b> No boots, studs or spikes on the field.</li>
+        <li><b>Remove jewellery</b> — rings, chains, watches, hard bracelets — before playing.</li>
+        <li><b>Stop play for any injury.</b> First-aid support is on-site.</li>
+        <li><b>Fitness self-declaration:</b> players confirm they are medically fit to play.</li>
+        <li><b>Stay hydrated.</b> Water available at all times.</li>
+        <li><b>No dangerous tackles</b> — slides, high kicks, tackles from behind carry an immediate card.</li>
+      </ul>
+
+      <div class="ack-box">
+        By registering, you accept the Code of Conduct and Safety Rules in full.<br>
+        Full details: <b>sports.excapscpsc.com/#tournament</b> · Conduct: <b>sports.excapscpsc.com/#conduct</b>
+      </div>
+    </div>
+
+    <div class="foot">
+      <span>Venue: <b>${esc(s.venue || "SCPSC field")}</b> · Date: <b>${fmtDate(s.tournamentDate)}</b> · Keep this for entry.</span>
+      <span class="brand">EX-CAP · Alumni of SCPSC</span>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('load', function(){
+      requestAnimationFrame(function(){
+        setTimeout(function(){ window.print(); }, 700);
+      });
+    });
+    window.addEventListener('afterprint', function(){ setTimeout(function(){ window.close(); }, 400); });
+  <\/script>
+</body></html>`;
+  w.document.write(html);
+  w.document.close();
 }
 
 function renderInfo(title, msg, icon) {

@@ -1241,7 +1241,7 @@ async function downloadRegPdf(id) {
 
   // Build a hidden off-screen container in the CURRENT document (not a popup)
   const container = document.createElement("div");
-  container.style.cssText = "position:fixed;left:-9999px;top:0;width:760px;background:#fff;color:#0f1424;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5";
+  container.style.cssText = "position:fixed;left:0;top:0;width:760px;background:#fff;color:#0f1424;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;z-index:-9999;opacity:0;pointer-events:none";
   container.innerHTML = `
     <div style="max-width:760px;margin:0 auto;background:#fff;border-radius:0;overflow:hidden">
 
@@ -1338,7 +1338,7 @@ async function downloadRegPdf(id) {
     margin: [8, 8, 8, 8],
     filename,
     image: { type: "jpeg", quality: 0.95 },
-    html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+    html2canvas: { scale: 2, useCORS: true, allowTaint: true, backgroundColor: "#ffffff", logging: false, windowWidth: 760 },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
     pagebreak: { mode: ["css", "legacy"] }
   };

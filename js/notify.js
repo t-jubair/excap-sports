@@ -79,15 +79,36 @@
   
     /* ---- PUBLIC SENDERS (same signatures the app already calls) ---- */
   
-    Notify.sendApprovalEmail = function({toEmail,toName,regId,regType,venue,eventDate,message}){
+    Notify.sendApprovalEmail = function({toEmail, toName, regId, regType, venue, eventDate, message, subject, rec}){
+      const em = (App.settings && App.settings.emergency) || cfg.emergency || {};
+      const status = (rec && rec.status) || "approved";
+      const passUrl = "https://sports.excapscpsc.com/#confirm-" + encodeURIComponent(regId||"");
+      const rulesUrl = "https://sports.excapscpsc.com/#tournament";
+      const details = detailsTable([
+        ["Registration ID", regId],
+        ["Type", regType],
+        ["Name", toName],
+        ["Status", status.toUpperCase()],
+        ["Venue", venue],
+        ["Event date", eventDate]
+      ]);
+      const buttons =
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0 4px"><tr>
+          <td width="50%" style="padding-right:6px"><a href="${e(passUrl)}" style="display:block;background:linear-gradient(120deg,#7c3aed,#db2777);color:#fff;text-decoration:none;padding:13px 8px;border-radius:11px;text-align:center;font-weight:bold;font-size:13px">⤓ Download Pass (PDF)</a></td>
+          <td width="50%" style="padding-left:6px"><a href="${e(rulesUrl)}" style="display:block;background:#ffffff;color:#7c3aed;border:2px solid #7c3aed;text-decoration:none;padding:11px 8px;border-radius:11px;text-align:center;font-weight:bold;font-size:13px">📖 Tournament Rules</a></td>
+        </tr></table>`;
+      const emergency = em.name
+        ? `<div style="background:#fff8e1;border:1px solid #ffe0a3;border-radius:12px;padding:16px;margin-top:18px"><b style="color:#0f1424">🆘 Questions or need help?</b><p style="margin:6px 0 0;font-size:13px;color:#5b6275">Reach <b>${e(em.name)}</b>${em.role?" ("+e(em.role)+")":""} — <a href="tel:${e(em.phone||"")}" style="color:#7c3aed;text-decoration:none;font-weight:bold">📞 ${e(em.phone||"")}</a> · <a href="mailto:${e(em.email||"")}" style="color:#7c3aed;text-decoration:none;font-weight:bold">✉ ${e(em.email||"")}</a></p></div>`
+        : "";
       const content =
-        chip("\u2713 Registration approved","#e7f9ef","#15803d")+
-        `<p style="margin:0 0 14px;">Hi <strong>${e(toName||"there")}</strong>,</p>
-         <p style="margin:0 0 16px;">Great news — your <strong>${e(regType)}</strong> registration is <strong>approved</strong>. ${e(message||"")}</p>`+
-        detailsTable([["Registration ID",regId],["Category",regType],["Venue",venue],["Date",eventDate]])+
-        `<p style="margin:0;">Please show your <strong>QR pass</strong> at the gate for check-in. See you on the field! \u26bd</p>`;
-      return sendEmail({toEmail,toName,subject:"You're approved — "+(regId||"EX-CAP"),content});
+        chip(status.toUpperCase(), status==="approved"?"#16a34a":"#7c3aed", "#ffffff") +
+        `<p style="margin:0 0 14px;font-size:16px"><b>Hi ${e(toName||"there")},</b></p>` +
+        `<p style="margin:0 0 18px;color:#334155;line-height:1.7">${nl2br(message||"Your registration status has been updated.")}</p>` +
+        details + buttons + emergency;
+      return sendEmail({ toEmail, toName, subject: subject || "EX-CAP Registration Update", content, replyTo: em.email });
     };
+    
+
   
     Notify.sendContact = function({name,email,message}){
       const content =
@@ -125,8 +146,11 @@
       const results={};
       if(rec.data.email || rec.captainEmail){
         results.email = await Notify.sendApprovalEmail({
-          toEmail: rec.data.email || rec.captainEmail, toName:name,
-          regId:rec.id, regType:rec.type, venue:settings.venue, eventDate
+          toEmail: rec.data.email || rec.captainEmail, toName: name,
+          regId: rec.id, regType: rec.type, venue: settings.venue, eventDate,
+          subject: `EX-CAP: Your ${rec.type} registration is APPROVED`,
+          message: `Great news — your ${rec.type} registration (${rec.id}) has been approved by the organizers. Show your QR pass at the gate on match day.`,
+          rec: rec
         });
       }
       if(rec.contact){

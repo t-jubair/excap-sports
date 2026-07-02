@@ -23,7 +23,7 @@
     emailjs: {
       publicKey:   "OJzrr-eGrHVoPCXbo",
       serviceId:   "service_0lg8xhu",
-      templateAll: "template_w4c24cd"
+      templateAll: "template_kd2u3aq"
     },
   
     /* ---- API base for serverless functions (bKash + SMS). 

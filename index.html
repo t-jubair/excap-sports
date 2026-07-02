@@ -22,19 +22,22 @@
     rel="stylesheet">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="css/theme.css?v=6">
-  <link rel="stylesheet" href="css/components.css?v=6">
-  <link rel="stylesheet" href="css/footer.css?v=6">
-  <link rel="stylesheet" href="css/animations.css?v=6">
+  <link rel="stylesheet" href="css/theme.css?v=7">
+  <link rel="stylesheet" href="css/components.css?v=7">
+  <link rel="stylesheet" href="css/footer.css?v=7">
+  <link rel="stylesheet" href="css/animations.css?v=7">
 
   <!-- EmailJS SDK (client-side email) -->
   <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
   <!-- Real scannable QR codes (passes) -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@2.0.4"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
   <!-- QR camera scanner (admin check-in only) -->
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <!-- PDF generator (used for downloadable registration passes) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <link rel="manifest" href="assets/manifest.webmanifest">
   <link rel="icon" type="image/png" href="assets/favicon.png">
@@ -48,16 +51,16 @@
   <div id="toast" class="toast"><span class="d"></span><span id="toast-msg"></span></div>
 
   <!-- App modules (order matters) -->
-  <script src="js/config.js?v=6"></script>
-  <script src="js/store.js?v=6"></script>
-  <script src="js/notify.js?v=6"></script>
-  <script src="js/bkash.js?v=6"></script>
-  <script src="js/qr.js?v=6"></script>
-  <script src="js/ui.js?v=6"></script>
-  <script src="js/footer.js?v=6"></script>
-  <script src="js/public.js?v=6"></script>
-  <script src="js/scoreboard.js?v=6"></script>
-  <script src="js/admin.js?v=6"></script>
+  <script src="js/config.js?v=7"></script>
+  <script src="js/store.js?v=7"></script>
+  <script src="js/notify.js?v=7"></script>
+  <script src="js/bkash.js?v=7"></script>
+  <script src="js/qr.js?v=7"></script>
+  <script src="js/ui.js?v=7"></script>
+  <script src="js/footer.js?v=7"></script>
+  <script src="js/public.js?v=7"></script>
+  <script src="js/scoreboard.js?v=7"></script>
+  <script src="js/admin.js?v=7"></script>
   <script>
     /* PWA: capture install prompt + register service worker */
     window.__pwaInstallPrompt = null;

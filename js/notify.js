@@ -165,7 +165,11 @@ const eventDate = `${day}${suffix} ${d.toLocaleDateString("en-GB",{month:"long"}
         rec: rec
       });
     }
-    const smsBody = `Dear ${name}\nYour ${rec.type} registration has been APPROVED for the EX-CAP Football Tournament.\nVenue: ${settings.venue}\nDate: ${eventDate}\nPlease show your QR pass at the gate. See the full details in your confirmation email.\nRegards,\nEX-CAP`;
+    const phone = rec.contact || (rec.data && (rec.data.phone || rec.data.captainPhone)) || "";
+    if (phone) {
+      const smsBody = `Dear ${name}\nYour ${rec.type} registration has been APPROVED for the EX-CAP Football Tournament.\nVenue: ${settings.venue}\nDate: ${eventDate}\nPlease show your QR pass at the gate. See the full details in your confirmation email.\nRegards,\nEX-CAP`;
+      results.sms = await Notify.sendSMS({ to: phone, message: smsBody });
+    }
     return results;
   };
 

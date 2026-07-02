@@ -153,6 +153,7 @@ Store.subscribeTickets = function(cb){
       // mirror teams to a PII-free public collection the public site can read
       if(rec.type==="team"){ try{ await Store.savePublicTeam(rec); }catch(e){} }
     };
+    
   
     /* ===== PUBLIC TEAMS (PII-free mirror for the public site) =====
        Contains ONLY safe fields (no phone/email) so it can be world-readable. */

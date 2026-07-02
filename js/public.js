@@ -1120,15 +1120,33 @@ async function submitVolunteer() {
    ============================================================ */
 
 // email link entry point: /#confirm-EXCAP-FT26-T001 → shows that reg's confirmation
-registerRoute("confirm", function () {
-  // hash looks like #confirm-<id>; strip prefix to get the id
+registerRoute("confirm", async function(){
   const m = location.hash.match(/^#confirm-(.+)$/);
   const id = m ? decodeURIComponent(m[1]) : "";
-  const rec = (App.regs || []).find(r => r.id === id) || (window._lastRec && window._lastRec.id === id ? window._lastRec : null);
+
+  // Show a loading state while we fetch
+  $("#app").innerHTML = navHTML("") + `<div class="wrap page"><div class="confirm">
+    <div class="tick" style="background:rgba(124,58,237,.14);border-color:var(--purple)"><span class="spinner"></span></div>
+    <h1 class="ph" style="font-size:24px">Loading your digital pass…</h1>
+    <p class="ph-sub">Fetching registration <b>${esc(id)}</b></p>
+  </div></div>`;
+
+  // First check what's already in memory
+  let rec = (App.regs || []).find(r => r.id === id) || (window._lastRec && window._lastRec.id === id ? window._lastRec : null);
+
+  // If not found, fetch from Firestore directly
+  if (!rec && Store.getReg) {
+    try { rec = await Store.getReg(id); } catch(e) { rec = null; }
+  }
+
   if (!rec) {
-    renderInfo("Registration not found", `We couldn't find registration <b>${esc(id)}</b>. If this is your ID, please contact organizers.`, "🔍");
+    renderInfo("Registration not found",
+      `We couldn't find registration <b>${esc(id)}</b>. If this is your ID and you registered before, please contact organizers.`,
+      "🔍");
     return;
   }
+
+  window._lastRec = rec;
   renderConfirm(rec.type, rec);
 });
 function renderConfirm(type, rec) {

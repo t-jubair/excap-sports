@@ -701,12 +701,12 @@ async function teamSubmit() {
       <h3>Registration didn't go through</h3>
       <p class="emerg-msg">We couldn't save your registration right now. Please check your internet and try again — or contact us directly and we'll register you manually.</p>
       <div class="emerg-person">
-        <div class="ep-ava">${esc(initials(em.name||"EX"))}</div>
-        <div><b>${esc(em.name||"")}</b><span>${esc(em.role||"")}</span></div>
+        <div class="ep-ava">${esc(initials(em.name || "EX"))}</div>
+        <div><b>${esc(em.name || "")}</b><span>${esc(em.role || "")}</span></div>
       </div>
       <div class="emerg-actions">
-        ${em.phone?`<a class="btn btn-primary" href="tel:${esc((em.phone||"").replace(/[^\\d+]/g,""))}">📞 Call ${esc(em.phone)}</a>`:""}
-        ${em.email?`<a class="btn btn-line" href="mailto:${esc(em.email)}">✉ Email us</a>`:""}
+        ${em.phone ? `<a class="btn btn-primary" href="tel:${esc((em.phone || "").replace(/[^\\d+]/g, ""))}">📞 Call ${esc(em.phone)}</a>` : ""}
+        ${em.email ? `<a class="btn btn-line" href="mailto:${esc(em.email)}">✉ Email us</a>` : ""}
       </div>
       <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="closeModal()">Try again</button>
     </div>`, "narrow");
@@ -729,12 +729,12 @@ async function teamSubmit() {
       Notify.sendSMS({ to: rec.contact, message: `EX-CAP: ${rec.type} registration received. ID ${rec.id}. Approval SMS to follow.` });
     }
   } catch (e) { }
-  try{
-    const shortId = rec.id.replace("EXCAP-FT26-","");
+  try {
+    const shortId = rec.id.replace("EXCAP-FT26-", "");
     const name = rec.data.teamName || rec.data.name || "there";
 
     // Email (registration received)
-    if(rec.data.email || rec.captainEmail){
+    if (rec.data.email || rec.captainEmail) {
       Notify.sendBroadcastEmail({
         toEmail: rec.data.email || rec.captainEmail,
         toName: name,
@@ -744,7 +744,7 @@ async function teamSubmit() {
     }
 
     // SMS (registration received) — professional format
-    if(rec.contact){
+    if (rec.contact) {
       const smsBody =
         `Dear ${name},\n\n` +
         `We've received your ${rec.type} registration (${shortId}) for the EX-CAP Football Tournament. ` +
@@ -752,7 +752,7 @@ async function teamSubmit() {
         `Regards,\nEX-CAP Team`;
       Notify.sendSMS({ to: rec.contact, message: smsBody });
     }
-  }catch(e){ console.warn("Post-submit notify failed", e); }
+  } catch (e) { console.warn("Post-submit notify failed", e); }
 }
 
 /* ============================================================
@@ -784,12 +784,12 @@ registerRoute("register-guest", function () {
 });
 async function submitGuest() {
   if (!validate([
-  ["g-name", nonEmpty, "Name required"],
-  ["g-phone", isPhone, "Valid mobile required"],
-  ["g-email", isEmail, "Valid email required"],
-  ["g-ssc", nonEmpty, "SSC batch year is required"],
-  ["g-hsc", nonEmpty, "HSC batch year is required"]
-])) return;
+    ["g-name", nonEmpty, "Name required"],
+    ["g-phone", isPhone, "Valid mobile required"],
+    ["g-email", isEmail, "Valid email required"],
+    ["g-ssc", nonEmpty, "SSC batch year is required"],
+    ["g-hsc", nonEmpty, "HSC batch year is required"]
+  ])) return;
   const btn = $("#submit-btn"); if (btn) { btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true; }
   let id;
   try { id = await Promise.race([Store.nextId("guest", "EXCAP-FT" + App.settings.edition.slice(-2) + "-G", 4), new Promise((_, rej) => setTimeout(() => rej("t"), 6000))]); }
@@ -815,12 +815,12 @@ async function submitGuest() {
     }
   } catch (e) { }
   App.regs.unshift(rec); renderConfirm("guest", rec);
-  try{
-    const shortId = rec.id.replace("EXCAP-FT26-","");
+  try {
+    const shortId = rec.id.replace("EXCAP-FT26-", "");
     const name = rec.data.teamName || rec.data.name || "there";
 
     // Email (registration received)
-    if(rec.data.email || rec.captainEmail){
+    if (rec.data.email || rec.captainEmail) {
       Notify.sendBroadcastEmail({
         toEmail: rec.data.email || rec.captainEmail,
         toName: name,
@@ -830,7 +830,7 @@ async function submitGuest() {
     }
 
     // SMS (registration received) — professional format
-    if(rec.contact){
+    if (rec.contact) {
       const smsBody =
         `Dear ${name},\n\n` +
         `We've received your ${rec.type} registration (${shortId}) for the EX-CAP Football Tournament. ` +
@@ -838,7 +838,7 @@ async function submitGuest() {
         `Regards,\nEX-CAP Team`;
       Notify.sendSMS({ to: rec.contact, message: smsBody });
     }
-  }catch(e){ console.warn("Post-submit notify failed", e); }
+  } catch (e) { console.warn("Post-submit notify failed", e); }
 }
 
 /* ============================================================
@@ -968,12 +968,12 @@ async function submitVisitor() {
   try { await Store.saveReg(rec); }
   catch (e) { toast("Could not submit — please try again", "err"); if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; } return; }
   App.regs.unshift(rec); renderConfirm("visitor", rec);
-  try{
-    const shortId = rec.id.replace("EXCAP-FT26-","");
+  try {
+    const shortId = rec.id.replace("EXCAP-FT26-", "");
     const name = rec.data.teamName || rec.data.name || "there";
 
     // Email (registration received)
-    if(rec.data.email || rec.captainEmail){
+    if (rec.data.email || rec.captainEmail) {
       Notify.sendBroadcastEmail({
         toEmail: rec.data.email || rec.captainEmail,
         toName: name,
@@ -983,7 +983,7 @@ async function submitVisitor() {
     }
 
     // SMS (registration received) — professional format
-    if(rec.contact){
+    if (rec.contact) {
       const smsBody =
         `Dear ${name},\n\n` +
         `We've received your ${rec.type} registration (${shortId}) for the EX-CAP Football Tournament. ` +
@@ -991,7 +991,7 @@ async function submitVisitor() {
         `Regards,\nEX-CAP Team`;
       Notify.sendSMS({ to: rec.contact, message: smsBody });
     }
-  }catch(e){ console.warn("Post-submit notify failed", e); }
+  } catch (e) { console.warn("Post-submit notify failed", e); }
 }
 
 /* ============================================================
@@ -1050,12 +1050,12 @@ async function submitVolunteer() {
   try { await Store.saveReg(rec); }
   catch (e) { toast("Could not submit — please try again", "err"); if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; } return; }
   App.regs.unshift(rec); renderConfirm("volunteer", rec);
-  try{
-    const shortId = rec.id.replace("EXCAP-FT26-","");
+  try {
+    const shortId = rec.id.replace("EXCAP-FT26-", "");
     const name = rec.data.teamName || rec.data.name || "there";
 
     // Email (registration received)
-    if(rec.data.email || rec.captainEmail){
+    if (rec.data.email || rec.captainEmail) {
       Notify.sendBroadcastEmail({
         toEmail: rec.data.email || rec.captainEmail,
         toName: name,
@@ -1065,7 +1065,7 @@ async function submitVolunteer() {
     }
 
     // SMS (registration received) — professional format
-    if(rec.contact){
+    if (rec.contact) {
       const smsBody =
         `Dear ${name},\n\n` +
         `We've received your ${rec.type} registration (${shortId}) for the EX-CAP Football Tournament. ` +
@@ -1073,7 +1073,7 @@ async function submitVolunteer() {
         `Regards,\nEX-CAP Team`;
       Notify.sendSMS({ to: rec.contact, message: smsBody });
     }
-  }catch(e){ console.warn("Post-submit notify failed", e); }
+  } catch (e) { console.warn("Post-submit notify failed", e); }
 }
 
 /* ============================================================

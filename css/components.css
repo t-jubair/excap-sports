@@ -983,8 +983,6 @@ select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(1
  @media (max-width: 380px) {
    .stats, .kpis { grid-template-columns: 1fr }
    .ti-hero { grid-template-columns: 1fr }
-   .foot-btns { flex-direction: column }
-   .foot-btns .btn { width: 100% }
    .cd-cell .v { font-size: 16px }
    .cd-cell .k { font-size: 8px }
    .btn { padding: 10px 14px }
@@ -1370,54 +1368,7 @@ select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(1
    .eco-connector { flex-direction: column; gap: 8px; padding: 12px 0 }
  }
  
- /* ---------- Footer: horizontal columns on mobile, dev credit centered ---------- */
- @media (max-width: 900px) {
-   .foot-grid {
-     display: grid;
-     grid-template-columns: 1fr 1fr;
-     gap: 24px 16px;
-   }
-   .brand-col { grid-column: 1 / -1 }
-   .right-col { grid-column: 1 / -1 }
-   .foot-name { font-size: 18px }
-   .foot-desc { font-size: 13px; max-width: none }
- }
- @media (max-width: 520px) {
-   .foot-grid {
-     grid-template-columns: 1fr 1fr;
-     gap: 20px 12px;
-   }
-   .brand-col { grid-column: 1 / -1; text-align: center }
-   .foot-logos { justify-content: center }
-   .foot-meta { margin-left: auto; margin-right: auto }
-   .fcol h4 { font-size: 10.5px }
-   .links-col a { font-size: 12.5px; margin-bottom: 9px }
- 
-   /* Dev credit card: centered on mobile */
-   .foot-dev-row {
-     flex-direction: column;
-     align-items: center;
-     justify-content: center;
-     gap: 16px;
-     text-align: center;
-   }
-   .dev-card { margin: 0 auto }
-   .foot-socials { justify-content: center; margin: 0 auto }
- 
-   /* Bottom bar: centered */
-   .foot-bottom {
-     flex-direction: column;
-     align-items: center;
-     justify-content: center;
-     text-align: center;
-     gap: 10px;
-   }
-   .fb-copy, .fb-ver { text-align: center }
-   .foot-top { margin: 4px auto 0 }
- }
- @media (max-width: 380px) {
-   .foot-grid { grid-template-columns: 1fr; gap: 22px }
- }
+
  
  /* ---------- General grids: mobile-friendly ---------- */
  @media (max-width: 520px) {
@@ -1465,4 +1416,117 @@ select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(1
    .form-actions { flex-direction: column-reverse; gap: 8px }
    .form-actions .btn { width: 100% }
    .fld { margin-bottom: 12px }
+ }
+ 
+/* ============================================================
+   FOOTER MOBILE — matches EX-CAP main site layout
+   ============================================================ */
+
+/* Tablet & small desktop: brand full-width, links in 2 cols */
+@media (max-width: 1000px) {
+   .foot-grid {
+     display: grid;
+     grid-template-columns: 1fr 1fr;
+     gap: 28px 20px;
+   }
+   .brand-col { grid-column: 1 / -1 }
+   .right-col { grid-column: 1 / -1 }
+   .foot-desc { max-width: none }
+   .foot-meta { max-width: none }
+ }
+ 
+ /* Mobile: refined layout matching the reference */
+ @media (max-width: 640px) {
+   .foot-shell { padding-bottom: 14px }
+   .foot-card { padding: 24px 20px }
+ 
+   .foot-grid {
+     display: grid;
+     grid-template-columns: 1fr 1fr;
+     gap: 22px 14px;
+   }
+ 
+   /* Brand block: full width, LEFT-aligned like the reference */
+   .brand-col { grid-column: 1 / -1 }
+   .foot-logos { justify-content: flex-start; margin-bottom: 12px }
+   .flogo { width: 42px; height: 42px }
+   .foot-name { font-size: 17px }
+   .foot-kicker { font-size: 10px; margin-top: 4px }
+   .foot-desc { font-size: 13px; line-height: 1.55; margin-top: 10px }
+   .foot-meta { margin-top: 12px; padding: 11px 13px; border-radius: 12px }
+   .fm-row { font-size: 10.5px }
+   .fm-row b { font-size: 11.5px }
+ 
+   /* Link groups: 2 cols side by side */
+   .fcol h4 { font-size: 10.5px; margin-bottom: 12px; letter-spacing: .12em }
+   .links-col a { font-size: 13px; margin-bottom: 10px; gap: 7px }
+   .links-col a svg { width: 12px; height: 12px }
+ 
+   /* Newsletter + buttons: full width */
+   .right-col { grid-column: 1 / -1; align-items: flex-start }
+   .sys-pill { margin-bottom: 14px; font-size: 9px }
+   .news-sub { font-size: 11.5px; margin-bottom: 10px }
+   .news-form { width: 100%; max-width: none; margin-bottom: 12px }
+   .news-form input { padding: 12px 46px 12px 14px; font-size: 14px }
+ 
+   /* Install App + Contact: side-by-side pair (NOT stacked) */
+   .foot-btns {
+     width: 100%;
+     max-width: none;
+     display: grid;
+     grid-template-columns: 1fr 1fr;
+     gap: 8px;
+     flex-direction: row;
+   }
+   .foot-btns .btn { width: auto; padding: 12px 8px; font-size: 11px; letter-spacing: .04em }
+ 
+   /* Dev row: centered stack of socials + dev card */
+   .foot-dev-row {
+     grid-column: 1 / -1;
+     flex-direction: column;
+     align-items: center;
+     text-align: center;
+     gap: 18px;
+     padding-top: 22px;
+     margin-top: 6px;
+   }
+   .foot-socials { justify-content: center; gap: 8px; order: 1 }
+   .foot-socials .soc { width: 36px; height: 36px }
+   .foot-socials .soc svg { width: 14px; height: 14px }
+   .dev-card { order: 2; margin: 0 auto; padding: 12px 18px 12px 12px; max-width: 320px; width: 100% }
+   .dev-eyebrow { text-align: center; padding-left: 0 }
+   .dev-body { justify-content: flex-start }
+   .dev-ava { width: 38px; height: 38px; font-size: 13px }
+ 
+   /* Bottom bar: centered */
+   .foot-bottom {
+     flex-direction: column;
+     align-items: center;
+     justify-content: center;
+     text-align: center;
+     gap: 10px;
+     padding-top: 16px;
+     margin-top: 18px;
+   }
+   .fb-copy { font-size: 10.5px }
+   .fb-ver { font-size: 9px }
+   .foot-top { margin: 4px auto 0; width: 36px; height: 36px }
+ }
+ 
+ /* Small phones: tighter but keep 2-col link grid */
+ @media (max-width: 400px) {
+   .foot-card { padding: 22px 16px }
+   .foot-grid { gap: 20px 10px }
+   .foot-name { font-size: 15px }
+   .foot-desc { font-size: 12.5px }
+   .links-col a { font-size: 12.5px; margin-bottom: 9px }
+   .fcol h4 { font-size: 10px }
+   .foot-btns .btn { font-size: 10.5px; padding: 11px 6px }
+   .flogo { width: 38px; height: 38px }
+ }
+ 
+ /* Ultra-narrow: safe fallback to single column */
+ @media (max-width: 340px) {
+   .foot-grid { grid-template-columns: 1fr; gap: 18px }
+   .foot-btns { grid-template-columns: 1fr }
  }

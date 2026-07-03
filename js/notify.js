@@ -79,6 +79,43 @@
 
   /* ---- PUBLIC SENDERS (same signatures the app already calls) ---- */
 
+  function brandKitMessage(regType){
+    const brandUrl = "https://sports.excapscpsc.com/#brand";
+  
+    // Different copy for different registrations
+    const copy = {
+      team: {
+        title: "🎨 Team merch & content — get the official brand kit",
+        body: "Planning a team jersey, banner, or matchday reel? Grab the official EX-CAP logos, cover photos and posters from the brand kit. Feel free to share it on your timeline — help build the pre-match vibe and let everyone know your squad is in.",
+        cta: "🎨 Open Brand Kit"
+      },
+      guest: {
+        title: "🎨 Join the vibe — share the tournament",
+        body: "Excited for match day? Share the vibe with your friends on social media using the official EX-CAP brand kit — logos, cover photos and posters are free to download and post. Let's fill the stands together.",
+        cta: "🎨 Open Brand Kit"
+      },
+      visitor: {
+        title: "🎨 Share the vibe",
+        body: "Feel free to share the tournament on your timeline using the official EX-CAP brand kit — logos, cover photos and posters are ready to download.",
+        cta: "🎨 Open Brand Kit"
+      },
+      volunteer: {
+        title: "🎨 Represent the crew",
+        body: "As part of the crew, you're welcome to share the tournament on your socials using the official EX-CAP brand kit — logos, cover photos and posters ready to go.",
+        cta: "🎨 Open Brand Kit"
+      }
+    };
+  
+    const c = copy[regType] || copy.guest;
+  
+    return `<div style="margin-top:22px;background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(219,39,119,.06));border:1px solid rgba(124,58,237,.25);border-radius:14px;padding:20px 22px">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#7c3aed;margin-bottom:8px">Brand & Media Kit</div>
+      <div style="font-family:Arial,sans-serif;font-weight:800;font-size:15px;color:#0f1424;letter-spacing:-.005em;margin-bottom:8px">${c.title}</div>
+      <p style="margin:0 0 14px;color:#475569;font-size:13.5px;line-height:1.65">${c.body}</p>
+      <a href="${e(brandUrl)}" style="display:inline-block;background:linear-gradient(120deg,#7c3aed,#db2777);color:#fff;text-decoration:none;padding:10px 18px;border-radius:10px;font-weight:800;font-size:13px;letter-spacing:.03em">${c.cta} →</a>
+    </div>`;
+  }
+
   Notify.sendApprovalEmail = function ({ toEmail, toName, regId, regType, venue, eventDate, message, subject, rec }) {
     const em = (App.settings && App.settings.emergency) || cfg.emergency || {};
     const status = (rec && rec.status) || "approved";
@@ -97,6 +134,8 @@
           <td width="50%" style="padding-right:6px"><a href="${e(passUrl)}" style="display:block;background:linear-gradient(120deg,#7c3aed,#db2777);color:#fff;text-decoration:none;padding:13px 8px;border-radius:11px;text-align:center;font-weight:bold;font-size:13px">⤓ Download Pass (PDF)</a></td>
           <td width="50%" style="padding-left:6px"><a href="${e(rulesUrl)}" style="display:block;background:#ffffff;color:#7c3aed;border:2px solid #7c3aed;text-decoration:none;padding:11px 8px;border-radius:11px;text-align:center;font-weight:bold;font-size:13px">📖 Tournament Rules</a></td>
         </tr></table>`;
+
+    const brandKitBlock = brandKitMessage(rec.type);
     const emergency = em.name
       ? `<div style="background:#fff8e1;border:1px solid #ffe0a3;border-radius:12px;padding:16px;margin-top:18px"><b style="color:#0f1424">🆘 Questions or need help?</b><p style="margin:6px 0 0;font-size:13px;color:#5b6275">Reach <b>${e(em.name)}</b>${em.role ? " (" + e(em.role) + ")" : ""} — <a href="tel:${e(em.phone || "")}" style="color:#7c3aed;text-decoration:none;font-weight:bold">📞 ${e(em.phone || "")}</a> · <a href="mailto:${e(em.email || "")}" style="color:#7c3aed;text-decoration:none;font-weight:bold">✉ ${e(em.email || "")}</a></p></div>`
       : "";
@@ -104,7 +143,7 @@
       chip(status.toUpperCase(), status === "approved" ? "#16a34a" : "#7c3aed", "#ffffff") +
       `<p style="margin:0 0 14px;font-size:16px"><b>Hi ${e(toName || "there")},</b></p>` +
       `<p style="margin:0 0 18px;color:#334155;line-height:1.7">${nl2br(message || "Your registration status has been updated.")}</p>` +
-      details + buttons + emergency;
+      details + buttons + brandKitBlock + emergency;
     return sendEmail({ toEmail, toName, subject: subject || "EX-CAP Registration Update", content, replyTo: em.email });
   };
 

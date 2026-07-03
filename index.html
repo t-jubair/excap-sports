@@ -61,15 +61,22 @@
   <script src="js/scoreboard.js?v=14"></script>
   <script src="js/admin.js?v=14"></script>
   <script>
-    /* PWA: capture install prompt + register service worker */
+    /* PWA install prompt capture (kept — this is safe and useful) */
     window.__pwaInstallPrompt = null;
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       window.__pwaInstallPrompt = e;
       window.dispatchEvent(new Event('pwaInstallReady'));
     });
+  
+    /* One-time cleanup: unregister any old service worker on visit,
+       but DO NOT register a new one. This runs once per visit and stops
+       the kill-switch loop while still ensuring anyone with the old SW
+       gets it cleaned up. */
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { }));
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(reg => reg.unregister());
+      }).catch(() => {});
     }
   </script>
 </body>

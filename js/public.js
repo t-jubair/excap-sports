@@ -463,7 +463,75 @@ function previewBrand(id){
   </div>`, "wide");
 }
 
+function isInAppBrowser(){
+  const ua = (navigator.userAgent || "").toLowerCase();
+  return /fban|fbav|fbios|instagram|line|micromessenger|tiktok|snapchat|linkedin|twitter|whatsapp|threads|messenger/.test(ua);
+}
+
 async function downloadBrandFile(url, filename){
+  // In-app browsers (Messenger, Instagram, Facebook, etc.) silently block blob downloads.
+  // Guide the user to open in their real browser instead.
+  if(isInAppBrowser()){
+    const safeUrl = String(url).replace(/'/g, "\\'");
+    showModal(`<div style="text-align:center;padding:8px">
+      <div style="font-size:52px;margin-bottom:12px">📲</div>
+      <h3 style="margin:0 0 10px;font-family:var(--font-display);font-weight:800">Open in your browser</h3>
+      <p style="color:var(--muted);font-size:14px;line-height:1.6;margin:0 0 20px">Downloads don't work inside this app. Tap the button below, then choose <b>"Open in browser"</b> from the menu (⋯) to save the file to your device.</p>
+      <div style="background:var(--navy);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px;text-align:left">
+        <div style="font-size:11px;color:var(--muted-2);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">File link</div>
+        <div style="font-size:11.5px;color:var(--ink);word-break:break-all;font-family:monospace;line-height:1.4">${esc(url)}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+        <a class="btn btn-primary" href="${esc(url)}" target="_blank" rel="noopener">🌐 Open link</a>
+        <button class="btn btn-line" onclick="navigator.clipboard&&navigator.clipboard.writeText('${safeUrl}').then(()=>toast('Link copied ✓')).catch(()=>toast('Long-press the link to copy','warn'))">🔗 Copy link</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      </div>
+    </div>`, "narrow");
+    return;
+  }
+
+  // Normal browser — proper blob download
+  try{
+    toast("Downloading…");
+    const r = await fetch(url);
+    if(!r.ok) throw new Error("Failed to fetch");
+    const blob = await r.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename || "brand-material";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(blobUrl), 100);
+    toast("Downloaded ✓");
+  }catch(e){
+    window.open(url, "_blank");
+    toast("Opened in new tab — right-click to save", "warn");
+  }
+}
+
+async function downloadBrandFile(url, filename){
+  // In-app browsers can't reliably download blobs — redirect user out
+  if(isInAppBrowser()){
+    showModal(`<div style="text-align:center;padding:8px">
+      <div style="font-size:52px;margin-bottom:12px">📲</div>
+      <h3 style="margin:0 0 10px;font-family:var(--font-display);font-weight:800">Open in your browser</h3>
+      <p style="color:var(--muted);font-size:14px;line-height:1.6;margin:0 0 20px">Downloads don't work inside this app. Tap the button below, then choose <b>"Open in browser"</b> from the menu (⋯) to save the file.</p>
+      <div style="background:var(--navy);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px;text-align:left">
+        <div style="font-size:11px;color:var(--muted-2);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Link</div>
+        <div style="font-size:12px;color:var(--ink);word-break:break-all;font-family:monospace">${esc(url)}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+        <a class="btn btn-primary" href="${esc(url)}" target="_blank" rel="noopener">Open link</a>
+        <button class="btn btn-line" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(url)}').then(()=>toast('Link copied ✓'))">🔗 Copy link</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      </div>
+    </div>`, "narrow");
+    return;
+  }
+
+  // Normal browser — proper blob download
   try{
     toast("Downloading…");
     const r = await fetch(url);

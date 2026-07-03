@@ -248,68 +248,55 @@ function lockPreview() { try { localStorage.removeItem("excap_preview"); } catch
 /* ============================================================
    BOOT
    ============================================================ */
-async function boot() {
-  const hint1 = document.createElement("link");
-  hint1.rel = "dns-prefetch"; hint1.href = "https://firebasestorage.googleapis.com";
-  document.head.appendChild(hint1);
-  const hint2 = document.createElement("link");
-  hint2.rel = "preconnect"; hint2.href = "https://firebasestorage.googleapis.com"; hint2.crossOrigin = "";
-  document.head.appendChild(hint2);
+async function boot(){
   if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-  window.scrollTo(0, 0);
+  window.scrollTo(0,0);
 
-  // 1) INSTANT first paint from config defaults (no waiting on the network)
-  App.settings = App.settings || { ...cfg.settings };
+  // Initialize defaults but DON'T render yet
+  App.settings = App.settings || {...cfg.settings};
   App.logos = App.logos || {};
   App.publicTeams = App.publicTeams || [];
-  App.brand = App.brand || [];
   App.regs = App.regs || [];
   applyPreviewParam();
-  applyBrand((App.settings && App.settings.brand) || cfg.brand);
-  // Try to get the real maintenance flag quickly (up to 800ms) before first paint.
-  // If Firebase is slow, we fall back to config defaults and paint anyway.
+
+  // Show a clean loading state while we wait for the real data
+  $("#app").innerHTML = `<div style="min-height:70vh;display:grid;place-items:center;background:var(--navy)">
+    <div style="text-align:center">
+      <div class="mark" style="width:64px;height:64px;margin:0 auto 20px;animation:pulse 1.4s ease-in-out infinite">
+        ${logoImg("tournament","FT")}
+      </div>
+      <div style="color:var(--muted);font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:700">Loading…</div>
+    </div>
+  </div>`;
+
+  // Hydrate from Firestore with a max wait of 2 seconds
+  try{ await Store.ready; }catch(e){}
   await Promise.race([
     (async () => {
-      try { await Store.ready; App.settings = await Store.getSettings(); } catch (e) { }
+      try{ App.settings = await Store.getSettings(); }catch(e){}
+      try{ App.logos = await Store.getLogos(); }catch(e){}
+      try{ App.publicTeams = await Store.listPublicTeams(); }catch(e){}
     })(),
-    new Promise(r => setTimeout(r, 800))
+    new Promise(r => setTimeout(r, 2000))
   ]);
+
   applyBrand((App.settings && App.settings.brand) || cfg.brand);
-  route();
+  if(window.Notify && Notify.initEmail) Notify.initEmail();
 
-  // 2) Hydrate from the backend, then re-render only if data actually changed
-  try { await Store.ready; } catch (e) { }
-
-  // Wait briefly for Firebase to restore the previous session before deciding
-  // whether the user is an admin — otherwise a page refresh flashes them out.
+  // Wait briefly for Firebase auth restore
   await new Promise(res => {
-    let done = false; const finish = () => { if (!done) { done = true; res(); } };
-    if (Store.onAuth) Store.onAuth(u => { App.authed = !!u; if (u) { App.isAdmin = true; } finish(); });
-    setTimeout(finish, 1200);   // don't wait forever if there's no session
+    let done = false;
+    const finish = () => { if(!done){done = true; res();} };
+    if(Store.onAuth) Store.onAuth(u => { App.authed = !!u; if(u) App.isAdmin = true; finish(); });
+    setTimeout(finish, 1200);
   });
 
-  const before = JSON.stringify({ s: App.settings, l: App.logos, t: App.publicTeams });
-  try { App.settings = await Store.getSettings(); } catch (e) { }
-  try { App.logos = await Store.getLogos(); } catch (e) { }
-  try { App.publicTeams = await Store.listPublicTeams(); } catch (e) { }
-  const after = JSON.stringify({ s: App.settings, l: App.logos, t: App.publicTeams });
-  applyBrand((App.settings && App.settings.brand) || cfg.brand);
-  if (window.Notify && Notify.initEmail) Notify.initEmail();
-
-  // If the user is signed in, load their profile + registrations so admin panel
-  // works immediately after refresh instead of showing "Please log in".
-  if (App.authed) {
-    try { if (Store.getProfile) await Store.getProfile(); } catch (e) { }
-    try { App.regs = await Store.listRegs(); } catch (e) { }
-  }
-
-  // re-render once at the end
-  if (App.authed || before !== after) route();
+  // Wire subscriptions for live updates AFTER first render
   if(Store.subscribeBrand){
-    Store.subscribeBrand(list=>{
-      App.brand = list;
-      if(currentRoute()==="brand") route();
-    });
+    Store.subscribeBrand(list => { App.brand = list; if(currentRoute() === "brand") route(); });
   }
+
+  // First render with real data — no flash
+  route();
 }
 document.addEventListener("DOMContentLoaded", boot);

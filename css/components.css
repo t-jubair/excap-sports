@@ -1530,3 +1530,26 @@ select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(1
    .foot-grid { grid-template-columns: 1fr; gap: 18px }
    .foot-btns { grid-template-columns: 1fr }
  }
+ /* Force footer link columns side-by-side on mobile */
+@media (max-width: 900px) {
+   .foot-card .foot-grid {
+     display: grid !important;
+     grid-template-columns: 1fr 1fr !important;
+     gap: 24px 14px !important;
+   }
+   .foot-card .brand-col,
+   .foot-card .right-col,
+   .foot-card .foot-dev-row {
+     grid-column: 1 / -1 !important;
+   }
+   /* Tournament + Get Involved land next to each other */
+   .foot-card .fcol.links-col {
+     grid-column: auto !important;
+     min-width: 0;
+   }
+ }
+ @media (max-width: 400px) {
+   .foot-card .foot-grid { gap: 20px 10px !important }
+   .foot-card .links-col a { font-size: 12.5px; margin-bottom: 8px }
+   .foot-card .fcol h4 { font-size: 10px }
+ }

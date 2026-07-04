@@ -2,6 +2,9 @@
 <html lang="en">
 
 <head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0a0d1c">
@@ -22,10 +25,10 @@
     rel="stylesheet">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="css/theme.css?v=14">
-  <link rel="stylesheet" href="css/components.css?v=14">
-  <link rel="stylesheet" href="css/footer.css?v=14">
-  <link rel="stylesheet" href="css/animations.css?v=14">
+  <link rel="stylesheet" href="css/theme.css?v=16">
+  <link rel="stylesheet" href="css/components.css?v=16">
+  <link rel="stylesheet" href="css/footer.css?v=16">
+  <link rel="stylesheet" href="css/animations.css?v=16">
 
   <!-- EmailJS SDK (client-side email) -->
   <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -50,16 +53,16 @@
   <div id="toast" class="toast"><span class="d"></span><span id="toast-msg"></span></div>
 
   <!-- App modules (order matters) -->
-  <script src="js/config.js?v=14"></script>
-  <script src="js/store.js?v=14"></script>
-  <script src="js/notify.js?v=14"></script>
-  <script src="js/bkash.js?v=14"></script>
-  <script src="js/qr.js?v=14"></script>
-  <script src="js/ui.js?v=14"></script>
-  <script src="js/footer.js?v=14"></script>
-  <script src="js/public.js?v=14"></script>
-  <script src="js/scoreboard.js?v=14"></script>
-  <script src="js/admin.js?v=14"></script>
+  <script src="js/config.js?v=16"></script>
+  <script src="js/store.js?v=16"></script>
+  <script src="js/notify.js?v=16"></script>
+  <script src="js/bkash.js?v=16"></script>
+  <script src="js/qr.js?v=16"></script>
+  <script src="js/ui.js?v=16"></script>
+  <script src="js/footer.js?v=16"></script>
+  <script src="js/public.js?v=16"></script>
+  <script src="js/scoreboard.js?v=16"></script>
+  <script src="js/admin.js?v=16"></script>
   <script>
     /* PWA install prompt capture (kept — this is safe and useful) */
     window.__pwaInstallPrompt = null;
@@ -68,7 +71,7 @@
       window.__pwaInstallPrompt = e;
       window.dispatchEvent(new Event('pwaInstallReady'));
     });
-  
+
     /* One-time cleanup: unregister any old service worker on visit,
        but DO NOT register a new one. This runs once per visit and stops
        the kill-switch loop while still ensuring anyone with the old SW
@@ -76,7 +79,7 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(regs => {
         regs.forEach(reg => reg.unregister());
-      }).catch(() => {});
+      }).catch(() => { });
     }
   </script>
 </body>

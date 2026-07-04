@@ -72,12 +72,13 @@ function ensureHelpFab() {
 }
 function findTeam(id) { return (App.regs || []).find(r => r.id === id) || (App.publicTeams || []).find(r => r.id === id) || null; }
 function teamRegs() { return allTeams(); }
-function confirmedCount(){
+function confirmedTeams() { return allTeams().filter(r => r.status === "approved"); }
+function confirmedCount() {
   const real = confirmedTeams().length;
   return App.isAdmin ? real : real + 7;
 }
-function slotsUsed(){
-  const real = allTeams().filter(r=>["approved","review","submitted"].includes(r.status)).length;
+function slotsUsed() {
+  const real = allTeams().filter(r => ["approved", "review", "submitted"].includes(r.status)).length;
   // Public visitors see an inflated count for early hype; admins see the true count
   return App.isAdmin ? real : real + 7;
 }
@@ -94,7 +95,7 @@ function hexA(hex, a) { const m = hex.replace("#", ""); const r = parseInt(m.sli
 /* ============================================================
    NAV + DRAWER
    ============================================================ */
-const NAV=[["home","Home"],["fixtures","Fixtures"],["tournament","Rules"],["conduct","Code of Conduct"],["contact","Contact"],["brand","Brand Kit"],["register","Register"]];
+const NAV = [["home", "Home"], ["fixtures", "Fixtures"], ["tournament", "Rules"], ["conduct", "Code of Conduct"], ["contact", "Contact"], ["brand", "Brand Kit"], ["register", "Register"]];
 // Hidden for now (add back when needed): ["live","Live"], ["teams","Teams"]
 
 function navHTML(active) {
@@ -183,10 +184,10 @@ function rampTo(el, to) {
 const Routes = {};
 function registerRoute(name, fn) { Routes[name] = fn; }
 function go(hash) { if (location.hash === "#" + hash) route(); else location.hash = hash; }
-function currentRoute(){
-  const h = location.hash.replace(/^#/,"").split("?")[0];
-  if(h.startsWith("confirm-")) return "confirm";
-  if(h.startsWith("brand-")) return "brand";                  // ← ADD THIS LINE
+function currentRoute() {
+  const h = location.hash.replace(/^#/, "").split("?")[0];
+  if (h.startsWith("confirm-")) return "confirm";
+  if (h.startsWith("brand-")) return "brand";                  // ← ADD THIS LINE
   return h;
 }
 
@@ -195,8 +196,8 @@ function maintenanceActive() { return !!(App.settings && App.settings.maintenanc
 function previewUnlocked() { try { return localStorage.getItem("excap_preview") === "1"; } catch (e) { return false; } }
 function canBypassMaintenance() { return !!(App.authed || App.isAdmin || previewUnlocked()); }
 
-async function route(){
-  window.scrollTo(0,0);
+async function route() {
+  window.scrollTo(0, 0);
   // Reset brand auto-open flag when leaving a specific brand item
   if (!location.hash.startsWith("#brand-")) window._brandAutoOpened = null;
   clearCountdowns();
@@ -255,70 +256,143 @@ function lockPreview() { try { localStorage.removeItem("excap_preview"); } catch
 /* ============================================================
    BOOT
    ============================================================ */
-async function boot(){
+async function boot() {
   if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-  window.scrollTo(0,0);
+  window.scrollTo(0, 0);
 
   // Initialize defaults but DON'T render yet
-  App.settings = App.settings || {...cfg.settings};
+  App.settings = App.settings || { ...cfg.settings };
   App.logos = App.logos || {};
   App.publicTeams = App.publicTeams || [];
   App.regs = App.regs || [];
   applyPreviewParam();
+  const minLoaderTime = 2800;
+  const loaderStart = Date.now();
 
   // Show a clean loading state while we wait for the real data
   $("#app").innerHTML = `
   <div class="boot-loader" id="boot-loader">
-    <div class="bl-bg">
-      <span class="bl-orb bl-orb-1"></span>
-      <span class="bl-orb bl-orb-2"></span>
-    </div>
-    <div class="bl-center">
-      <div class="bl-logo-ring">
-        <svg class="bl-ring" viewBox="0 0 120 120">
-          <circle class="bl-ring-track" cx="60" cy="60" r="54" fill="none" stroke-width="3"/>
-          <circle class="bl-ring-arc" cx="60" cy="60" r="54" fill="none" stroke-width="3" stroke-linecap="round"/>
-        </svg>
-        <div class="bl-logo">${logoImg("tournament","FT")}</div>
+    <div class="bl-stage">
+      <!-- animated pitch lines background -->
+      <svg class="bl-pitch" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="blPitchGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.15"/>
+            <stop offset="100%" stop-color="#db2777" stop-opacity="0.08"/>
+          </linearGradient>
+          <radialGradient id="blSpot" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <circle class="bl-spot bl-spot-1" cx="200" cy="180" r="200" fill="url(#blSpot)"/>
+        <circle class="bl-spot bl-spot-2" cx="1000" cy="620" r="220" fill="url(#blSpot)"/>
+        <g class="bl-lines" fill="none" stroke="url(#blPitchGrad)" stroke-width="2">
+          <rect x="80" y="60" width="1040" height="680" rx="4"/>
+          <line x1="600" y1="60" x2="600" y2="740"/>
+          <circle cx="600" cy="400" r="110"/>
+          <rect x="80" y="240" width="180" height="320"/>
+          <rect x="940" y="240" width="180" height="320"/>
+        </g>
+      </svg>
+
+      <!-- floating particles -->
+      <div class="bl-particles">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
       </div>
-      <div class="bl-name">EX-CAP <span>Football Tournament</span></div>
-      <div class="bl-tag">Alumni Association of SCPSC</div>
-      <div class="bl-dots"><span></span><span></span><span></span></div>
+
+      <!-- center: badge + wordmark + progress -->
+      <div class="bl-center">
+        <div class="bl-badge">
+          <svg class="bl-ring" viewBox="0 0 140 140">
+            <defs>
+              <linearGradient id="blArc" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#a78bfa"/>
+                <stop offset="100%" stop-color="#f472b6"/>
+              </linearGradient>
+            </defs>
+            <circle cx="70" cy="70" r="62" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="3"/>
+            <circle class="bl-arc" cx="70" cy="70" r="62" fill="none" stroke="url(#blArc)" stroke-width="3" stroke-linecap="round" stroke-dasharray="120 300"/>
+          </svg>
+          <div class="bl-shield">${logoImg("tournament", "FT")}</div>
+          <div class="bl-glow"></div>
+        </div>
+
+        <div class="bl-wordmark">
+          <div class="bl-title">
+            <span class="bl-word bl-w-1">EX</span><span class="bl-dash">-</span><span class="bl-word bl-w-2">CAP</span>
+          </div>
+          <div class="bl-subtitle">
+            <span>F</span><span>O</span><span>O</span><span>T</span><span>B</span><span>A</span><span>L</span><span>L</span>
+            <em>·</em>
+            <span>T</span><span>O</span><span>U</span><span>R</span><span>N</span><span>A</span><span>M</span><span>E</span><span>N</span><span>T</span>
+          </div>
+        </div>
+
+        <div class="bl-status">
+          <div class="bl-bar"><div class="bl-bar-fill"></div></div>
+          <div class="bl-status-text">
+            <span class="bl-msg" id="bl-msg">Warming up the pitch</span>
+            <span class="bl-dots"><i></i><i></i><i></i></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- corner tags -->
+      <div class="bl-corner bl-corner-tl">EX-CAP</div>
+      <div class="bl-corner bl-corner-tr">2026</div>
+      <div class="bl-corner bl-corner-bl">Alumni · SCPSC</div>
+      <div class="bl-corner bl-corner-br">v.${(cfg.version || "1.0")}</div>
     </div>
   </div>`;
 
+  // Rotate status messages for personality
+  const msgs = ["Warming up the pitch", "Lacing the boots", "Prepping the fixtures", "Almost kick-off"];
+  let mi = 0;
+  window._blMsgTimer = setInterval(() => {
+    const el = document.getElementById("bl-msg");
+    if (el) { mi = (mi + 1) % msgs.length; el.textContent = msgs[mi]; }
+  }, 900);
+
   // Hydrate from Firestore with a max wait of 2 seconds
-  try{ await Store.ready; }catch(e){}
+  try { await Store.ready; } catch (e) { }
   await Promise.race([
     (async () => {
-      try{ App.settings = await Store.getSettings(); }catch(e){}
-      try{ App.logos = await Store.getLogos(); }catch(e){}
-      try{ App.publicTeams = await Store.listPublicTeams(); }catch(e){}
+      try { App.settings = await Store.getSettings(); } catch (e) { }
+      try { App.logos = await Store.getLogos(); } catch (e) { }
+      try { App.publicTeams = await Store.listPublicTeams(); } catch (e) { }
     })(),
-    new Promise(r => setTimeout(r, 2000))
+    new Promise(r => setTimeout(r, 4000))
   ]);
 
   applyBrand((App.settings && App.settings.brand) || cfg.brand);
-  if(window.Notify && Notify.initEmail) Notify.initEmail();
+  if (window.Notify && Notify.initEmail) Notify.initEmail();
 
   // Wait briefly for Firebase auth restore
   await new Promise(res => {
     let done = false;
-    const finish = () => { if(!done){done = true; res();} };
-    if(Store.onAuth) Store.onAuth(u => { App.authed = !!u; if(u) App.isAdmin = true; finish(); });
+    const finish = () => { if (!done) { done = true; res(); } };
+    if (Store.onAuth) Store.onAuth(u => { App.authed = !!u; if (u) App.isAdmin = true; finish(); });
     setTimeout(finish, 1200);
   });
 
   // Wire subscriptions for live updates AFTER first render
-  if(Store.subscribeBrand){
-    Store.subscribeBrand(list => { App.brand = list; if(currentRoute() === "brand") route(); });
+  if (Store.subscribeBrand) {
+    Store.subscribeBrand(list => { App.brand = list; if (currentRoute() === "brand") route(); });
   }
 
-  // Fade the loader out, then render the real site
+  if (window._blMsgTimer) { clearInterval(window._blMsgTimer); window._blMsgTimer = null; }
+
+  // Enforce minimum loader time so users see the full animation sequence
+  const elapsed = Date.now() - loaderStart;
+  const remaining = Math.max(0, minLoaderTime - elapsed);
+  if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
+
   const bl = document.getElementById("boot-loader");
   if (bl) {
     bl.classList.add("bl-exit");
-    await new Promise(r => setTimeout(r, 320));
+    await new Promise(r => setTimeout(r, 500));
   }
   route();
 }

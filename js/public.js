@@ -74,6 +74,18 @@ function batchFields(idPrefix, d = {}) {
     <select id="${idPrefix}-hsc">${["", ...REG_YEARS].map(y => `<option value="${y}" ${d.hscBatch === y ? "selected" : ""}>${y || "Select HSC year"}</option>`).join("")}</select></div>`;
 }
 
+// Placeholder teams — shown only to public visitors for the "many teams entering" vibe.
+// Never touches Firestore. Never appears in admin views or exports.
+const PLACEHOLDER_TEAMS = [
+  { id:"PH01", type:"team", status:"approved", data:{ teamName:"Falcon FC",       category:"Alumni",  batch:"2015", logo:"" }, players:new Array(7).fill({}), _placeholder:true },
+  { id:"PH02", type:"team", status:"approved", data:{ teamName:"Titans United",   category:"Alumni",  batch:"2012", logo:"" }, players:new Array(7).fill({}), _placeholder:true },
+  { id:"PH03", type:"team", status:"approved", data:{ teamName:"SCPSC Strikers",  category:"Current", batch:"2024", logo:"" }, players:new Array(7).fill({}), _placeholder:true },
+  { id:"PH04", type:"team", status:"approved", data:{ teamName:"Legacy XI",       category:"Alumni",  batch:"2008", logo:"" }, players:new Array(7).fill({}), _placeholder:true },
+  { id:"PH05", type:"team", status:"approved", data:{ teamName:"Blue Wolves",     category:"Mixed",   batch:"—",    logo:"" }, players:new Array(7).fill({}), _placeholder:true },
+  { id:"PH06", type:"team", status:"approved", data:{ teamName:"Cadet Corps FC",  category:"Alumni",  batch:"2018", logo:"" }, players:new Array(7).fill({}), _placeholder:true },
+  { id:"PH07", type:"team", status:"approved", data:{ teamName:"Green Machines",  category:"Alumni",  batch:"2010", logo:"" }, players:new Array(7).fill({}), _placeholder:true }
+];
+
 /* ============================================================
    HOME
    ============================================================ */
@@ -158,7 +170,7 @@ function maintNotify(e) {
 registerRoute("home", renderHome);
 registerRoute("", renderHome);
 function renderHome() {
-  const s = App.settings, used = slotsUsed(), confirmedN = confirmedTeams().length;
+  const s = App.settings, used = slotsUsed(), confirmedN = confirmedCount();
   const confirmed = confirmedTeams();
   const stats = [[used, "Teams in"], [s.playersPerTeam, "Per squad"], [2, "Fields"], [20, "Min / match"], [getClubs().length, "Clubs"]];
   const phase = regPhase();
@@ -511,46 +523,7 @@ async function downloadBrandFile(url, filename){
   }
 }
 
-async function downloadBrandFile(url, filename){
-  // In-app browsers can't reliably download blobs — redirect user out
-  if(isInAppBrowser()){
-    showModal(`<div style="text-align:center;padding:8px">
-      <div style="font-size:52px;margin-bottom:12px">📲</div>
-      <h3 style="margin:0 0 10px;font-family:var(--font-display);font-weight:800">Open in your browser</h3>
-      <p style="color:var(--muted);font-size:14px;line-height:1.6;margin:0 0 20px">Downloads don't work inside this app. Tap the button below, then choose <b>"Open in browser"</b> from the menu (⋯) to save the file.</p>
-      <div style="background:var(--navy);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px;text-align:left">
-        <div style="font-size:11px;color:var(--muted-2);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Link</div>
-        <div style="font-size:12px;color:var(--ink);word-break:break-all;font-family:monospace">${esc(url)}</div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
-        <a class="btn btn-primary" href="${esc(url)}" target="_blank" rel="noopener">Open link</a>
-        <button class="btn btn-line" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(url)}').then(()=>toast('Link copied ✓'))">🔗 Copy link</button>
-        <button class="btn btn-ghost" onclick="closeModal()">Close</button>
-      </div>
-    </div>`, "narrow");
-    return;
-  }
 
-  // Normal browser — proper blob download
-  try{
-    toast("Downloading…");
-    const r = await fetch(url);
-    if(!r.ok) throw new Error("Failed to fetch");
-    const blob = await r.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = filename || "brand-material";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(blobUrl), 100);
-    toast("Downloaded ✓");
-  }catch(e){
-    window.open(url, "_blank");
-    toast("Opened in new tab — right-click to save", "warn");
-  }
-}
 
 function copyBrandLink(id){
   const url = "https://sports.excapscpsc.com/#brand"+(id?"-"+id:"");
@@ -564,6 +537,15 @@ function copyBrandLink(id){
   }
 }
 function teamCard(r) {
+  if (r._placeholder) {
+    const d = r.data || {}, hue = teamHue(d.teamName);
+    return `<div class="team-card team-placeholder" style="cursor:default">
+      <div class="tc-top"><div class="tc-logo" style="background:hsl(${hue} 70% 45%)">${esc(initials(d.teamName))}</div>
+      <div><div class="tc-name">${esc(d.teamName)}</div><div class="tc-cat">${esc(d.category || "")} ${d.batch ? "· " + esc(d.batch) : ""}</div></div></div>
+      <div class="tc-row"><span>Players</span><b>${r.players.length}/${App.settings.playersPerTeam}</b></div>
+      <div class="tc-row" style="border-bottom:0;padding-bottom:0"><span>Status</span><span class="pill ok">Confirmed</span></div>
+    </div>`;
+  }
   const d = r.data || {}, hue = teamHue(d.teamName);
   const st = r.status === "approved" ? ["ok", "Confirmed"] : r.status === "waitlist" ? ["wait", "Waiting list"] : ["rev", "Under review"];
   const batch = [d.sscBatch && "SSC " + d.sscBatch, d.hscBatch && "HSC " + d.hscBatch].filter(Boolean).join(" · ") || d.batch || "";
@@ -580,10 +562,13 @@ function teamCard(r) {
    ============================================================ */
 registerRoute("teams", function () {
   const list = teamRegs().filter(r => ["approved", "review", "submitted", "waitlist"].includes(r.status));
+  // Public visitors see extra placeholder cards for the "many teams" vibe; admins see only real teams
+  const displayList = App.isAdmin ? list : list.concat(PLACEHOLDER_TEAMS);
+  const displayConfirmedCount = confirmedCount();
   $("#app").innerHTML = anncHTML() + navHTML("teams") + `<div class="wrap page">
     <div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span><h1 class="ph">Teams</h1>
-    <p class="ph-sub">${confirmedTeams().length} confirmed · ${list.length} total entries</p></div>
-    <div class="team-grid">${list.length ? list.map(teamCard).join("") : `<div class="empty-wall">No teams yet.<br><br><button class="btn btn-primary" onclick="go('register-team')">Be the first</button></div>`}</div>
+    <p class="ph-sub">${displayConfirmedCount} confirmed · ${displayList.length} total entries</p></div>
+    <div class="team-grid">${displayList.length ? displayList.map(teamCard).join("") : `<div class="empty-wall">No teams yet.<br><br><button class="btn btn-primary" onclick="go('register-team')">Be the first</button></div>`}</div>
   </div>`+ footerHTML();
 });
 registerRoute("contact", function () {

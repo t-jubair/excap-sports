@@ -5,7 +5,8 @@
   "description": "EX-CAP Football Tournament platform (SCPSC alumni).",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "bump": "node -e \"const fs=require('fs');const t=fs.readFileSync('index.html','utf8');const nums=[...t.matchAll(/\\?v=(\\d+)/g)].map(m=>+m[1]);const n=(nums.length?Math.max(...nums):0)+1;fs.writeFileSync('index.html',t.replace(/\\?v=\\d+/g,'?v='+n));console.log('Bumped to ?v='+n);\""
   },
   "engines": { "node": ">=18" }
 }

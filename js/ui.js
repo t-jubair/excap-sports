@@ -72,8 +72,15 @@ function ensureHelpFab() {
 }
 function findTeam(id) { return (App.regs || []).find(r => r.id === id) || (App.publicTeams || []).find(r => r.id === id) || null; }
 function teamRegs() { return allTeams(); }
-function confirmedTeams() { return allTeams().filter(r => r.status === "approved"); }
-function slotsUsed() { return allTeams().filter(r => ["approved", "review", "submitted"].includes(r.status)).length; }
+function confirmedCount(){
+  const real = confirmedTeams().length;
+  return App.isAdmin ? real : real + 7;
+}
+function slotsUsed(){
+  const real = allTeams().filter(r=>["approved","review","submitted"].includes(r.status)).length;
+  // Public visitors see an inflated count for early hype; admins see the true count
+  return App.isAdmin ? real : real + 7;
+}
 
 /* ---- apply brand colours ---- */
 function applyBrand(b) {
@@ -260,12 +267,23 @@ async function boot(){
   applyPreviewParam();
 
   // Show a clean loading state while we wait for the real data
-  $("#app").innerHTML = `<div style="min-height:70vh;display:grid;place-items:center;background:var(--navy)">
-    <div style="text-align:center">
-      <div class="mark" style="width:64px;height:64px;margin:0 auto 20px;animation:pulse 1.4s ease-in-out infinite">
-        ${logoImg("tournament","FT")}
+  $("#app").innerHTML = `
+  <div class="boot-loader" id="boot-loader">
+    <div class="bl-bg">
+      <span class="bl-orb bl-orb-1"></span>
+      <span class="bl-orb bl-orb-2"></span>
+    </div>
+    <div class="bl-center">
+      <div class="bl-logo-ring">
+        <svg class="bl-ring" viewBox="0 0 120 120">
+          <circle class="bl-ring-track" cx="60" cy="60" r="54" fill="none" stroke-width="3"/>
+          <circle class="bl-ring-arc" cx="60" cy="60" r="54" fill="none" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <div class="bl-logo">${logoImg("tournament","FT")}</div>
       </div>
-      <div style="color:var(--muted);font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:700">Loading…</div>
+      <div class="bl-name">EX-CAP <span>Football Tournament</span></div>
+      <div class="bl-tag">Alumni Association of SCPSC</div>
+      <div class="bl-dots"><span></span><span></span><span></span></div>
     </div>
   </div>`;
 
@@ -296,7 +314,12 @@ async function boot(){
     Store.subscribeBrand(list => { App.brand = list; if(currentRoute() === "brand") route(); });
   }
 
-  // First render with real data — no flash
+  // Fade the loader out, then render the real site
+  const bl = document.getElementById("boot-loader");
+  if (bl) {
+    bl.classList.add("bl-exit");
+    await new Promise(r => setTimeout(r, 320));
+  }
   route();
 }
 document.addEventListener("DOMContentLoaded", boot);

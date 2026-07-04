@@ -39,7 +39,7 @@ async function renderAdmin() {
     });
     Store.subscribeRegs(list=>{
       App.regs = list;
-      if(currentRoute()==="admin"){ adminRegistrations(); adminOverview(); refreshNotifBadge(); }
+      if(currentRoute()==="admin"){ adminRegistrations(); adminDashboard(); refreshNotifBadge(); }
     });
     Store.subscribeSettings(s=>{ App.settings = s; });
     Store.subscribeTickets(list=>{

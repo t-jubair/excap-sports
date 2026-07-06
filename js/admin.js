@@ -31,24 +31,24 @@ async function renderAdmin() {
         refreshNotifBadge();
       }
     });
-    
+
     Store.subscribeSettings(s => { if (s) App.settings = s; });
     Store.subscribeTickets(list => {
       App.tickets = list;
       if (currentRoute() === "admin") { refreshNotifBadge(); }
     });
-    Store.subscribeRegs(list=>{
+    Store.subscribeRegs(list => {
       App.regs = list;
-      if(currentRoute()==="admin"){ adminRegistrations(); adminDashboard(); refreshNotifBadge(); }
+      if (currentRoute() === "admin") { adminRegistrations(); adminDashboard(); refreshNotifBadge(); }
     });
-    Store.subscribeSettings(s=>{ App.settings = s; });
-    Store.subscribeTickets(list=>{
+    Store.subscribeSettings(s => { App.settings = s; });
+    Store.subscribeTickets(list => {
       App.tickets = list;
-      if(currentRoute()==="admin"){ refreshNotifBadge(); }
+      if (currentRoute() === "admin") { refreshNotifBadge(); }
     });
-    Store.subscribeBrand(list=>{                                        // ← ADD THIS BLOCK
+    Store.subscribeBrand(list => {                                        // ← ADD THIS BLOCK
       App.brand = list;
-      if(currentRoute()==="admin" && adminTab==="brandkit") adminBrandKit();
+      if (currentRoute() === "admin" && adminTab === "brandkit") adminBrandKit();
     });
   }
   refreshNotifBadge();
@@ -136,7 +136,7 @@ async function renderAdmin() {
       o.start(); o.stop(A.currentTime + 0.3);
     } catch (e) { }
   }
-  
+
   // Track first user interaction so we know when audio is allowed
   ["click", "keydown", "touchstart"].forEach(evt => {
     document.addEventListener(evt, () => { window._userInteracted = true; }, { once: true });
@@ -235,17 +235,445 @@ function statusPill(s) { const m = { approved: ["ok", "Approved"], review: ["rev
 /* ---------- teams ---------- */
 function adminTeams() {
   const list = teamRegs();
-  $("#admin-body").innerHTML = `<div class="panel"><h3>Teams</h3><p class="ph-help">Approve to confirm a team — it appears publicly and the captain is notified by email + SMS.</p>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>ID</th><th>Team</th><th>Captain</th><th>Players</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-        ${list.map(r => `<tr>
-          <td class="num">${r.id}</td>
-          <td class="nm"><b>${esc(r.data.teamName)}</b><span>${esc(r.data.category || "")} ${r.data.batch ? "· " + esc(r.data.batch) : ""}</span></td>
-          <td>${esc(r.data.captainName || "—")}<br><span style="color:var(--muted-2);font-size:12px">${esc(r.contact || "")}</span></td>
-          <td>${(r.players || []).length}/${App.settings.playersPerTeam}</td>
-          <td><span class="pill ${r.paymentStatus === 'verified' ? 'ok' : 'rev'}">${esc(r.paymentStatus || '—')}</span></td>
-          <td>${statusPill(r.status)}</td>
-          <td>${actions(r)}</td></tr>`).join("") || `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">No teams yet.</td></tr>`}
-        </tbody></table></div></div>`;
+  // Group teams by SSC batch to show the batch summary
+  const batchGroups = {};
+  list.forEach(r => {
+    const b = r.data.sscBatch || r.data.batch || "—";
+    if (!batchGroups[b]) batchGroups[b] = [];
+    batchGroups[b].push(r);
+  });
+  const sortedBatches = Object.keys(batchGroups).sort();
+  const totalBatches = sortedBatches.filter(b => b !== "—").length;
+
+  $("#admin-body").innerHTML = `<div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+      <div>
+        <h3 style="margin:0">Teams</h3>
+        <p class="ph-help" style="margin:6px 0 0">Approve to confirm a team — it appears publicly and the captain is notified by email + SMS.</p>
+      </div>
+      <button class="btn btn-primary" onclick="showBatchReport()">📊 Batch report</button>
+    </div>
+
+    <div class="batch-summary">
+      <div class="bs-stat"><div class="bs-s-ic">👥</div><div><b>${list.length}</b><span>Total teams</span></div></div>
+      <div class="bs-stat"><div class="bs-s-ic">🎓</div><div><b>${totalBatches}</b><span>Batches represented</span></div></div>
+      <div class="bs-stat"><div class="bs-s-ic">✅</div><div><b>${list.filter(r => r.status === "approved").length}</b><span>Approved</span></div></div>
+    </div>
+
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>ID</th><th>Team</th><th>Captain</th><th>Batch</th><th>Players</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+    ${list.map(r => {
+    const batch = [r.data.sscBatch && "SSC " + r.data.sscBatch, r.data.hscBatch && "HSC " + r.data.hscBatch].filter(Boolean).join(" · ") || r.data.batch || "—";
+    return `<tr>
+        <td class="num">${r.id}</td>
+        <td class="nm"><b>${esc(r.data.teamName)}</b><span>${esc(r.data.category || "")}</span></td>
+        <td>${esc(r.data.captainName || "—")}<br><span style="color:var(--muted-2);font-size:12px">${esc(r.contact || "")}</span></td>
+        <td style="font-size:12px;color:var(--muted)">${esc(batch)}</td>
+        <td>${(r.players || []).length}/${App.settings.playersPerTeam}</td>
+        <td><span class="pill ${r.paymentStatus === 'verified' ? 'ok' : 'rev'}">${esc(r.paymentStatus || '—')}</span></td>
+        <td>${statusPill(r.status)}</td>
+        <td>${actions(r)}</td></tr>`;
+  }).join("") || `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">No teams yet.</td></tr>`}
+    </tbody></table></div>
+  </div>`;
+}
+
+function showBatchReport() {
+  const teams = teamRegs();
+  const groups = {};
+  teams.forEach(r => {
+    const b = r.data.sscBatch || r.data.batch || "Unspecified";
+    if (!groups[b]) groups[b] = [];
+    groups[b].push(r);
+  });
+  const sortedBatches = Object.keys(groups).sort((a, b) => {
+    if (a === "Unspecified") return 1;
+    if (b === "Unspecified") return -1;
+    return b.localeCompare(a); // newest first
+  });
+
+  showModal(`<div style="max-width:640px">
+    <h3 style="margin:0 0 6px">Batch report</h3>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 18px">Overview of which batches have registered teams. Download as a printable PDF.</p>
+
+    <div class="batch-preview">
+      ${sortedBatches.map(batch => `
+        <div class="bp-batch">
+          <div class="bp-batch-h">
+            <div>
+              <b>SSC ${esc(batch)}</b>
+              <span>${groups[batch].length} team${groups[batch].length === 1 ? "" : "s"}</span>
+            </div>
+          </div>
+          <div class="bp-teams">
+            ${groups[batch].map(t => `
+              <div class="bp-team">
+                <b>${esc(t.data.teamName || "—")}</b>
+                <span>${esc(t.data.captainName || "—")}</span>
+                <em>${esc(t.data.category || "—")}</em>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `).join("") || `<div style="text-align:center;color:var(--muted);padding:20px">No teams registered yet.</div>`}
+    </div>
+
+    <div class="form-actions" style="margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" onclick="downloadBatchReportPdf()">⤓ Download PDF report</button>
+    </div>
+  </div>`, "wide");
+}
+
+function downloadBatchReportPdf() {
+  const teams = teamRegs();
+  const groups = {};
+  teams.forEach(r => {
+    const b = r.data.sscBatch || r.data.batch || "Unspecified";
+    if (!groups[b]) groups[b] = [];
+    groups[b].push(r);
+  });
+  const sortedBatches = Object.keys(groups).sort((a, b) => {
+    if (a === "Unspecified") return 1;
+    if (b === "Unspecified") return -1;
+    return b.localeCompare(a);
+  });
+
+  const s = App.settings;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+  const timeStr = now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+
+  const totalTeams = teams.length;
+  const totalApproved = teams.filter(t => t.status === "approved").length;
+  const totalReview = teams.filter(t => t.status === "review").length;
+
+  const w = window.open("", "_blank");
+  if (!w) { toast("Allow pop-ups to download the PDF", "warn"); return; }
+
+  const logoTag = (key) => {
+    const up = App.logos && App.logos[key];
+    if (up) return `<img class="lg" src="${up}" alt="">`;
+    return `<img class="lg" src="${location.origin}/assets/logo-${key}.png" alt="" onerror="this.style.display='none'">`;
+  };
+
+  // Build ONE unified table with batch headers as separator rows — guarantees column alignment across all batches
+  let rowIndex = 0;
+  const allRows = sortedBatches.map(batch => {
+    const list = groups[batch];
+    const batchHeader = `<tr class="batch-sep"><td colspan="6">
+    <div class="bs-inner">
+      <span class="bs-tag">SSC ${esc(batch)}</span>
+      <span class="bs-count">${list.length} team${list.length === 1 ? "" : "s"}</span>
+    </div>
+  </td></tr>`;
+
+    const teamRows = list.map((t) => {
+      rowIndex++;
+      const zebra = rowIndex % 2 === 0 ? " zebra" : "";
+      const sscYear = t.data.sscBatch ? String(t.data.sscBatch).slice(-2) : "";
+      const hscYear = t.data.hscBatch ? String(t.data.hscBatch).slice(-2) : "";
+      const batchLine = (sscYear || hscYear)
+        ? `SSC '${sscYear}${hscYear ? ` · HSC '${hscYear}` : ""}`
+        : "—";
+      const statusColor = t.status === "approved" ? "#16a34a"
+        : t.status === "review" ? "#d97706"
+          : t.status === "rejected" ? "#dc2626"
+            : "#6b7280";
+      return `<tr class="team-row${zebra}">
+      <td class="c-idx">${rowIndex}</td>
+      <td class="c-name"><b>${esc(t.data.teamName || "—")}</b></td>
+      <td class="c-cap">${esc(t.data.captainName || "—")}</td>
+      <td class="c-batch">${esc(batchLine)}</td>
+      <td class="c-type">${esc(t.data.category || "—")}</td>
+      <td class="c-status"><span class="st" style="background:${statusColor}">${esc(t.status)}</span></td>
+    </tr>`;
+    }).join("");
+
+    return batchHeader + teamRows;
+  }).join("");
+
+  const batchSections = totalTeams === 0
+    ? `<div class="empty">No teams have registered yet.</div>`
+    : `<table class="unified-tbl">
+      <colgroup>
+        <col style="width:38px">
+        <col style="width:26%">
+        <col style="width:20%">
+        <col style="width:22%">
+        <col style="width:13%">
+        <col style="width:14%">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Team name</th>
+          <th>Captain</th>
+          <th>Batch (SSC · HSC)</th>
+          <th>Type</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>${allRows}</tbody>
+    </table>`;
+
+  const html = `<!doctype html><html><head><meta charset="utf-8">
+<title>Batch Report — ${esc(s.tournamentName || "EX-CAP")}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#f5f6fa;color:#0f1424;font-family:'Inter',system-ui,Arial,sans-serif;font-size:12px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .sheet{max-width:820px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 20px 50px -30px rgba(0,0,0,.35);border:1px solid #e6e8f0}
+  .head{position:relative;padding:24px 32px 22px;background:linear-gradient(120deg,#7c3aed,#db2777);color:#fff;overflow:hidden}
+  .head::after{content:"";position:absolute;right:-70px;top:-70px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.09)}
+  .head-top{display:flex;align-items:center;gap:14px;position:relative;z-index:1}
+  .head-logos{display:flex;gap:8px}
+  .head-logos .lg{width:42px;height:42px;border-radius:10px;background:#fff;padding:4px;object-fit:contain}
+  .head-title{flex:1}
+  .head-title h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:20px;letter-spacing:-.01em;line-height:1.1;text-transform:uppercase}
+  .head-title .k{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.85;margin-top:3px}
+  .meta{position:relative;z-index:1;margin-top:16px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:11px}
+  .meta div{opacity:.85}
+  .meta b{font-family:'Archivo',sans-serif;font-weight:800}
+  .body{padding:24px 32px 28px}
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .kpi {
+    background: linear-gradient(180deg, #f7f8fc, #f4f6fb);
+    border: 1px solid #e2e5f0;
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .kpi .n {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 26px;
+    color: #7c3aed;
+    letter-spacing: -.02em;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .kpi .l {
+    font-size: 9px;
+    color: #6b7280;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+  /* Unified table with locked columns for perfect row alignment */
+.unified-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: fixed;
+}
+.unified-tbl thead th {
+  background: #f7f8fc;
+  color: #6b7280;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 9.5px;
+  letter-spacing: .08em;
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 2px solid #e2e5f0;
+  vertical-align: middle;
+}
+.unified-tbl tbody td {
+  padding: 10px 10px;
+  border-bottom: 1px solid #eef0f7;
+  vertical-align: middle;
+  overflow: hidden;
+  word-wrap: break-word;
+}
+.unified-tbl .c-idx {
+  color: #9aa1b4;
+  font-weight: 600;
+  font-family: 'Inter', monospace;
+  text-align: center;
+}
+.unified-tbl .c-idx {
+  color: #9aa1b4;
+  font-weight: 700;
+  font-family: 'Inter', monospace;
+  text-align: center;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.unified-tbl .c-name {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
+}
+.unified-tbl .c-name b {
+  color: #0f1424;
+  font-weight: 700;
+}
+.unified-tbl .c-cap {
+  color: #334155;
+  font-weight: 500;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
+}
+.unified-tbl .c-batch {
+  color: #7c3aed;
+  font-weight: 700;
+  font-size: 10.5px;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: .01em;
+  white-space: normal;
+  line-height: 1.4;
+}
+.unified-tbl .c-type {
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.unified-tbl .c-status {
+  text-align: center;
+  white-space: nowrap;
+}
+.unified-tbl .c-type {
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 11px;
+}
+.unified-tbl .c-status { text-align: center; }
+
+/* Batch separator row — visually distinct but keeps table columns intact */
+.unified-tbl .batch-sep td {
+  background: linear-gradient(90deg, rgba(124,58,237,.06), rgba(219,39,119,.03));
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid #e2e5f0;
+  border-top: 1px solid #e2e5f0;
+}
+.unified-tbl .batch-sep:first-child td { border-top: 0; }
+.bs-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bs-tag {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 900;
+  font-size: 14px;
+  color: #7c3aed;
+  letter-spacing: -.005em;
+  text-transform: uppercase;
+}
+.bs-count {
+  font-size: 10.5px;
+  color: #fff;
+  background: #7c3aed;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+/* Team rows alternate subtle background for readability */
+.unified-tbl .team-row.zebra {
+  background: rgba(247,248,252,.5);
+}
+
+.st {
+  display: inline-block;
+  color: #fff;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  padding: 3px 7px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  min-width: 54px;
+  text-align: center;
+}
+.empty {
+  padding: 40px;
+  text-align: center;
+  color: #9aa1b4;
+  font-size: 13px;
+}
+
+/* Print rules — keep batch groups together, allow long tables to break naturally */
+@media print {
+  .unified-tbl .batch-sep td {
+    break-before: auto;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  .unified-tbl .team-row {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .unified-tbl thead {
+    display: table-header-group;
+  }
+}
+  .foot{background:#f7f8fc;padding:14px 32px;border-top:1px solid #eceef5;font-size:10.5px;color:#6b7280;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .foot .brand{font-family:'Archivo',sans-serif;font-weight:800;color:#7c3aed;letter-spacing:.08em}
+  @media print{
+    html,body{background:#fff}
+    .sheet{margin:0;box-shadow:none;border:0;max-width:none;border-radius:0}
+    @page{margin:12mm;size:A4}
+  }
+</style>
+</head><body>
+  <div class="sheet">
+    <div class="head">
+      <div class="head-top">
+        <div class="head-logos">${logoTag("scpsc")}${logoTag("tournament")}${logoTag("excap")}</div>
+        <div class="head-title">
+          <h1>${esc(s.tournamentName || "EX-CAP Football Tournament")} ${esc(s.edition || "")}</h1>
+          <div class="k">Team Batch Report · Organizer's Copy</div>
+        </div>
+      </div>
+      <div class="meta">
+        <div>Generated: <b>${esc(dateStr)}</b> · <b>${esc(timeStr)}</b></div>
+        <div>Venue: <b>${esc(s.venue || "SCPSC field")}</b></div>
+        <div>Match date: <b>${esc(s.tournamentDate ? new Date(s.tournamentDate).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "—")}</b></div>
+      </div>
+    </div>
+
+    <div class="body">
+      <div class="kpis">
+        <div class="kpi"><div class="n">${totalTeams}</div><div class="l">Total teams</div></div>
+        <div class="kpi"><div class="n">${sortedBatches.filter(b => b !== "Unspecified").length}</div><div class="l">Batches</div></div>
+        <div class="kpi"><div class="n">${totalApproved}</div><div class="l">Approved</div></div>
+        <div class="kpi"><div class="n">${totalReview}</div><div class="l">Under review</div></div>
+      </div>
+
+      ${batchSections}
+    </div>
+
+    <div class="foot">
+      <span>Report generated by EX-CAP admin platform</span>
+      <span class="brand">EX-CAP · ALUMNI OF SCPSC</span>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('load', function(){
+      requestAnimationFrame(function(){
+        setTimeout(function(){ window.print(); }, 500);
+      });
+    });
+  <\/script>
+</body></html>`;
+  w.document.write(html);
+  w.document.close();
 }
 
 /* ---------- registrations (with bulk actions) ---------- */
@@ -269,9 +697,9 @@ function adminRegistrations() {
           </tr></thead>
           <tbody>
           ${list.map(r => {
-            const photo = (r.data && r.data.photo) || (r.data && r.data.logo) || "";
-            const initials2 = esc((r.data.teamName || r.data.name || "?").slice(0, 2).toUpperCase());
-            return `<tr>
+    const photo = (r.data && r.data.photo) || (r.data && r.data.logo) || "";
+    const initials2 = esc((r.data.teamName || r.data.name || "?").slice(0, 2).toUpperCase());
+    return `<tr>
             <td><input type="checkbox" class="bulk-chk" value="${r.id}" onchange="bulkCount()"></td>
             <td>
               <div class="reg-thumb" onclick="editRegPhoto('${r.id}')" title="Click to edit photo">
@@ -286,7 +714,7 @@ function adminRegistrations() {
             <td>${statusPill(r.status)}</td>
             <td>${actions(r)}</td>
           </tr>`;
-          }).join("") || `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Nothing here yet.</td></tr>`}
+  }).join("") || `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Nothing here yet.</td></tr>`}
         </tbody></table></div>
       </div>`;
 }
@@ -323,6 +751,8 @@ function exportCsv() {
 function actions(r) {
   return `<div class="row-actions">
       ${r.status !== "approved" ? `<button class="btn btn-sm btn-pitch" onclick="approveReg('${r.id}')" title="Approve">✓</button>` : ""}
+      ${r.status !== "rejected" ? `<button class="btn btn-sm btn-warn" onclick="rejectReg('${r.id}')" title="Reject with reason">✕</button>` : ""}
+      <button class="btn btn-sm btn-line" onclick="editRegAll('${r.id}')" title="Edit all fields">✎</button>
       <button class="btn btn-sm btn-line" onclick="viewReg('${r.id}')" title="View profile">👁</button>
       <button class="btn btn-sm btn-line" onclick="passesModal('${r.id}')" title="QR passes">▦</button>
       <button class="btn btn-sm btn-line" onclick="downloadRegPdf('${r.id}')" title="Download PDF">⤓</button>
@@ -353,6 +783,304 @@ function editRegPhoto(id) {
       <button class="btn btn-primary" id="reg-photo-save" onclick="saveRegPhoto('${r.id}')">💾 Save photo</button>
     </div>
   </div>`, "narrow");
+}
+
+/* ============================================================
+   Registration full-edit modal — type-aware layout
+   ============================================================ */
+function editRegAll(id) {
+  const r = App.regs.find(x => x.id === id);
+  if (!r) return;
+  const d = r.data || {};
+
+  // Route to the right form based on registration type
+  if (r.type === "team") renderTeamEditor(r, d);
+  else if (r.type === "guest") renderGuestEditor(r, d);
+  else if (r.type === "volunteer") renderVolunteerEditor(r, d);
+  else renderVisitorEditor(r, d);
+}
+
+/* -- shared helpers used inside each editor -- */
+const _batchYears = (() => { const a = []; for (let y = 2032; y >= 1977; y--) a.push(String(y)); return a; })();
+const _fld = (key, label, val, opts = {}) =>
+  `<div class="fld">
+      <label class="fl">${esc(label)}${opts.req ? ' <span class="req">*</span>' : ""}</label>
+      <input id="er-${key}" value="${esc(val || "")}" ${opts.type ? `type="${opts.type}"` : ""} ${opts.ph ? `placeholder="${esc(opts.ph)}"` : ""}>
+    </div>`;
+const _sel = (key, label, val, options, opts = {}) =>
+  `<div class="fld">
+      <label class="fl">${esc(label)}${opts.req ? ' <span class="req">*</span>' : ""}</label>
+      <select id="er-${key}">${options.map(o =>
+    `<option value="${esc(o)}" ${o === val ? "selected" : ""}>${esc(o || "— select —")}</option>`).join("")}</select>
+    </div>`;
+const _txt = (key, label, val, opts = {}) =>
+  `<div class="fld">
+      <label class="fl">${esc(label)}</label>
+      <textarea id="er-${key}" rows="${opts.rows || 3}" placeholder="${esc(opts.ph || "")}">${esc(val || "")}</textarea>
+    </div>`;
+const _header = (r, d) => {
+  const currentPhoto = d.photo || d.logo || "";
+  const name = d.teamName || d.name || "—";
+  return `<div class="er-head">
+      <div class="er-photo-thumb" onclick="closeModal();editRegPhoto('${r.id}')" title="Click to change photo">
+        ${currentPhoto ? `<img src="${esc(currentPhoto)}">` : `<span>${esc(name.slice(0, 2).toUpperCase())}</span>`}
+        <span class="er-photo-badge">✎</span>
+      </div>
+      <div class="er-head-info">
+        <h3>Edit ${r.type} registration</h3>
+        <div class="er-head-meta">
+          <span class="er-id">${esc(r.id)}</span>
+          <span class="er-type">${esc(r.type)}</span>
+          <span class="pill ${r.status === 'approved' ? 'ok' : r.status === 'rejected' ? 'rej' : 'rev'}">${esc(r.status)}</span>
+        </div>
+      </div>
+    </div>`;
+};
+const _footer = (r) => `<div class="er-foot">
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-danger" onclick="closeModal();deleteReg('${r.id}')">🗑 Delete</button>
+    <button class="btn btn-primary" id="er-save" onclick="saveRegEdits('${r.id}')">💾 Save changes</button>
+  </div>`;
+const _statusSection = (r) => `
+    <section class="er-sec">
+      <h4>Status & internal notes</h4>
+      ${_sel("status", "Status", r.status, ["review", "approved", "waitlist", "rejected"])}
+      ${_txt("adminNotes", "Internal notes (not visible to registrant)", r.adminNotes, { rows: 2, ph: "Anything the organizers should remember about this registration…" })}
+    </section>`;
+
+/* -- TEAM editor -- */
+function renderTeamEditor(r, d) {
+  const players = r.players || [];
+  const guests = r.guests || [];
+  const playerRows = players.map((p, i) => `
+      <div class="er-player-row">
+        <span class="er-player-num">${i + 1}</span>
+        <input id="er-p-name-${i}" value="${esc(p.name || "")}" placeholder="Player name">
+        <input id="er-p-phone-${i}" value="${esc(p.phone || "")}" placeholder="Phone">
+        <select id="er-p-role-${i}">
+          ${["Player", "Captain", "Vice-captain"].map(role =>
+    `<option ${p.role === role ? "selected" : ""}>${role}</option>`).join("")}
+        </select>
+      </div>
+    `).join("");
+
+  showModal(`<div class="reg-editor">
+      ${_header(r, d)}
+  
+      <section class="er-sec">
+        <h4>Team basics</h4>
+        ${_fld("teamName", "Team name", d.teamName, { req: true })}
+        <div class="grid2">
+          ${_sel("category", "Category", d.category || "Alumni", ["Alumni", "Current", "Mixed"])}
+          ${_fld("tshirt", "T-shirt size (optional)", d.tshirt)}
+        </div>
+      </section>
+  
+      <section class="er-sec">
+        <h4>Captain & contact</h4>
+        <div class="grid2">
+          ${_fld("captainName", "Captain name", d.captainName, { req: true })}
+          ${_fld("captainPhone", "Captain phone", d.captainPhone || r.contact, { req: true, type: "tel" })}
+        </div>
+        <div class="grid2">
+          ${_fld("viceName", "Vice-captain", d.viceName)}
+          ${_fld("email", "Captain email", d.email || r.captainEmail, { type: "email" })}
+        </div>
+      </section>
+  
+      <section class="er-sec">
+        <h4>Batch</h4>
+        <div class="grid2">
+          ${_sel("sscBatch", "SSC batch", d.sscBatch, ["", ..._batchYears])}
+          ${_sel("hscBatch", "HSC batch", d.hscBatch, ["", ..._batchYears])}
+        </div>
+      </section>
+  
+      <section class="er-sec">
+        <h4>Players (${players.length}/${App.settings.playersPerTeam})</h4>
+        <div class="er-players">${playerRows || `<div class="er-empty">No players added yet.</div>`}</div>
+      </section>
+  
+      <section class="er-sec">
+        <h4>Payment</h4>
+        <div class="grid2">
+          ${_sel("paymentStatus", "Payment status", r.paymentStatus || "pending", ["pending", "submitted", "verified", "waived", "refunded"])}
+          ${_fld("paymentMethod", "Method", r.payment?.method || "bKash")}
+        </div>
+        <div class="grid2">
+          ${_fld("paymentTxn", "Transaction ID", r.payment?.txn)}
+          ${_fld("paymentSender", "Sender number", r.payment?.sender, { type: "tel" })}
+        </div>
+      </section>
+  
+      ${_statusSection(r)}
+      ${_footer(r)}
+    </div>`, "wide");
+}
+
+/* -- GUEST editor -- */
+function renderGuestEditor(r, d) {
+  showModal(`<div class="reg-editor">
+      ${_header(r, d)}
+  
+      <section class="er-sec">
+        <h4>Personal information</h4>
+        ${_fld("name", "Full name", d.name, { req: true })}
+        <div class="grid2">
+          ${_fld("contact", "Mobile", r.contact || d.phone, { req: true, type: "tel" })}
+          ${_fld("email", "Email", d.email, { req: true, type: "email" })}
+        </div>
+        ${_sel("category", "Category", d.category || "Alumni", ["Alumni", "Current student", "Family", "Friend", "Other"])}
+      </section>
+  
+      <section class="er-sec">
+        <h4>Batch</h4>
+        <div class="grid2">
+          ${_sel("sscBatch", "SSC batch", d.sscBatch, ["", ..._batchYears])}
+          ${_sel("hscBatch", "HSC batch", d.hscBatch, ["", ..._batchYears])}
+        </div>
+        ${_fld("nid", "NID number (optional)", d.nid, { ph: "For organizer records only" })}
+      </section>
+  
+      ${_statusSection(r)}
+      ${_footer(r)}
+    </div>`, "wide");
+}
+
+/* -- VISITOR editor -- */
+function renderVisitorEditor(r, d) {
+  showModal(`<div class="reg-editor">
+      ${_header(r, d)}
+  
+      <section class="er-sec">
+        <h4>Personal information</h4>
+        ${_fld("name", "Full name", d.name, { req: true })}
+        <div class="grid2">
+          ${_fld("contact", "Mobile", r.contact || d.phone, { req: true, type: "tel" })}
+          ${_fld("email", "Email", d.email, { type: "email" })}
+        </div>
+        ${_fld("relation", "Relation to team / player (optional)", d.relation)}
+      </section>
+  
+      <section class="er-sec">
+        <h4>Batch (optional)</h4>
+        <div class="grid2">
+          ${_sel("sscBatch", "SSC batch", d.sscBatch, ["", ..._batchYears])}
+          ${_sel("hscBatch", "HSC batch", d.hscBatch, ["", ..._batchYears])}
+        </div>
+      </section>
+  
+      ${_statusSection(r)}
+      ${_footer(r)}
+    </div>`, "wide");
+}
+
+/* -- VOLUNTEER editor -- */
+function renderVolunteerEditor(r, d) {
+  showModal(`<div class="reg-editor">
+      ${_header(r, d)}
+  
+      <section class="er-sec">
+        <h4>Personal information</h4>
+        ${_fld("name", "Full name", d.name, { req: true })}
+        <div class="grid2">
+          ${_fld("contact", "Mobile", r.contact || d.phone, { req: true, type: "tel" })}
+          ${_fld("email", "Email", d.email, { req: true, type: "email" })}
+        </div>
+      </section>
+  
+      <section class="er-sec">
+        <h4>Volunteering details</h4>
+        ${_fld("preferredRole", "Preferred role", d.preferredRole, { ph: "e.g. Registration desk, First aid, Referee assistant" })}
+        ${_fld("availability", "Availability", d.availability, { ph: "e.g. All day, Morning only" })}
+        ${_txt("experience", "Prior experience (optional)", d.experience, { rows: 2 })}
+      </section>
+  
+      <section class="er-sec">
+        <h4>Batch (optional)</h4>
+        <div class="grid2">
+          ${_sel("sscBatch", "SSC batch", d.sscBatch, ["", ..._batchYears])}
+          ${_sel("hscBatch", "HSC batch", d.hscBatch, ["", ..._batchYears])}
+        </div>
+      </section>
+  
+      ${_statusSection(r)}
+      ${_footer(r)}
+    </div>`, "wide");
+}
+
+/* -- unified save -- */
+async function saveRegEdits(id) {
+  const r = App.regs.find(x => x.id === id);
+  if (!r) return;
+  const btn = $("#er-save");
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Saving…';
+
+  const gv = k => { const el = document.getElementById("er-" + k); return el ? el.value.trim() : undefined; };
+  const setIf = (obj, key, v) => { if (v !== undefined) obj[key] = v; };
+
+  try {
+    r.data = r.data || {};
+
+    // Common fields present in all types
+    setIf(r.data, "category", gv("category"));
+    setIf(r.data, "sscBatch", gv("sscBatch"));
+    setIf(r.data, "hscBatch", gv("hscBatch"));
+    setIf(r.data, "email", gv("email"));
+    setIf(r.data, "nid", gv("nid"));
+
+    // Type-specific
+    if (r.type === "team") {
+      setIf(r.data, "teamName", gv("teamName"));
+      setIf(r.data, "captainName", gv("captainName"));
+      setIf(r.data, "captainPhone", gv("captainPhone"));
+      setIf(r.data, "viceName", gv("viceName"));
+      setIf(r.data, "tshirt", gv("tshirt"));
+      if (gv("captainPhone") !== undefined) r.contact = gv("captainPhone");
+      if (gv("email") !== undefined) r.captainEmail = gv("email");
+
+      // Players
+      const players = [];
+      (r.players || []).forEach((_, i) => {
+        players.push({
+          name: gv("p-name-" + i) || "",
+          phone: gv("p-phone-" + i) || "",
+          role: gv("p-role-" + i) || "Player",
+          status: r.players[i]?.status || "registered"
+        });
+      });
+      if (players.length) r.players = players;
+
+      // Payment
+      r.payment = r.payment || {};
+      setIf(r.payment, "method", gv("paymentMethod"));
+      setIf(r.payment, "txn", gv("paymentTxn"));
+      setIf(r.payment, "sender", gv("paymentSender"));
+      setIf(r, "paymentStatus", gv("paymentStatus"));
+    } else {
+      // Non-team types share these
+      setIf(r.data, "name", gv("name"));
+      if (gv("contact") !== undefined) r.contact = gv("contact");
+      setIf(r.data, "relation", gv("relation"));
+      setIf(r.data, "preferredRole", gv("preferredRole"));
+      setIf(r.data, "availability", gv("availability"));
+      setIf(r.data, "experience", gv("experience"));
+    }
+
+    // Status + notes (all types)
+    setIf(r, "status", gv("status"));
+    setIf(r, "adminNotes", gv("adminNotes"));
+
+    await Store.saveReg(r);
+    await Store.logAction("Edited registration", r.id);
+    toast("Saved ✓");
+    closeModal();
+    adminRegistrations();
+  } catch (e) {
+    btn.disabled = false;
+    btn.innerHTML = "💾 Save changes";
+    toast("Save failed: " + (e.message || "error"), "err");
+  }
 }
 
 async function saveRegPhoto(id) {
@@ -417,6 +1145,84 @@ async function removeRegPhoto(id) {
     adminRegistrations();
   } catch (e) {
     toast("Failed: " + (e.message || "error"), "err");
+  }
+}
+
+function rejectReg(id) {
+  const r = App.regs.find(x => x.id === id);
+  if (!r) return;
+  const name = r.data.teamName || r.data.name || r.type;
+
+  // Common reasons as quick-pick chips
+  const commonReasons = [
+    "Slots full — please try next edition",
+    "Incomplete player list",
+    "Payment not verified",
+    "Duplicate registration",
+    "Does not meet eligibility criteria"
+  ];
+
+  showModal(`<div style="max-width:480px">
+    <h3 style="margin:0 0 6px;color:#dc2626">Reject registration</h3>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 16px">Rejecting <b>${esc(name)}</b> (${esc(r.id)}). An SMS will be sent to the registrant with the reason.</p>
+
+    <label class="fl">Reason (will be sent in SMS) <span class="req">*</span></label>
+    <textarea id="rej-reason" rows="3" placeholder="Type the reason clearly and briefly..." style="width:100%"></textarea>
+    <div class="help" style="font-size:11px;color:var(--muted-2);margin-top:6px">Keep under 120 characters to fit in one SMS.</div>
+
+    <div style="margin-top:14px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);margin-bottom:8px">Quick reasons</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${commonReasons.map(reason => `
+          <button class="btn btn-sm btn-line" onclick="document.getElementById('rej-reason').value='${esc(reason)}'">${esc(reason)}</button>
+        `).join("")}
+      </div>
+    </div>
+
+    <div class="form-actions" style="margin-top:20px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="rej-confirm" onclick="confirmReject('${r.id}')">✕ Reject & send SMS</button>
+    </div>
+  </div>`, "narrow");
+
+  // Autofocus
+  setTimeout(() => { const t = document.getElementById("rej-reason"); if (t) t.focus(); }, 100);
+}
+
+async function confirmReject(id) {
+  const r = App.regs.find(x => x.id === id);
+  if (!r) return;
+  const reason = document.getElementById("rej-reason").value.trim();
+  if (!reason) { toast("Please enter a reason", "warn"); return; }
+
+  const btn = $("#rej-confirm");
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Rejecting…';
+
+  try {
+    r.status = "rejected";
+    r.rejectionReason = reason;
+    r.rejectedAt = Date.now();
+    await Store.saveReg(r);
+    await Store.logAction("Rejected registration", r.id + " — " + reason);
+
+    // Send rejection SMS
+    const phone = r.contact || r.data.phone || r.data.captainPhone || "";
+    let smsOk = false;
+    if (phone && window.Notify) {
+      const name = r.data.teamName || r.data.name || "there";
+      const shortId = r.id.replace("EXCAP-FT26-", "");
+      const smsBody = `Dear ${name},\nWe regret to inform you that your ${r.type} registration (${shortId}) for the EX-CAP Football Tournament could not be approved.\nReason: ${reason}\nFor questions, please contact us.\nRegards,\nEX-CAP`;
+      const result = await Notify.sendSMS({ to: phone, message: smsBody });
+      smsOk = result && result.ok;
+    }
+
+    toast(smsOk ? "Rejected. SMS sent ✓" : phone ? "Rejected. SMS failed — inform manually" : "Rejected. No phone on file", smsOk ? "" : "warn");
+    closeModal();
+    adminRegistrations();
+  } catch (e) {
+    btn.disabled = false;
+    btn.innerHTML = "✕ Reject & send SMS";
+    toast("Reject failed: " + (e.message || "error"), "err");
   }
 }
 
@@ -609,10 +1415,10 @@ function adminBranding() {
           <div><label class="fl">Magenta</label><div class="swatch"><input type="color" id="b-magenta" value="${App.settings.brand?.magenta || cfg.brand.magenta}"></div></div></div>
           <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="saveColors()">Apply colours</button></div>`;
 }
-function adminBrandKit(){
+function adminBrandKit() {
   const items = App.brand || [];
-  const categories = [...new Set(items.map(i=>i.category||"General"))];
-  const totalSize = items.reduce((a,i)=>a+(i.size||0),0);
+  const categories = [...new Set(items.map(i => i.category || "General"))];
+  const totalSize = items.reduce((a, i) => a + (i.size || 0), 0);
 
   $("#admin-body").innerHTML = `<div class="panel">
     <div class="brandkit-head">
@@ -631,7 +1437,7 @@ function adminBrandKit(){
 
     ${items.length ? `
       <div class="bk-grid">
-        ${items.map(item=>bkAdminCard(item)).join("")}
+        ${items.map(item => bkAdminCard(item)).join("")}
       </div>
     ` : `
       <div class="empty-wall" style="padding:60px 20px;text-align:center">
@@ -644,19 +1450,19 @@ function adminBrandKit(){
   </div>`;
 }
 
-function bkAdminCard(item){
-  const isImg = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(item.url||"") || (item.mime||"").startsWith("image/");
+function bkAdminCard(item) {
+  const isImg = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(item.url || "") || (item.mime || "").startsWith("image/");
   return `<div class="bk-card">
     <div class="bk-prev">
       ${isImg ? `<img src="${esc(item.url)}" alt="">` : `<div class="bk-file-ic">${bi_fileIcon(item.mime)}</div>`}
-      <span class="bk-badge">${esc(item.category||"General")}</span>
+      <span class="bk-badge">${esc(item.category || "General")}</span>
     </div>
     <div class="bk-body">
       <b>${esc(item.title)}</b>
-      ${item.description?`<span class="bk-desc">${esc(item.description)}</span>`:""}
+      ${item.description ? `<span class="bk-desc">${esc(item.description)}</span>` : ""}
       <div class="bk-meta">
-        ${item.mime?`<span class="chip">${esc((item.mime.split("/")[1]||"file").toUpperCase())}</span>`:""}
-        <span class="chip">${bi_fmtSize(item.size||0)}</span>
+        ${item.mime ? `<span class="chip">${esc((item.mime.split("/")[1] || "file").toUpperCase())}</span>` : ""}
+        <span class="chip">${bi_fmtSize(item.size || 0)}</span>
       </div>
       <div class="bk-actions">
         <button class="btn btn-sm btn-line" onclick="editBrandItem('${esc(item.id)}')">✎ Edit</button>
@@ -668,14 +1474,14 @@ function bkAdminCard(item){
   </div>`;
 }
 
-function editBrandItem(id){
-  const existing = id ? (App.brand||[]).find(x=>x.id===id) : null;
-  const item = existing || { id: "BR"+Date.now().toString(36).toUpperCase(), title:"", description:"", category:"Logos", url:"", path:"", mime:"", size:0, order:(App.brand||[]).length };
+function editBrandItem(id) {
+  const existing = id ? (App.brand || []).find(x => x.id === id) : null;
+  const item = existing || { id: "BR" + Date.now().toString(36).toUpperCase(), title: "", description: "", category: "Logos", url: "", path: "", mime: "", size: 0, order: (App.brand || []).length };
   showModal(`<div class="bk-editor">
     <div class="bk-ed-head">
-      <div class="bk-ed-ic">${existing?"✎":"＋"}</div>
+      <div class="bk-ed-ic">${existing ? "✎" : "＋"}</div>
       <div>
-        <h3>${existing?"Edit material":"Add brand material"}</h3>
+        <h3>${existing ? "Edit material" : "Add brand material"}</h3>
         <p>High-resolution files preserve quality for print, jerseys and social media.</p>
       </div>
     </div>
@@ -689,7 +1495,7 @@ function editBrandItem(id){
                 ${/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(item.url) ? `<img src="${esc(item.url)}" alt="">` : `<div class="bk-drop-file">${bi_fileIcon(item.mime)}</div>`}
                 <div class="bk-drop-info">
                   <b>Current file</b>
-                  <span>${esc(item.mime||"file")} · ${bi_fmtSize(item.size)}</span>
+                  <span>${esc(item.mime || "file")} · ${bi_fmtSize(item.size)}</span>
                 </div>
               </div>
             ` : `
@@ -717,37 +1523,37 @@ function editBrandItem(id){
           <div class="fld">
             <label class="fl">Category</label>
             <select id="bk-cat">
-              ${["Logos","Cover Photos","Posters","Icons","Fonts","Guidelines","Photos","Other"].map(c=>`<option ${item.category===c?"selected":""}>${c}</option>`).join("")}
+              ${["Logos", "Cover Photos", "Posters", "Icons", "Fonts", "Guidelines", "Photos", "Other"].map(c => `<option ${item.category === c ? "selected" : ""}>${c}</option>`).join("")}
             </select>
           </div>
           <div class="fld">
             <label class="fl">Order</label>
-            <input id="bk-order" type="number" value="${item.order||0}">
+            <input id="bk-order" type="number" value="${item.order || 0}">
           </div>
         </div>
         <div class="fld">
           <label class="fl">Description</label>
-          <textarea id="bk-desc" placeholder="Where and how to use">${esc(item.description||"")}</textarea>
+          <textarea id="bk-desc" placeholder="Where and how to use">${esc(item.description || "")}</textarea>
         </div>
       </div>
     </div>
 
     <div class="bk-ed-foot">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" id="bk-save" onclick="saveBrandItem('${esc(item.id)}')">💾 ${existing?"Save changes":"Add material"}</button>
+      <button class="btn btn-primary" id="bk-save" onclick="saveBrandItem('${esc(item.id)}')">💾 ${existing ? "Save changes" : "Add material"}</button>
     </div>
   </div>`, "wide");
 
   // Live filename preview on file selection
-  setTimeout(()=>{
+  setTimeout(() => {
     const f = document.getElementById("bk-file");
-    if(!f) return;
-    f.addEventListener("change", ()=>{
-      if(!f.files[0]) return;
+    if (!f) return;
+    f.addEventListener("change", () => {
+      if (!f.files[0]) return;
       const file = f.files[0];
       const inner = document.getElementById("bk-drop-inner");
       const isImg = file.type.startsWith("image/");
-      if(isImg){
+      if (isImg) {
         const reader = new FileReader();
         reader.onload = e => {
           inner.innerHTML = `<div class="bk-drop-current">
@@ -764,83 +1570,83 @@ function editBrandItem(id){
       }
       // Autofill title from filename if empty
       const titleInput = document.getElementById("bk-title");
-      if(titleInput && !titleInput.value){
-        titleInput.value = file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g," ").replace(/\b\w/g, c=>c.toUpperCase());
+      if (titleInput && !titleInput.value) {
+        titleInput.value = file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
       }
     });
 
     // Drag & drop styling
     const drop = document.getElementById("bk-drop");
-    ["dragover","dragenter"].forEach(evt=>drop.addEventListener(evt, e=>{e.preventDefault();drop.classList.add("dragging");}));
-    ["dragleave","drop"].forEach(evt=>drop.addEventListener(evt, e=>{e.preventDefault();drop.classList.remove("dragging");}));
-    drop.addEventListener("drop", e=>{
-      if(e.dataTransfer.files[0]){ f.files = e.dataTransfer.files; f.dispatchEvent(new Event("change")); }
+    ["dragover", "dragenter"].forEach(evt => drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.add("dragging"); }));
+    ["dragleave", "drop"].forEach(evt => drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.remove("dragging"); }));
+    drop.addEventListener("drop", e => {
+      if (e.dataTransfer.files[0]) { f.files = e.dataTransfer.files; f.dispatchEvent(new Event("change")); }
     });
   }, 50);
 }
 
-async function saveBrandItem(id){
-  const btn = $("#bk-save"); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Saving…';
-  const existing = (App.brand||[]).find(x=>x.id===id) || { id, order:(App.brand||[]).length };
+async function saveBrandItem(id) {
+  const btn = $("#bk-save"); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Saving…';
+  const existing = (App.brand || []).find(x => x.id === id) || { id, order: (App.brand || []).length };
   const item = {
     ...existing,
     title: val("bk-title"),
     category: val("bk-cat"),
     description: val("bk-desc"),
-    order: parseInt(val("bk-order"))||0,
+    order: parseInt(val("bk-order")) || 0,
     updated: Date.now()
   };
-  if(!item.title){ toast("Title required","warn"); btn.disabled=false; btn.innerHTML="💾 Save material"; return; }
+  if (!item.title) { toast("Title required", "warn"); btn.disabled = false; btn.innerHTML = "💾 Save material"; return; }
 
   const fileInput = $("#bk-file");
-  if(fileInput.files[0]){
+  if (fileInput.files[0]) {
     const f = fileInput.files[0];
-    if(f.size > 25*1024*1024){ toast("File too large (max 25 MB)","err"); btn.disabled=false; btn.innerHTML="💾 Save material"; return; }
-    try{
-      $("#bk-progress").style.display="block";
-      const uploaded = await Store.uploadBrandFile(f, pct=>{
-        $("#bk-bar").style.width = pct+"%";
+    if (f.size > 25 * 1024 * 1024) { toast("File too large (max 25 MB)", "err"); btn.disabled = false; btn.innerHTML = "💾 Save material"; return; }
+    try {
+      $("#bk-progress").style.display = "block";
+      const uploaded = await Store.uploadBrandFile(f, pct => {
+        $("#bk-bar").style.width = pct + "%";
         $("#bk-pct").textContent = `Uploading… ${pct}%`;
       });
       // If replacing, delete old file
-      if(item.path && item.path !== uploaded.path){
-        try{ await Store._fbSt.deleteObject(Store._fbSt.ref(Store._storage, item.path)); }catch(e){}
+      if (item.path && item.path !== uploaded.path) {
+        try { await Store._fbSt.deleteObject(Store._fbSt.ref(Store._storage, item.path)); } catch (e) { }
       }
       item.url = uploaded.url;
       item.path = uploaded.path;
       item.mime = uploaded.mime;
       item.size = uploaded.size;
-    }catch(e){
-      toast("Upload failed: "+(e.message||"error"),"err");
-      btn.disabled=false; btn.innerHTML="💾 Save material"; return;
+    } catch (e) {
+      toast("Upload failed: " + (e.message || "error"), "err");
+      btn.disabled = false; btn.innerHTML = "💾 Save material"; return;
     }
-  } else if(!item.url){
-    toast("Please upload a file","warn");
-    btn.disabled=false; btn.innerHTML="💾 Save material"; return;
+  } else if (!item.url) {
+    toast("Please upload a file", "warn");
+    btn.disabled = false; btn.innerHTML = "💾 Save material"; return;
   }
 
-  try{
+  try {
     await Store.saveBrand(item);
     await Store.logAction("Saved brand material", item.title);
-    toast(existing?"Material updated ✓":"Material added ✓");
+    toast(existing ? "Material updated ✓" : "Material added ✓");
     closeModal();
     adminBrandKit();
-  }catch(e){
-    toast("Save failed: "+e.message,"err");
-    btn.disabled=false; btn.innerHTML="💾 Save material";
+  } catch (e) {
+    toast("Save failed: " + e.message, "err");
+    btn.disabled = false; btn.innerHTML = "💾 Save material";
   }
 }
 
-async function deleteBrandItem(id){
-  const item = (App.brand||[]).find(x=>x.id===id); if(!item) return;
-  if(!confirm(`Delete "${item.title}"?\n\nThis will remove it from the public brand page. Cannot be undone.`)) return;
-  try{
+async function deleteBrandItem(id) {
+  const item = (App.brand || []).find(x => x.id === id); if (!item) return;
+  if (!confirm(`Delete "${item.title}"?\n\nThis will remove it from the public brand page. Cannot be undone.`)) return;
+  try {
     await Store.deleteBrand(id, item.path);
     await Store.logAction("Deleted brand material", item.title);
-    App.brand = (App.brand||[]).filter(x=>x.id!==id);
+    App.brand = (App.brand || []).filter(x => x.id !== id);
     toast("Deleted");
     adminBrandKit();
-  }catch(e){ toast("Delete failed: "+e.message,"err"); }
+  } catch (e) { toast("Delete failed: " + e.message, "err"); }
 }
 function clubEditRow(c, i) {
   return `<div class="club-edit" data-ci="${i}">

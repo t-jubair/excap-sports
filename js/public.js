@@ -1029,7 +1029,7 @@ registerRoute("register-guest", function () {
 
       <div class="fsec-h">Photo & ID</div>
       ${uploader("g-photo", "Photo (required — passport-style, will appear on your gate pass)")}
-      ${field("g-nid", "NID number", { req: false, ph: "Optional — for organizer records only" })}
+      ${field("g-nid", "NID number", { req: false, ph: "Please Enter Your NID Number" })}
 
       <div class="form-actions"><button class="btn btn-ghost" onclick="go('register')">← Cancel</button><button class="btn btn-pitch" id="submit-btn" onclick="submitGuest()">Submit ✓</button></div></div>
   </div>`+ footerHTML();

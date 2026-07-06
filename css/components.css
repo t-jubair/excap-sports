@@ -1914,3 +1914,33 @@ select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(1
     .bl-wordmark{margin-bottom:18px}
     .bl-corner{padding:8px 12px;font-size:8px}
   }
+
+  .reg-thumb {
+    position: relative;
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #1a1f36, #12162b);
+    border: 1px solid var(--line);
+    overflow: hidden;
+    cursor: pointer;
+    display: grid; place-items: center;
+    transition: .2s;
+  }
+  .reg-thumb:hover { border-color: var(--purple); transform: scale(1.06) }
+  .reg-thumb img { width: 100%; height: 100%; object-fit: cover }
+  .reg-thumb span:not(.reg-thumb-edit) {
+    font-family: var(--font-display);
+    font-weight: 800; font-size: 13px;
+    color: var(--muted-2);
+    letter-spacing: .04em;
+  }
+  .reg-thumb-edit {
+    position: absolute; bottom: -2px; right: -2px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--purple); color: #fff;
+    font-size: 10px; font-weight: 800;
+    display: grid; place-items: center;
+    border: 2px solid var(--navy-2);
+    opacity: 0; transition: .2s;
+  }
+  .reg-thumb:hover .reg-thumb-edit { opacity: 1 }

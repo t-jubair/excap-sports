@@ -264,18 +264,29 @@ function adminRegistrations() {
         <div class="tbl-wrap"><table class="tbl">
           <thead><tr>
             <th style="width:28px"><input type="checkbox" id="bulk-all" onchange="bulkAll(this.checked)"></th>
+            <th style="width:52px">Photo</th>
             <th>ID</th><th>Name</th><th>Type</th><th>Contact</th><th>Status</th><th>Actions</th>
           </tr></thead>
           <tbody>
-          ${list.map(r => `<tr>
+          ${list.map(r => {
+            const photo = (r.data && r.data.photo) || (r.data && r.data.logo) || "";
+            const initials2 = esc((r.data.teamName || r.data.name || "?").slice(0, 2).toUpperCase());
+            return `<tr>
             <td><input type="checkbox" class="bulk-chk" value="${r.id}" onchange="bulkCount()"></td>
+            <td>
+              <div class="reg-thumb" onclick="editRegPhoto('${r.id}')" title="Click to edit photo">
+                ${photo ? `<img src="${esc(photo)}" alt="">` : `<span>${initials2}</span>`}
+                <span class="reg-thumb-edit">✎</span>
+              </div>
+            </td>
             <td class="num">${r.id}</td>
             <td class="nm"><b>${esc(r.data.teamName || r.data.name)}</b><span>${r.type === "team" ? (r.players?.length || 0) + " players" : esc(r.data.category || r.data.class || "")}</span></td>
             <td style="text-transform:capitalize">${r.type}</td>
             <td>${esc(r.contact || "—")}</td>
             <td>${statusPill(r.status)}</td>
             <td>${actions(r)}</td>
-          </tr>`).join("") || `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">Nothing here yet.</td></tr>`}
+          </tr>`;
+          }).join("") || `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Nothing here yet.</td></tr>`}
         </tbody></table></div>
       </div>`;
 }
@@ -318,6 +329,97 @@ function actions(r) {
       <button class="btn btn-sm btn-danger" onclick="deleteReg('${r.id}')" title="Delete">🗑</button>
     </div>`;
 }
+
+function editRegPhoto(id) {
+  const r = App.regs.find(x => x.id === id);
+  if (!r) return;
+  const currentPhoto = (r.data && r.data.photo) || "";
+  showModal(`<div style="max-width:420px">
+    <h3 style="margin:0 0 6px">${currentPhoto ? "Update" : "Add"} photo</h3>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 16px">For <b>${esc(r.data.teamName || r.data.name || r.id)}</b> · ID: ${esc(r.id)}</p>
+
+    ${currentPhoto ? `<div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted-2);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Current photo</div>
+      <img src="${esc(currentPhoto)}" style="max-width:160px;max-height:160px;border-radius:12px;border:1px solid var(--line);background:#fff;padding:4px" alt="">
+    </div>` : ""}
+
+    <label class="fl">${currentPhoto ? "Replace with new photo" : "Upload photo"}</label>
+    <input type="file" id="reg-photo-file" accept="image/*" style="width:100%">
+    <div class="help" style="font-size:12px;color:var(--muted-2);margin-top:6px">JPG or PNG. Will be resized to fit the gate pass.</div>
+
+    <div class="form-actions" style="margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      ${currentPhoto ? `<button class="btn btn-danger" onclick="removeRegPhoto('${r.id}')">🗑 Remove</button>` : ""}
+      <button class="btn btn-primary" id="reg-photo-save" onclick="saveRegPhoto('${r.id}')">💾 Save photo</button>
+    </div>
+  </div>`, "narrow");
+}
+
+async function saveRegPhoto(id) {
+  const r = App.regs.find(x => x.id === id);
+  if (!r) return;
+  const file = $("#reg-photo-file").files[0];
+  if (!file) { toast("Pick a photo first", "warn"); return; }
+  if (file.size > 5 * 1024 * 1024) { toast("Photo too large (max 5 MB)", "err"); return; }
+
+  const btn = $("#reg-photo-save");
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Saving…';
+
+  try {
+    // Read + resize to keep Firestore document small (photo lives in the reg doc)
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const max = 480;
+          let w = img.width, h = img.height;
+          if (w > max || h > max) {
+            if (w > h) { h = Math.round(h * max / w); w = max; }
+            else { w = Math.round(w * max / h); h = max; }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", 0.85));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    r.data = r.data || {};
+    r.data.photo = dataUrl;
+    await Store.saveReg(r);
+    await Store.logAction("Updated photo", r.id);
+    toast("Photo saved ✓");
+    closeModal();
+    adminRegistrations();
+  } catch (e) {
+    btn.disabled = false;
+    btn.innerHTML = "💾 Save photo";
+    toast("Save failed: " + (e.message || "error"), "err");
+  }
+}
+
+async function removeRegPhoto(id) {
+  const r = App.regs.find(x => x.id === id);
+  if (!r) return;
+  if (!confirm(`Remove the photo for ${r.data.teamName || r.data.name}?`)) return;
+  try {
+    r.data.photo = "";
+    await Store.saveReg(r);
+    await Store.logAction("Removed photo", r.id);
+    toast("Photo removed");
+    closeModal();
+    adminRegistrations();
+  } catch (e) {
+    toast("Failed: " + (e.message || "error"), "err");
+  }
+}
+
 async function approveReg(id) {
   const r = App.regs.find(x => x.id === id); if (!r) return;
   r.status = "approved"; if (r.paymentStatus && r.paymentStatus === "submitted") r.paymentStatus = "verified";

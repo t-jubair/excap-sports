@@ -976,7 +976,7 @@ async function teamSubmit() {
     showModal(`<div class="emerg-card">
       <div class="emerg-ic" style="background:rgba(220,38,38,.12);border-color:#dc2626">⚠️</div>
       <h3>Registration didn't go through</h3>
-      <p class="emerg-msg">We couldn't save your registration right now. Please check your internet and try again — or contact us directly and we'll register you manually.</p>
+      <p class="emerg-msg">We couldn't save your registration. Reason:<br><b style="color:#dc2626">${esc(e && e.message ? e.message : (e && e.code) ? e.code : "Unknown error — check your connection")}</b><br><br>Please try again or contact us directly and we'll register you manually.</p>
       <div class="emerg-person">
         <div class="ep-ava">${esc(initials(em.name || "EX"))}</div>
         <div><b>${esc(em.name || "")}</b><span>${esc(em.role || "")}</span></div>
@@ -1027,7 +1027,9 @@ registerRoute("register-guest", function () {
         ${batchFields("g")}
       </div>
 
-      ${uploader("g-photo", "Photo")}
+      <div class="fsec-h">Photo & ID</div>
+      ${uploader("g-photo", "Photo (required — passport-style, will appear on your gate pass)")}
+      ${field("g-nid", "NID number", { req: false, ph: "Optional — for organizer records only" })}
 
       <div class="form-actions"><button class="btn btn-ghost" onclick="go('register')">← Cancel</button><button class="btn btn-pitch" id="submit-btn" onclick="submitGuest()">Submit ✓</button></div></div>
   </div>`+ footerHTML();
@@ -1035,18 +1037,26 @@ registerRoute("register-guest", function () {
 async function submitGuest() {
   if (!validate([
     ["g-name", nonEmpty, "Name required"],
-    ["g-phone", isPhone, "Valid mobile required"],
+    ["g-phone", isPhone, "Valid mobile required (11 digits, starts with 01)"],
     ["g-email", isEmail, "Valid email required"],
     ["g-ssc", nonEmpty, "SSC batch year is required"],
     ["g-hsc", nonEmpty, "HSC batch year is required"]
   ])) return;
+  // Photo required
+  if (!uploadData["g-photo"]) {
+    setErr("g-photo", "Please upload a photo — required for your gate pass");
+    const el = document.getElementById("g-photo");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    toast("Photo is required", "warn");
+    return;
+  }
   const btn = $("#submit-btn"); if (btn) { btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true; }
   let id;
   try { id = await Promise.race([Store.nextId("guest", "EXCAP-FT" + App.settings.edition.slice(-2) + "-G", 4), new Promise((_, rej) => setTimeout(() => rej("t"), 6000))]); }
   catch (e) { id = "EXCAP-FT" + App.settings.edition.slice(-2) + "-G" + Date.now().toString(36).toUpperCase().slice(-5); }
   const rec = {
     id, type: "guest", status: "review", created: Date.now(),
-    data: { name: val("g-name"), category: "Alumni", sscBatch: val("g-ssc"), hscBatch: val("g-hsc"), email: val("g-email"), photo: uploadData["g-photo"] || "" },
+    data: { name: val("g-name"), category: "Alumni", sscBatch: val("g-ssc"), hscBatch: val("g-hsc"), email: val("g-email"), nid: val("g-nid"), photo: uploadData["g-photo"] || "" },
     contact: val("g-phone")
   };
   try { await Store.saveReg(rec); }
@@ -1055,7 +1065,7 @@ async function submitGuest() {
   showModal(`<div class="emerg-card">
     <div class="emerg-ic" style="background:rgba(220,38,38,.12);border-color:#dc2626">⚠️</div>
     <h3>Registration didn't go through</h3>
-    <p class="emerg-msg">We couldn't save your registration right now. Please check your internet and try again — or contact us directly and we'll register you manually.</p>
+    <p class="emerg-msg">We couldn't save your registration. Reason:<br><b style="color:#dc2626">${esc(e && e.message ? e.message : (e && e.code) ? e.code : "Unknown error — check your connection")}</b><br><br>Please try again or contact us directly and we'll register you manually.</p>
     <div class="emerg-person">
       <div class="ep-ava">${esc(initials(em.name||"EX"))}</div>
       <div><b>${esc(em.name||"")}</b><span>${esc(em.role||"")}</span></div>
@@ -1212,7 +1222,7 @@ async function submitVisitor() {
   showModal(`<div class="emerg-card">
     <div class="emerg-ic" style="background:rgba(220,38,38,.12);border-color:#dc2626">⚠️</div>
     <h3>Registration didn't go through</h3>
-    <p class="emerg-msg">We couldn't save your registration right now. Please check your internet and try again — or contact us directly and we'll register you manually.</p>
+    <p class="emerg-msg">We couldn't save your registration. Reason:<br><b style="color:#dc2626">${esc(e && e.message ? e.message : (e && e.code) ? e.code : "Unknown error — check your connection")}</b><br><br>Please try again or contact us directly and we'll register you manually.</p>
     <div class="emerg-person">
       <div class="ep-ava">${esc(initials(em.name||"EX"))}</div>
       <div><b>${esc(em.name||"")}</b><span>${esc(em.role||"")}</span></div>
@@ -1297,7 +1307,7 @@ async function submitVolunteer() {
   showModal(`<div class="emerg-card">
     <div class="emerg-ic" style="background:rgba(220,38,38,.12);border-color:#dc2626">⚠️</div>
     <h3>Registration didn't go through</h3>
-    <p class="emerg-msg">We couldn't save your registration right now. Please check your internet and try again — or contact us directly and we'll register you manually.</p>
+    <p class="emerg-msg">We couldn't save your registration. Reason:<br><b style="color:#dc2626">${esc(e && e.message ? e.message : (e && e.code) ? e.code : "Unknown error — check your connection")}</b><br><br>Please try again or contact us directly and we'll register you manually.</p>
     <div class="emerg-person">
       <div class="ep-ava">${esc(initials(em.name||"EX"))}</div>
       <div><b>${esc(em.name||"")}</b><span>${esc(em.role||"")}</span></div>

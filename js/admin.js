@@ -1211,7 +1211,7 @@ async function confirmReject(id) {
     if (phone && window.Notify) {
       const name = r.data.teamName || r.data.name || "there";
       const shortId = r.id.replace("EXCAP-FT26-", "");
-      const smsBody = `Dear ${name},\nWe regret to inform you that your ${r.type} registration (${shortId}) for the EX-CAP Football Tournament could not be approved.\nReason: ${reason}\nFor questions, please contact us.\nRegards,\nEX-CAP`;
+      const smsBody = `Dear ${name},\nWe regret to inform you that your ${r.type} registration (${shortId}) for the EX-CAP Football Tournament could not be approved.\nReason: ${reason}\nFor questions, please contact 01711988862.\nRegards,\nEX-CAP`;
       const result = await Notify.sendSMS({ to: phone, message: smsBody });
       smsOk = result && result.ok;
     }

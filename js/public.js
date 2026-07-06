@@ -77,13 +77,13 @@ function batchFields(idPrefix, d = {}) {
 // Placeholder teams — shown only to public visitors for the "many teams entering" vibe.
 // Never touches Firestore. Never appears in admin views or exports.
 const PLACEHOLDER_TEAMS = [
-  { id:"PH01", type:"team", status:"approved", data:{ teamName:"Falcon FC",       category:"Alumni",  batch:"2015", logo:"" }, players:new Array(7).fill({}), _placeholder:true },
-  { id:"PH02", type:"team", status:"approved", data:{ teamName:"Titans United",   category:"Alumni",  batch:"2012", logo:"" }, players:new Array(7).fill({}), _placeholder:true },
-  { id:"PH03", type:"team", status:"approved", data:{ teamName:"SCPSC Strikers",  category:"Current", batch:"2024", logo:"" }, players:new Array(7).fill({}), _placeholder:true },
-  { id:"PH04", type:"team", status:"approved", data:{ teamName:"Legacy XI",       category:"Alumni",  batch:"2008", logo:"" }, players:new Array(7).fill({}), _placeholder:true },
-  { id:"PH05", type:"team", status:"approved", data:{ teamName:"Blue Wolves",     category:"Mixed",   batch:"—",    logo:"" }, players:new Array(7).fill({}), _placeholder:true },
-  { id:"PH06", type:"team", status:"approved", data:{ teamName:"Cadet Corps FC",  category:"Alumni",  batch:"2018", logo:"" }, players:new Array(7).fill({}), _placeholder:true },
-  { id:"PH07", type:"team", status:"approved", data:{ teamName:"Green Machines",  category:"Alumni",  batch:"2010", logo:"" }, players:new Array(7).fill({}), _placeholder:true }
+  { id: "PH01", type: "team", status: "approved", data: { teamName: "Falcon FC", category: "Alumni", batch: "2015", logo: "" }, players: new Array(7).fill({}), _placeholder: true },
+  { id: "PH02", type: "team", status: "approved", data: { teamName: "Titans United", category: "Alumni", batch: "2012", logo: "" }, players: new Array(7).fill({}), _placeholder: true },
+  { id: "PH03", type: "team", status: "approved", data: { teamName: "SCPSC Strikers", category: "Current", batch: "2024", logo: "" }, players: new Array(7).fill({}), _placeholder: true },
+  { id: "PH04", type: "team", status: "approved", data: { teamName: "Legacy XI", category: "Alumni", batch: "2008", logo: "" }, players: new Array(7).fill({}), _placeholder: true },
+  { id: "PH05", type: "team", status: "approved", data: { teamName: "Blue Wolves", category: "Mixed", batch: "—", logo: "" }, players: new Array(7).fill({}), _placeholder: true },
+  { id: "PH06", type: "team", status: "approved", data: { teamName: "Cadet Corps FC", category: "Alumni", batch: "2018", logo: "" }, players: new Array(7).fill({}), _placeholder: true },
+  { id: "PH07", type: "team", status: "approved", data: { teamName: "Green Machines", category: "Alumni", batch: "2010", logo: "" }, players: new Array(7).fill({}), _placeholder: true }
 ];
 
 /* ============================================================
@@ -255,12 +255,13 @@ function renderHome() {
         <span>Build your squad</span>
         <span class="ag-l-arr">→</span>
       </button>
-      <button class="ag-link reveal d3" onclick="go('register-guest')">
-        <span class="ag-l-ic">🎟️</span>
-        <b>Guest entry</b>
-        <span>Free QR pass</span>
-        <span class="ag-l-arr">→</span>
-      </button>
+      <button class="ag-link ag-link-featured reveal d3" onclick="go('register-guest')">
+  <span class="ag-l-badge">🎉 FREE</span>
+  <span class="ag-l-ic">🎟️</span>
+  <b>Guest entry</b>
+  <span>Everyone must register to enjoy the tournament</span>
+  <span class="ag-l-arr">→</span>
+</button>
     </div>
   </div></section>
 
@@ -337,14 +338,14 @@ function renderHome() {
     });
   }
 }
-registerRoute("brand", function(){
-  const wanted = (location.hash.match(/^#brand-(.+)$/)||[])[1];
+registerRoute("brand", function () {
+  const wanted = (location.hash.match(/^#brand-(.+)$/) || [])[1];
   const items = App.brand || [];
-  const categories = [...new Set(items.map(i=>i.category||"General"))];
+  const categories = [...new Set(items.map(i => i.category || "General"))];
   const total = items.length;
-  const totalSize = items.reduce((a,i)=>a+(i.size||0), 0);
+  const totalSize = items.reduce((a, i) => a + (i.size || 0), 0);
 
-  $("#app").innerHTML = anncHTML()+navHTML("")+`
+  $("#app").innerHTML = anncHTML() + navHTML("") + `
     <div class="wrap page brand-page">
       <div class="brand-hero">
         <div class="bh-eyebrow">Brand & Media Kit</div>
@@ -356,7 +357,7 @@ registerRoute("brand", function(){
             <div class="bh-stat"><b>${categories.length}</b><span>Categories</span></div>
             <div class="bh-stat"><b>${bi_fmtSize(totalSize)}</b><span>Total size</span></div>
           </div>
-        `:""}
+        `: ""}
         <div class="bh-actions">
           <button class="btn btn-primary" onclick="copyBrandLink()">🔗 Share this page</button>
           <button class="btn btn-line" onclick="go('home')">← Back to home</button>
@@ -372,46 +373,46 @@ registerRoute("brand", function(){
       ` : `
         <nav class="brand-nav">
           <button class="bn-chip active" onclick="filterBrand('all', event)">All (${total})</button>
-          ${categories.map(cat=>`
-            <button class="bn-chip" onclick="filterBrand('${esc(cat)}', event)">${esc(cat)} (${items.filter(i=>(i.category||"General")===cat).length})</button>
+          ${categories.map(cat => `
+            <button class="bn-chip" onclick="filterBrand('${esc(cat)}', event)">${esc(cat)} (${items.filter(i => (i.category || "General") === cat).length})</button>
           `).join("")}
         </nav>
 
         <div class="brand-grid" id="brand-grid">
-          ${items.map((item,idx)=>brandCard(item, idx, wanted)).join("")}
+          ${items.map((item, idx) => brandCard(item, idx, wanted)).join("")}
         </div>
       `}
-    </div>`+footerHTML();
+    </div>`+ footerHTML();
 
-  if(wanted && !window.brandAutoOpened){
+  if (wanted && !window.brandAutoOpened) {
     window._brandAutoOpened = wanted;
-    setTimeout(()=>{
-      const el = document.getElementById("brand-"+wanted);
-      if(el){
-        el.scrollIntoView({behavior:"smooth", block:"center"});
-        setTimeout(()=>previewBrand(wanted), 600);
+    setTimeout(() => {
+      const el = document.getElementById("brand-" + wanted);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => previewBrand(wanted), 600);
       }
     }, 200);
   }
 });
 
-function brandCard(item, idx, highlightId){
-  const isImg = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(item.url||"") || (item.mime||"").startsWith("image/");
-  const filename = `${(item.title||"brand").replace(/[^a-zA-Z0-9]/g,"_")}${bi_ext(item.mime)}`;
-  return `<div class="brand-item ${highlightId===item.id?'highlight':''} reveal" id="brand-${esc(item.id)}" data-cat="${esc(item.category||"General")}" style="animation-delay:${idx*40}ms">
+function brandCard(item, idx, highlightId) {
+  const isImg = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(item.url || "") || (item.mime || "").startsWith("image/");
+  const filename = `${(item.title || "brand").replace(/[^a-zA-Z0-9]/g, "_")}${bi_ext(item.mime)}`;
+  return `<div class="brand-item ${highlightId === item.id ? 'highlight' : ''} reveal" id="brand-${esc(item.id)}" data-cat="${esc(item.category || "General")}" style="animation-delay:${idx * 40}ms">
     <div class="bi-preview" onclick="previewBrand('${esc(item.id)}')">
-    ${isImg ? `<img src="${esc(item.url)}" alt="${esc(item.title)}" loading="lazy" decoding="async" onload="this.classList.add('loaded')" onerror="this.classList.add('failed')">`: `<div class="bi-file-ic">${bi_fileIcon(item.mime)}</div>`}
+    ${isImg ? `<img src="${esc(item.url)}" alt="${esc(item.title)}" loading="lazy" decoding="async" onload="this.classList.add('loaded')" onerror="this.classList.add('failed')">` : `<div class="bi-file-ic">${bi_fileIcon(item.mime)}</div>`}
       <div class="bi-overlay">
         <div class="bi-zoom-btn">🔍 View</div>
       </div>
-      ${item.mime?`<span class="bi-badge">${esc((item.mime.split("/")[1]||"file").toUpperCase())}</span>`:""}
+      ${item.mime ? `<span class="bi-badge">${esc((item.mime.split("/")[1] || "file").toUpperCase())}</span>` : ""}
     </div>
     <div class="bi-body">
-      <div class="bi-cat">${esc(item.category||"General")}</div>
+      <div class="bi-cat">${esc(item.category || "General")}</div>
       <b class="bi-title">${esc(item.title)}</b>
-      ${item.description?`<span class="bi-desc">${esc(item.description)}</span>`:""}
+      ${item.description ? `<span class="bi-desc">${esc(item.description)}</span>` : ""}
       <div class="bi-footer">
-        <span class="bi-size">${bi_fmtSize(item.size||0)}</span>
+        <span class="bi-size">${bi_fmtSize(item.size || 0)}</span>
         <div class="bi-actions">
           <button class="bi-btn dl" onclick="downloadBrandFile('${esc(item.url)}','${esc(filename)}')" title="Download">
             <span class="bi-btn-ic">⤓</span><span class="bi-btn-tx">Download</span>
@@ -425,65 +426,65 @@ function brandCard(item, idx, highlightId){
   </div>`;
 }
 
-function filterBrand(cat, ev){
-  document.querySelectorAll(".bn-chip").forEach(c=>c.classList.remove("active"));
-  if(ev && ev.target) ev.target.classList.add("active");
-  document.querySelectorAll("#brand-grid .brand-item").forEach(el=>{
-    el.style.display = (cat==="all" || el.dataset.cat===cat) ? "" : "none";
+function filterBrand(cat, ev) {
+  document.querySelectorAll(".bn-chip").forEach(c => c.classList.remove("active"));
+  if (ev && ev.target) ev.target.classList.add("active");
+  document.querySelectorAll("#brand-grid .brand-item").forEach(el => {
+    el.style.display = (cat === "all" || el.dataset.cat === cat) ? "" : "none";
   });
 }
 
-function bi_fileIcon(mime){
-  if(!mime) return "📄";
-  if(mime.startsWith("image/")) return "🖼️";
-  if(mime.includes("pdf")) return "📕";
-  if(mime.includes("zip")||mime.includes("compressed")) return "🗜️";
+function bi_fileIcon(mime) {
+  if (!mime) return "📄";
+  if (mime.startsWith("image/")) return "🖼️";
+  if (mime.includes("pdf")) return "📕";
+  if (mime.includes("zip") || mime.includes("compressed")) return "🗜️";
   return "📄";
 }
-function bi_fmtSize(bytes){
-  if(!bytes) return "—";
-  if(bytes<1024) return bytes+" B";
-  if(bytes<1024*1024) return (bytes/1024).toFixed(0)+" KB";
-  return (bytes/1024/1024).toFixed(1)+" MB";
+function bi_fmtSize(bytes) {
+  if (!bytes) return "—";
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + " KB";
+  return (bytes / 1024 / 1024).toFixed(1) + " MB";
 }
-function bi_ext(mime){
-  if(!mime) return "";
-  const m={"image/png":".png","image/jpeg":".jpg","image/gif":".gif","image/webp":".webp","image/svg+xml":".svg","application/pdf":".pdf","application/zip":".zip"};
-  return m[mime]||"";
+function bi_ext(mime) {
+  if (!mime) return "";
+  const m = { "image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif", "image/webp": ".webp", "image/svg+xml": ".svg", "application/pdf": ".pdf", "application/zip": ".zip" };
+  return m[mime] || "";
 }
 
-function previewBrand(id){
-  const item = (App.brand||[]).find(x=>x.id===id); if(!item) return;
-  const isImg = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(item.url||"") || (item.mime||"").startsWith("image/");
+function previewBrand(id) {
+  const item = (App.brand || []).find(x => x.id === id); if (!item) return;
+  const isImg = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(item.url || "") || (item.mime || "").startsWith("image/");
   showModal(`<div class="brand-preview">
     <div class="bp-header">
-      <div class="bp-title"><b>${esc(item.title)}</b>${item.description?`<span>${esc(item.description)}</span>`:""}</div>
+      <div class="bp-title"><b>${esc(item.title)}</b>${item.description ? `<span>${esc(item.description)}</span>` : ""}</div>
       <div class="bp-meta">
-        <span class="chip">${esc(item.category||"General")}</span>
-        ${item.mime?`<span class="chip">${esc((item.mime.split("/")[1]||"file").toUpperCase())}</span>`:""}
-        ${item.size?`<span class="chip">${bi_fmtSize(item.size)}</span>`:""}
+        <span class="chip">${esc(item.category || "General")}</span>
+        ${item.mime ? `<span class="chip">${esc((item.mime.split("/")[1] || "file").toUpperCase())}</span>` : ""}
+        ${item.size ? `<span class="chip">${bi_fmtSize(item.size)}</span>` : ""}
       </div>
     </div>
     <div class="bp-body">
       ${isImg ? `<img src="${esc(item.url)}" alt="">` : `<div class="bp-file"><div class="bp-file-ic">${bi_fileIcon(item.mime)}</div><b>${esc(item.title)}</b></div>`}
     </div>
     <div class="bp-actions">
-      <button class="btn btn-primary" onclick="downloadBrandFile('${esc(item.url)}','${esc((item.title||'brand').replace(/[^a-zA-Z0-9]/g,'_'))}${bi_ext(item.mime)}')">⤓ Download</button>
+      <button class="btn btn-primary" onclick="downloadBrandFile('${esc(item.url)}','${esc((item.title || 'brand').replace(/[^a-zA-Z0-9]/g, '_'))}${bi_ext(item.mime)}')">⤓ Download</button>
       <button class="btn btn-line" onclick="copyBrandLink('${esc(id)}')">🔗 Copy link</button>
       <button class="btn btn-ghost" onclick="closeModal()">Close</button>
     </div>
   </div>`, "wide");
 }
 
-function isInAppBrowser(){
+function isInAppBrowser() {
   const ua = (navigator.userAgent || "").toLowerCase();
   return /fban|fbav|fbios|instagram|line|micromessenger|tiktok|snapchat|linkedin|twitter|whatsapp|threads|messenger/.test(ua);
 }
 
-async function downloadBrandFile(url, filename){
+async function downloadBrandFile(url, filename) {
   // In-app browsers (Messenger, Instagram, Facebook, etc.) silently block blob downloads.
   // Guide the user to open in their real browser instead.
-  if(isInAppBrowser()){
+  if (isInAppBrowser()) {
     const safeUrl = String(url).replace(/'/g, "\\'");
     showModal(`<div style="text-align:center;padding:8px">
       <div style="font-size:52px;margin-bottom:12px">📲</div>
@@ -503,10 +504,10 @@ async function downloadBrandFile(url, filename){
   }
 
   // Normal browser — proper blob download
-  try{
+  try {
     toast("Downloading…");
     const r = await fetch(url);
-    if(!r.ok) throw new Error("Failed to fetch");
+    if (!r.ok) throw new Error("Failed to fetch");
     const blob = await r.blob();
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -515,9 +516,9 @@ async function downloadBrandFile(url, filename){
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(blobUrl), 100);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
     toast("Downloaded ✓");
-  }catch(e){
+  } catch (e) {
     window.open(url, "_blank");
     toast("Opened in new tab — right-click to save", "warn");
   }
@@ -525,11 +526,11 @@ async function downloadBrandFile(url, filename){
 
 
 
-function copyBrandLink(id){
-  const url = "https://sports.excapscpsc.com/#brand"+(id?"-"+id:"");
-  const done = ()=>toast("Link copied — ready to share ✓");
-  if(navigator.clipboard){
-    navigator.clipboard.writeText(url).then(done).catch(()=>{
+function copyBrandLink(id) {
+  const url = "https://sports.excapscpsc.com/#brand" + (id ? "-" + id : "");
+  const done = () => toast("Link copied — ready to share ✓");
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(done).catch(() => {
       prompt("Copy this link:", url);
     });
   } else {
@@ -596,8 +597,8 @@ registerRoute("contact", function () {
     </div>` + footerHTML();
 });
 
-async function submitContact(){
-  if(!validate([
+async function submitContact() {
+  if (!validate([
     ["c-name", nonEmpty, "Name required"],
     ["c-phone", isPhone, "Valid mobile required"],
     ["c-email", isEmail, "Valid email required"],
@@ -605,7 +606,7 @@ async function submitContact(){
     ["c-msg", nonEmpty, "Message required"]
   ])) return;
 
-  const btn = $("#c-send"); if(btn){ btn.innerHTML='<span class="spinner"></span>'; btn.disabled=true; }
+  const btn = $("#c-send"); if (btn) { btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true; }
   const ticket = {
     id: "MSG" + Date.now().toString(36).toUpperCase(),
     name: val("c-name"),
@@ -616,13 +617,13 @@ async function submitContact(){
     status: "open",
     created: Date.now()
   };
-  try{
+  try {
     await Store.saveTicket(ticket);
     toast("Message sent! We'll reply within 24 hours.");
-    setTimeout(()=>go("home"), 1500);
-  }catch(e){
+    setTimeout(() => go("home"), 1500);
+  } catch (e) {
     toast("Could not send — please try again", "err");
-    if(btn){ btn.innerHTML="Send message →"; btn.disabled=false; }
+    if (btn) { btn.innerHTML = "Send message →"; btn.disabled = false; }
   }
 }
 registerRoute("tournament", function () {
@@ -791,6 +792,11 @@ let draft = null;
 registerRoute("register", function () {
   const s = App.settings, used = slotsUsed(), phase = regPhase();
   $("#app").innerHTML = anncHTML() + navHTML("register") + `
+  <div class="reg-free-callout">
+  <div class="rfc-badge">🎉 FREE FOR EVERYONE</div>
+  <h3>All guests must register to enter the venue</h3>
+  <p>Guest registration is <b>completely free</b>. Get a QR pass to show at the gate — required for entry, refreshments and the alumni gathering vibe.</p>
+  </div>
   <div class="wrap page">
     <div class="page-head center">
       <span class="crumb" onclick="go('home')">← Back to home</span>
@@ -954,6 +960,7 @@ function teamStep2() {
   renderTeamReg(3);
 }
 async function teamSubmit() {
+  const edition = String((App.settings && App.settings.edition) || "2026").slice(-2);
   const btn = $("#submit-btn"); if (btn) { btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true; }
   const s = App.settings;
   let id;
@@ -1002,7 +1009,7 @@ async function teamSubmit() {
       });
     }
   } catch (e) { }
-  
+
 }
 
 /* ============================================================
@@ -1013,7 +1020,10 @@ registerRoute("register-guest", function () {
   $("#app").innerHTML = anncHTML() + navHTML("register") + `<div class="wrap page"><div class="page-head"><span class="crumb" onclick="go('register')">← All options</span>
     <h1 class="ph">Guest registration <span class="free-chip">FREE</span></h1><p class="ph-sub">For alumni guests and supporters. Free entry — you'll get a QR pass for the gate.</p></div>
     <div class="form-shell">
-      <div class="note-box"><span class="i">🎉</span><div><b>Guest registration is free.</b> Fill this in and you'll receive a QR pass to show at the gate.</div></div>
+      <div class="note-box note-box-hi"><span class="i">🎉</span><div>
+  <b>Guest registration is 100% FREE.</b><br>
+  Everyone attending — friends, family, alumni, current students — must register to enjoy the tournament. You'll get a QR pass to show at the gate.
+</div></div>
 
       <div class="fsec-h">Your details</div>
       ${field("g-name", "Full name", { req: true })}
@@ -1035,6 +1045,7 @@ registerRoute("register-guest", function () {
   </div>`+ footerHTML();
 });
 async function submitGuest() {
+  const edition = String((App.settings && App.settings.edition) || "2026").slice(-2);
   if (!validate([
     ["g-name", nonEmpty, "Name required"],
     ["g-phone", isPhone, "Valid mobile required (11 digits, starts with 01)"],
@@ -1052,8 +1063,8 @@ async function submitGuest() {
   }
   const btn = $("#submit-btn"); if (btn) { btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true; }
   let id;
-  try { id = await Promise.race([Store.nextId("guest", "EXCAP-FT" + App.settings.edition.slice(-2) + "-G", 4), new Promise((_, rej) => setTimeout(() => rej("t"), 6000))]); }
-  catch (e) { id = "EXCAP-FT" + App.settings.edition.slice(-2) + "-G" + Date.now().toString(36).toUpperCase().slice(-5); }
+  try { id = await Promise.race([Store.nextId("guest", "EXCAP-FT" + edition + "-G", 4), new Promise((_, rej) => setTimeout(() => rej("t"), 6000))]); }
+  catch (e) { id = "EXCAP-FT" + edition + "-G" + Date.now().toString(36).toUpperCase().slice(-5); }
   const rec = {
     id, type: "guest", status: "review", created: Date.now(),
     data: { name: val("g-name"), category: "Alumni", sscBatch: val("g-ssc"), hscBatch: val("g-hsc"), email: val("g-email"), nid: val("g-nid"), photo: uploadData["g-photo"] || "" },
@@ -1061,35 +1072,35 @@ async function submitGuest() {
   };
   try { await Store.saveReg(rec); }
   catch (e) {
-  const em = emergencyInfo();
-  showModal(`<div class="emerg-card">
+    const em = emergencyInfo();
+    showModal(`<div class="emerg-card">
     <div class="emerg-ic" style="background:rgba(220,38,38,.12);border-color:#dc2626">⚠️</div>
     <h3>Registration didn't go through</h3>
     <p class="emerg-msg">We couldn't save your registration. Reason:<br><b style="color:#dc2626">${esc(e && e.message ? e.message : (e && e.code) ? e.code : "Unknown error — check your connection")}</b><br><br>Please try again or contact us directly and we'll register you manually.</p>
     <div class="emerg-person">
-      <div class="ep-ava">${esc(initials(em.name||"EX"))}</div>
-      <div><b>${esc(em.name||"")}</b><span>${esc(em.role||"")}</span></div>
+      <div class="ep-ava">${esc(initials(em.name || "EX"))}</div>
+      <div><b>${esc(em.name || "")}</b><span>${esc(em.role || "")}</span></div>
     </div>
     <div class="emerg-actions">
-      ${em.phone?`<a class="btn btn-primary" href="tel:${esc((em.phone||"").replace(/[^\d+]/g,""))}">📞 Call ${esc(em.phone)}</a>`:""}
-      ${em.email?`<a class="btn btn-line" href="mailto:${esc(em.email)}">✉ Email us</a>`:""}
+      ${em.phone ? `<a class="btn btn-primary" href="tel:${esc((em.phone || "").replace(/[^\d+]/g, ""))}">📞 Call ${esc(em.phone)}</a>` : ""}
+      ${em.email ? `<a class="btn btn-line" href="mailto:${esc(em.email)}">✉ Email us</a>` : ""}
     </div>
     <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="closeModal()">Try again</button>
   </div>`, "narrow");
-  if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; }
-  return;
-}
-try {
-  if (rec.contact) {
-    const shortId = rec.id.replace("EXCAP-FT26-", "");
-    Notify.sendSMS({
-      to: rec.contact,
-      message: `Dear ${rec.data.teamName || rec.data.name || "there"},\nYour registration is received. Your EX-CAP Football Tournament Registration ID is ${rec.id}.\nRegards,\nEX-CAP`
-    });
+    if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; }
+    return;
   }
-} catch (e) { }
+  try {
+    if (rec.contact) {
+      const shortId = rec.id.replace("EXCAP-FT26-", "");
+      Notify.sendSMS({
+        to: rec.contact,
+        message: `Dear ${rec.data.teamName || rec.data.name || "there"},\nYour registration is received. Your EX-CAP Football Tournament Registration ID is ${rec.id}.\nRegards,\nEX-CAP`
+      });
+    }
+  } catch (e) { }
   App.regs.unshift(rec); renderConfirm("guest", rec);
-  
+
 }
 
 /* ============================================================
@@ -1218,24 +1229,24 @@ async function submitVisitor() {
   };
   try { await Store.saveReg(rec); }
   catch (e) {
-  const em = emergencyInfo();
-  showModal(`<div class="emerg-card">
+    const em = emergencyInfo();
+    showModal(`<div class="emerg-card">
     <div class="emerg-ic" style="background:rgba(220,38,38,.12);border-color:#dc2626">⚠️</div>
     <h3>Registration didn't go through</h3>
     <p class="emerg-msg">We couldn't save your registration. Reason:<br><b style="color:#dc2626">${esc(e && e.message ? e.message : (e && e.code) ? e.code : "Unknown error — check your connection")}</b><br><br>Please try again or contact us directly and we'll register you manually.</p>
     <div class="emerg-person">
-      <div class="ep-ava">${esc(initials(em.name||"EX"))}</div>
-      <div><b>${esc(em.name||"")}</b><span>${esc(em.role||"")}</span></div>
+      <div class="ep-ava">${esc(initials(em.name || "EX"))}</div>
+      <div><b>${esc(em.name || "")}</b><span>${esc(em.role || "")}</span></div>
     </div>
     <div class="emerg-actions">
-      ${em.phone?`<a class="btn btn-primary" href="tel:${esc((em.phone||"").replace(/[^\d+]/g,""))}">📞 Call ${esc(em.phone)}</a>`:""}
-      ${em.email?`<a class="btn btn-line" href="mailto:${esc(em.email)}">✉ Email us</a>`:""}
+      ${em.phone ? `<a class="btn btn-primary" href="tel:${esc((em.phone || "").replace(/[^\d+]/g, ""))}">📞 Call ${esc(em.phone)}</a>` : ""}
+      ${em.email ? `<a class="btn btn-line" href="mailto:${esc(em.email)}">✉ Email us</a>` : ""}
     </div>
     <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="closeModal()">Try again</button>
   </div>`, "narrow");
-  if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; }
-  return;
-}
+    if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; }
+    return;
+  }
   App.regs.unshift(rec); renderConfirm("visitor", rec);
   try {
     if (rec.contact) {
@@ -1303,24 +1314,24 @@ async function submitVolunteer() {
   };
   try { await Store.saveReg(rec); }
   catch (e) {
-  const em = emergencyInfo();
-  showModal(`<div class="emerg-card">
+    const em = emergencyInfo();
+    showModal(`<div class="emerg-card">
     <div class="emerg-ic" style="background:rgba(220,38,38,.12);border-color:#dc2626">⚠️</div>
     <h3>Registration didn't go through</h3>
     <p class="emerg-msg">We couldn't save your registration. Reason:<br><b style="color:#dc2626">${esc(e && e.message ? e.message : (e && e.code) ? e.code : "Unknown error — check your connection")}</b><br><br>Please try again or contact us directly and we'll register you manually.</p>
     <div class="emerg-person">
-      <div class="ep-ava">${esc(initials(em.name||"EX"))}</div>
-      <div><b>${esc(em.name||"")}</b><span>${esc(em.role||"")}</span></div>
+      <div class="ep-ava">${esc(initials(em.name || "EX"))}</div>
+      <div><b>${esc(em.name || "")}</b><span>${esc(em.role || "")}</span></div>
     </div>
     <div class="emerg-actions">
-      ${em.phone?`<a class="btn btn-primary" href="tel:${esc((em.phone||"").replace(/[^\d+]/g,""))}">📞 Call ${esc(em.phone)}</a>`:""}
-      ${em.email?`<a class="btn btn-line" href="mailto:${esc(em.email)}">✉ Email us</a>`:""}
+      ${em.phone ? `<a class="btn btn-primary" href="tel:${esc((em.phone || "").replace(/[^\d+]/g, ""))}">📞 Call ${esc(em.phone)}</a>` : ""}
+      ${em.email ? `<a class="btn btn-line" href="mailto:${esc(em.email)}">✉ Email us</a>` : ""}
     </div>
     <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="closeModal()">Try again</button>
   </div>`, "narrow");
-  if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; }
-  return;
-}
+    if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; }
+    return;
+  }
   App.regs.unshift(rec); renderConfirm("volunteer", rec);
   try {
     const shortId = rec.id.replace("EXCAP-FT26-", "");
@@ -1353,7 +1364,7 @@ async function submitVolunteer() {
    ============================================================ */
 
 // email link entry point: /#confirm-EXCAP-FT26-T001 → shows that reg's confirmation
-registerRoute("confirm", async function(){
+registerRoute("confirm", async function () {
   const m = location.hash.match(/^#confirm-(.+)$/);
   const id = m ? decodeURIComponent(m[1]) : "";
 
@@ -1369,7 +1380,7 @@ registerRoute("confirm", async function(){
 
   // If not found, fetch from Firestore directly
   if (!rec && Store.getReg) {
-    try { rec = await Store.getReg(id); } catch(e) { rec = null; }
+    try { rec = await Store.getReg(id); } catch (e) { rec = null; }
   }
 
   if (!rec) {

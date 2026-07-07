@@ -39,7 +39,7 @@ async function renderAdmin() {
     });
     Store.subscribeRegs(list => {
       App.regs = list;
-      if (currentRoute() === "admin") { adminRegistrations(); adminDashboard(); refreshNotifBadge(); }
+      if (currentRoute() === "admin") { refreshCurrentTab(); refreshNotifBadge(); }
     });
     Store.subscribeSettings(s => { App.settings = s; });
     Store.subscribeTickets(list => {
@@ -121,6 +121,8 @@ async function renderAdmin() {
       });
     }, 10);
   }
+
+  
 
   function playNotifPing() {
     // Chrome blocks audio until user interacts with page — skip silently if so
@@ -680,14 +682,15 @@ function downloadBatchReportPdf() {
 function adminRegistrations() {
   const types = ["all", "team", "guest", "visitor", "student", "volunteer"];
   const list = regFilter === "all" ? App.regs : App.regs.filter(r => r.type === regFilter);
-  $("#admin-body").innerHTML = `
+  $("#admin-body").innerHTML =  `
       <div class="tabs">${types.map(t => `<button class="tab ${regFilter === t ? 'active' : ''}" onclick="regFilter='${t}';adminRegistrations()">${t[0].toUpperCase() + t.slice(1)}</button>`).join("")}</div>
       <div class="panel">
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
           <span id="bulk-count" style="color:var(--muted);font-size:13px">0 selected</span>
-          <button class="btn btn-sm btn-line" onclick="bulkPdf()">⤓ Download selected PDFs</button>
+          <button class="btn btn-sm btn-line" onclick="bulkPdf()">⤓ Selected PDFs</button>
           <button class="btn btn-sm btn-danger" onclick="bulkDelete()">🗑 Delete selected</button>
-          <button class="btn btn-sm btn-line" onclick="exportCsv()" style="margin-left:auto">Export CSV</button>
+          <button class="btn btn-sm btn-primary" onclick="showCustomPdfExport()" style="margin-left:auto">📋 Custom PDF Export</button>
+          <button class="btn btn-sm btn-line" onclick="exportCsv()">Export CSV</button>
         </div>
         <div class="tbl-wrap"><table class="tbl">
           <thead><tr>
@@ -732,7 +735,7 @@ async function bulkDelete() {
   App.publicTeams = (App.publicTeams || []).filter(r => !ids.includes(r.id));
   await Store.logAction("Bulk deleted registrations", ok + " deleted" + (fail ? ", " + fail + " failed" : ""));
   toast(`Deleted ${ok}${fail ? " (" + fail + " failed)" : ""}`);
-  renderAdmin();
+  refreshCurrentTab();
 }
 function bulkPdf() {
   const ids = selectedIds(); if (!ids.length) { toast("Select at least one row", "warn"); return; }
@@ -1226,6 +1229,34 @@ async function confirmReject(id) {
   }
 }
 
+function refreshCurrentTab() {
+  const rerender = {
+    dashboard: adminDashboard,
+    registrations: adminRegistrations,
+    teams: adminTeams,
+    volunteers: adminVolunteers,
+    checkin: adminCheckin,
+    payments: adminPayments,
+    messages: adminMessages,
+    brandkit: typeof adminBrandKit === "function" ? adminBrandKit : null,
+    scoreboard: adminScoreboard,
+    results: adminResults,
+    manual: adminManual,
+    broadcast: adminBroadcast,
+    branding: adminBranding,
+    announcement: adminAnnouncement,
+    settings: adminSettings,
+    profile: adminProfile,
+    log: adminLog
+  };
+  const fn = rerender[adminTab];
+  if (typeof fn === "function") {
+    try { fn(); } catch (e) { renderAdmin(); }
+  } else {
+    renderAdmin();
+  }
+}
+
 async function approveReg(id) {
   const r = App.regs.find(x => x.id === id); if (!r) return;
   r.status = "approved"; if (r.paymentStatus && r.paymentStatus === "submitted") r.paymentStatus = "verified";
@@ -1238,9 +1269,9 @@ async function approveReg(id) {
   m += e ? (e.ok ? "Email sent. " : e.skipped ? "Email skipped (configure EmailJS). " : "Email failed. ") : "No email on file. ";
   m += s ? (s.ok ? "SMS sent." : "SMS pending (configure SMSQ).") : "No mobile on file.";
   toast(m, (e && e.ok) || (s && s.ok) ? "" : "warn");
-  renderAdmin();
+  refreshCurrentTab();
 }
-async function setStatus(id, status) { const r = App.regs.find(x => x.id === id); if (!r) return; r.status = status; await Store.saveReg(r); await Store.logAction("Changed status → " + status, r.id + " — " + (r.data.teamName || r.data.name || "")); toast("Marked " + status); renderAdmin(); }
+async function setStatus(id, status) { const r = App.regs.find(x => x.id === id); if (!r) return; r.status = status; await Store.saveReg(r); await Store.logAction("Changed status → " + status, r.id + " — " + (r.data.teamName || r.data.name || "")); toast("Marked " + status); refreshCurrentTab(); }
 function viewReg(id) {
   const r = App.regs.find(x => x.id === id); if (!r) return; const d = r.data || {};
   const name = d.teamName || d.name || "Participant";
@@ -1328,7 +1359,7 @@ async function saveRegEdit(id) {
   const st = $("#er-status"); if (st) r.status = st.value;
   if (r.players) document.querySelectorAll("#modal [data-pk]").forEach(el => { const i = +el.getAttribute("data-pk"); r.players[i] = r.players[i] || {}; r.players[i][el.getAttribute("data-f")] = el.value; });
   if (r.guests) document.querySelectorAll("#modal [data-gk]").forEach(el => { const i = +el.getAttribute("data-gk"); r.guests[i] = r.guests[i] || {}; r.guests[i][el.getAttribute("data-f")] = el.value; });
-  try { await Store.saveReg(r); await Store.logAction("Edited registration", r.id + " — " + (r.data.teamName || r.data.name || r.type)); toast("Registration updated"); closeModal(); renderAdmin(); }
+  try { await Store.saveReg(r); await Store.logAction("Edited registration", r.id + " — " + (r.data.teamName || r.data.name || r.type)); toast("Registration updated"); closeModal(); refreshCurrentTab(); }
   catch (e) { toast("Could not save: " + (e.message || "error"), "err"); }
 }
 async function deleteReg(id) {
@@ -1341,7 +1372,7 @@ async function deleteReg(id) {
     App.publicTeams = (App.publicTeams || []).filter(x => x.id !== id);
     await Store.logAction("Deleted registration", id + " — " + name);
     toast("Registration deleted");
-    closeModal(); renderAdmin();
+    closeModal(); refreshCurrentTab();
   } catch (e) {
     toast("Could not delete: " + (e.message || "error"), "err");
   }
@@ -1814,7 +1845,7 @@ function setRegStatus(type, v) {
   App.settings.regStatus = App.settings.regStatus || { ...(cfg.settings.regStatus || {}) };
   App.settings.regStatus[type] = v;
   Store.saveSettings({ regStatus: App.settings.regStatus }).then(() => Store.logAction("Registration " + type + " → " + v));
-  toast(type + " registration " + v); renderAdmin();
+  toast(type + " registration " + v); refreshCurrentTab();
 }
 function setBkashQR(e) {
   const f = e.target.files[0]; if (!f) return;
@@ -1831,14 +1862,14 @@ async function saveEmergency() {
   const emergency = { name: val("em-name"), role: val("em-role"), phone: val("em-phone"), email: val("em-email") };
   App.settings.emergency = emergency; try { cfg.emergency = emergency; } catch (_) { }
   await Store.saveSettings({ emergency }); await Store.logAction("Updated emergency contact");
-  toast("Emergency contact saved"); renderAdmin();
+  toast("Emergency contact saved"); refreshCurrentTab();
 }
 async function saveMaint() {
   const upd = { maintenance: $("#set-maint").checked, previewKey: val("set-pvkey") || "excap-preview" };
   Object.assign(App.settings, upd); await Store.saveSettings(upd);
   await Store.logAction(upd.maintenance ? "Enabled maintenance mode" : "Took site live");
   toast(upd.maintenance ? "Public now sees the coming-soon page" : "Site is now LIVE for everyone");
-  renderAdmin();
+  refreshCurrentTab();
 }
 async function saveSet() {
   const s = App.settings;
@@ -1847,7 +1878,7 @@ async function saveSet() {
     maxTeams: +val("set-max") || 24, playersPerTeam: +val("set-players") || 7, guestsPerTeam: +val("set-guests") || 5, teamFee: val("set-fee"),
     paymentNumbers: s.paymentNumbers.map((n, i) => ({ method: val("pm-" + i + "-m") || n.method, number: val("pm-" + i + "-n") || n.number, type: n.type }))
   };
-  Object.assign(App.settings, upd); await Store.saveSettings(upd); await Store.logAction("Updated tournament settings"); toast("Settings saved"); renderAdmin();
+  Object.assign(App.settings, upd); await Store.saveSettings(upd); await Store.logAction("Updated tournament settings"); toast("Settings saved"); refreshCurrentTab();
 }
 
 /* ---------- my profile ---------- */
@@ -1878,7 +1909,7 @@ function pfPhoto(e) { const f = e.target.files[0]; if (!f) return; processImage(
 async function saveProfile() {
   if (!val("pf-name")) { setErr("pf-name", "Name is required"); return; }
   const p = { name: val("pf-name"), role: val("pf-role"), phone: val("pf-phone"), photo: _pfPhoto || (Store._profile && Store._profile.photo) || null };
-  try { await Store.saveProfile(p); await Store.logAction("Updated own profile"); _pfPhoto = null; toast("Profile saved"); renderAdmin(); }
+  try { await Store.saveProfile(p); await Store.logAction("Updated own profile"); _pfPhoto = null; toast("Profile saved"); refreshCurrentTab(); }
   catch (e) { toast(e.message || "Could not save", "err"); }
 }
 async function changePass() {
@@ -2395,12 +2426,560 @@ async function adminLog() {
       </tbody></table></div>`;
 }
 
+/* ============================================================
+   Custom PDF Export — pick type, scope, and fields
+   ============================================================ */
+
+// Define what fields exist per registration type
+const PDF_FIELDS = {
+  team: [
+    { k: "id",            l: "Registration ID",   d: true  },
+    { k: "teamName",      l: "Team name",          d: true  },
+    { k: "category",      l: "Category",           d: true  },
+    { k: "captainName",   l: "Captain name",       d: true  },
+    { k: "captainPhone",  l: "Captain phone",      d: true  },
+    { k: "viceName",      l: "Vice-captain",       d: false },
+    { k: "email",         l: "Email",              d: true  },
+    { k: "sscBatch",      l: "SSC batch",          d: true  },
+    { k: "hscBatch",      l: "HSC batch",          d: true  },
+    { k: "playerCount",   l: "Player count",       d: true  },
+    { k: "tshirt",        l: "T-shirt size",       d: false },
+    { k: "paymentStatus", l: "Payment status",     d: true  },
+    { k: "paymentMethod", l: "Payment method",     d: false },
+    { k: "paymentTxn",    l: "Transaction ID",     d: false },
+    { k: "paymentSender", l: "Sender number",      d: false },
+    { k: "status",        l: "Status",             d: true  },
+    { k: "created",       l: "Registered at",      d: false },
+    { k: "adminNotes",    l: "Internal notes",     d: false },
+    { k: "playerList",    l: "Full player list",   d: false }
+  ],
+  guest: [
+    { k: "id",       l: "Registration ID",  d: true  },
+    { k: "name",     l: "Full name",         d: true  },
+    { k: "phone",    l: "Mobile",            d: true  },
+    { k: "email",    l: "Email",             d: true  },
+    { k: "category", l: "Category",          d: true  },
+    { k: "sscBatch", l: "SSC batch",         d: true  },
+    { k: "hscBatch", l: "HSC batch",         d: true  },
+    { k: "nid",      l: "NID number",        d: true  },
+    { k: "photo",    l: "Photo",             d: false },
+    { k: "status",   l: "Status",            d: true  },
+    { k: "created",  l: "Registered at",     d: false }
+  ],
+  visitor: [
+    { k: "id",       l: "Registration ID",  d: true  },
+    { k: "name",     l: "Full name",         d: true  },
+    { k: "phone",    l: "Mobile",            d: true  },
+    { k: "email",    l: "Email",             d: true  },
+    { k: "category", l: "Category",          d: true  },
+    { k: "relation", l: "Relation",          d: true  },
+    { k: "sscBatch", l: "SSC batch",         d: false },
+    { k: "hscBatch", l: "HSC batch",         d: false },
+    { k: "status",   l: "Status",            d: true  }
+  ],
+  volunteer: [
+    { k: "id",             l: "Registration ID",  d: true  },
+    { k: "name",           l: "Full name",         d: true  },
+    { k: "phone",          l: "Mobile",            d: true  },
+    { k: "email",          l: "Email",             d: true  },
+    { k: "preferredRole",  l: "Preferred role",    d: true  },
+    { k: "availability",   l: "Availability",      d: true  },
+    { k: "experience",     l: "Experience",        d: false },
+    { k: "sscBatch",       l: "SSC batch",         d: false },
+    { k: "hscBatch",       l: "HSC batch",         d: false },
+    { k: "status",         l: "Status",            d: true  }
+  ]
+};
+
+let _pdfExportType = "team";
+let _pdfExportScope = "all";
+let _pdfExportFields = {};   // { fieldKey: true/false }
+
+function showCustomPdfExport() {
+  _pdfExportType = "team";
+  _pdfExportScope = "all";
+  _pdfExportFields = {};
+  PDF_FIELDS.team.forEach(f => { _pdfExportFields[f.k] = f.d; });
+
+  showModal(`<div class="pdf-export-wrap">
+    <div class="pe-head">
+      <div class="pe-ic">📋</div>
+      <div>
+        <h3>Custom PDF Export</h3>
+        <p>Choose registration type, scope, and which fields to include.</p>
+      </div>
+    </div>
+
+    <div class="pe-body" id="pe-body">${renderPdfExportForm()}</div>
+
+    <div class="pe-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="pe-generate" onclick="generateCustomPdf()">⤓ Generate PDF</button>
+    </div>
+  </div>`, "wide");
+}
+
+function renderPdfExportForm() {
+  const counts = {
+    team: App.regs.filter(r => r.type === "team").length,
+    guest: App.regs.filter(r => r.type === "guest").length,
+    visitor: App.regs.filter(r => r.type === "visitor").length,
+    volunteer: App.regs.filter(r => r.type === "volunteer").length
+  };
+  const selectedCount = (window.selectedIds && typeof window.selectedIds.size === "number") ? window.selectedIds.size : 0;
+  const fields = PDF_FIELDS[_pdfExportType] || [];
+
+  return `
+    <!-- Step 1: type -->
+    <div class="pe-step">
+      <div class="pe-step-h"><span class="pe-step-n">1</span> Registration type</div>
+      <div class="pe-type-grid">
+        ${["team", "guest", "visitor", "volunteer"].map(t => `
+          <button class="pe-type ${_pdfExportType === t ? "active" : ""}" onclick="setPdfExportType('${t}')">
+            <span class="pt-ic">${t === "team" ? "⚽" : t === "guest" ? "🎟️" : t === "visitor" ? "👤" : "🤝"}</span>
+            <b>${t.charAt(0).toUpperCase() + t.slice(1)}s</b>
+            <span class="pt-cnt">${counts[t]}</span>
+          </button>
+        `).join("")}
+      </div>
+    </div>
+
+    <!-- Step 2: scope -->
+    <div class="pe-step">
+      <div class="pe-step-h"><span class="pe-step-n">2</span> Which records</div>
+      <div class="pe-scope">
+        <label class="pe-radio ${_pdfExportScope === "all" ? "active" : ""}">
+          <input type="radio" name="pe-scope" value="all" ${_pdfExportScope === "all" ? "checked" : ""} onchange="setPdfExportScope('all')">
+          <span>All ${_pdfExportType}s (${counts[_pdfExportType]})</span>
+        </label>
+        <label class="pe-radio ${_pdfExportScope === "approved" ? "active" : ""}">
+          <input type="radio" name="pe-scope" value="approved" ${_pdfExportScope === "approved" ? "checked" : ""} onchange="setPdfExportScope('approved')">
+          <span>Approved only</span>
+        </label>
+        <label class="pe-radio ${_pdfExportScope === "review" ? "active" : ""}">
+          <input type="radio" name="pe-scope" value="review" ${_pdfExportScope === "review" ? "checked" : ""} onchange="setPdfExportScope('review')">
+          <span>Under review only</span>
+        </label>
+        <label class="pe-radio ${_pdfExportScope === "selected" ? "active" : ""} ${!selectedCount ? "disabled" : ""}">
+          <input type="radio" name="pe-scope" value="selected" ${_pdfExportScope === "selected" ? "checked" : ""} ${!selectedCount ? "disabled" : ""} onchange="setPdfExportScope('selected')">
+          <span>Selected only (${selectedCount})</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Step 3: fields -->
+    <div class="pe-step">
+      <div class="pe-step-h">
+        <span class="pe-step-n">3</span> Fields to include
+        <div style="margin-left:auto;display:flex;gap:6px">
+          <button class="btn btn-sm btn-line" onclick="togglePdfFields(true)">All</button>
+          <button class="btn btn-sm btn-line" onclick="togglePdfFields(false)">None</button>
+        </div>
+      </div>
+      <div class="pe-fields">
+        ${fields.map(f => `
+          <label class="pe-fld ${_pdfExportFields[f.k] ? "checked" : ""}">
+            <input type="checkbox" ${_pdfExportFields[f.k] ? "checked" : ""} onchange="togglePdfField('${f.k}', this.checked)">
+            <span>${esc(f.l)}</span>
+          </label>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function setPdfExportType(t) {
+  _pdfExportType = t;
+  _pdfExportFields = {};
+  PDF_FIELDS[t].forEach(f => { _pdfExportFields[f.k] = f.d; });
+  $("#pe-body").innerHTML = renderPdfExportForm();
+}
+function setPdfExportScope(s) {
+  _pdfExportScope = s;
+  $("#pe-body").innerHTML = renderPdfExportForm();
+}
+function togglePdfField(k, checked) {
+  _pdfExportFields[k] = checked;
+  // Update the label class without full re-render for smoothness
+  const label = document.querySelector(`.pe-fld input[onchange*="'${k}'"]`)?.parentElement;
+  if (label) label.classList.toggle("checked", checked);
+}
+function togglePdfFields(all) {
+  PDF_FIELDS[_pdfExportType].forEach(f => { _pdfExportFields[f.k] = all; });
+  $("#pe-body").innerHTML = renderPdfExportForm();
+}
+
+function generateCustomPdf() {
+  // Filter records
+  let list = App.regs.filter(r => r.type === _pdfExportType);
+  if (_pdfExportScope === "approved") list = list.filter(r => r.status === "approved");
+  else if (_pdfExportScope === "review") list = list.filter(r => r.status === "review");
+  else if (_pdfExportScope === "selected") {
+    const sel = (window.selectedIds && typeof window.selectedIds.has === "function") ? window.selectedIds : new Set();
+    list = list.filter(r => sel.has(r.id));
+  }
+
+  if (!list.length) { toast("No records match your selection", "warn"); return; }
+
+  // Which fields
+  const activeFields = PDF_FIELDS[_pdfExportType].filter(f => _pdfExportFields[f.k]);
+  if (!activeFields.length) { toast("Pick at least one field", "warn"); return; }
+
+  closeModal();
+  toast("Building PDF…");
+  _renderCustomPdf(list, activeFields, _pdfExportType, _pdfExportScope);
+}
+
+function _renderCustomPdf(list, activeFields, type, scope) {
+  const s = App.settings;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+  const timeStr = now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const typeLabel = type.charAt(0).toUpperCase() + type.slice(1) + "s";
+  const scopeLabel = { all: "All", approved: "Approved", review: "Under review", selected: "Selected" }[scope] || "";
+
+  const getVal = (r, k) => {
+    const d = r.data || {};
+    switch (k) {
+      case "id": return r.id;
+      case "teamName": return d.teamName || "—";
+      case "name": return d.name || "—";
+      case "category": return d.category || "—";
+      case "captainName": return d.captainName || "—";
+      case "captainPhone": return d.captainPhone || r.contact || "—";
+      case "viceName": return d.viceName || "—";
+      case "phone": return r.contact || d.phone || "—";
+      case "email": return d.email || r.captainEmail || "—";
+      case "sscBatch": return d.sscBatch ? `SSC ${d.sscBatch}` : "—";
+      case "hscBatch": return d.hscBatch ? `HSC ${d.hscBatch}` : "—";
+      case "playerCount": return `${(r.players || []).length}/${s.playersPerTeam}`;
+      case "tshirt": return d.tshirt || "—";
+      case "nid": return d.nid || "—";
+      case "relation": return d.relation || "—";
+      case "preferredRole": return d.preferredRole || "—";
+      case "availability": return d.availability || "—";
+      case "experience": return d.experience || "—";
+      case "paymentStatus": return r.paymentStatus || "—";
+      case "paymentMethod": return r.payment?.method || "—";
+      case "paymentTxn": return r.payment?.txn || "—";
+      case "paymentSender": return r.payment?.sender || "—";
+      case "status": return r.status || "—";
+      case "created": return r.created ? new Date(r.created).toLocaleDateString() : "—";
+      case "adminNotes": return r.adminNotes || "—";
+      case "photo": return d.photo || "";
+      case "playerList": return r.players || [];
+      default: return "—";
+    }
+  };
+
+  const statusColor = st => st === "approved" ? "#16a34a" : st === "review" ? "#d97706" : st === "rejected" ? "#dc2626" : "#6b7280";
+  const initials2 = str => (str || "?").split(/\s+/).slice(0, 2).map(x => x[0] || "").join("").toUpperCase();
+
+  const w = window.open("", "_blank");
+  if (!w) { toast("Allow pop-ups to download", "warn"); return; }
+
+  const logoTag = (key) => {
+    const up = App.logos && App.logos[key];
+    if (up) return `<img class="lg" src="${up}" alt="">`;
+    return `<img class="lg" src="${location.origin}/assets/logo-${key}.png" alt="" onerror="this.style.display='none'">`;
+  };
+
+  // Filter fields to display in the profile body (photo/name/status/id are rendered separately in the card header)
+  const specialInHeader = ["photo", "id", "status"];
+  const nameKey = type === "team" ? "teamName" : "name";
+  const bodyFields = activeFields.filter(f => !specialInHeader.includes(f.k) && f.k !== nameKey && f.k !== "playerList");
+  const showPlayerList = activeFields.some(f => f.k === "playerList");
+  const showPhoto = activeFields.some(f => f.k === "photo");
+  const showId = activeFields.some(f => f.k === "id");
+  const showStatus = activeFields.some(f => f.k === "status");
+  const showName = activeFields.some(f => f.k === nameKey);
+
+  // Build each profile card
+  const cards = list.map((r, i) => {
+    const d = r.data || {};
+    const displayName = showName ? (type === "team" ? d.teamName : d.name) || "—" : "";
+    const photo = showPhoto ? (d.photo || d.logo || "") : "";
+
+    const rows = bodyFields.map(f => {
+      let val = getVal(r, f.k);
+      if (typeof val === "object") val = String(val);
+      return `<div class="p-row">
+        <span class="p-lbl">${esc(f.l)}</span>
+        <span class="p-val">${esc(String(val))}</span>
+      </div>`;
+    }).join("");
+
+    const players = showPlayerList && r.type === "team" && (r.players || []).length ? `
+      <div class="p-players">
+        <div class="p-players-h">Players (${r.players.length})</div>
+        <div class="p-players-grid">
+          ${r.players.map((p, j) => `<div class="p-player">
+            <span class="pp-n">${j + 1}</span>
+            <span class="pp-name">${esc(p.name || "—")}</span>
+            <span class="pp-role">${esc(p.role || "Player")}</span>
+          </div>`).join("")}
+        </div>
+      </div>
+    ` : "";
+
+    return `<div class="profile-card">
+      <div class="pc-head">
+        ${showPhoto ? `<div class="pc-photo">${photo ? `<img src="${esc(photo)}" alt="">` : `<span>${esc(initials2(displayName))}</span>`}</div>` : ""}
+        <div class="pc-title">
+          <div class="pc-num">#${i + 1}</div>
+          ${showName ? `<div class="pc-name">${esc(displayName)}</div>` : ""}
+          <div class="pc-meta">
+            ${showId ? `<span class="pc-id">${esc(r.id)}</span>` : ""}
+            ${showStatus ? `<span class="pc-st" style="background:${statusColor(r.status)}">${esc(r.status)}</span>` : ""}
+          </div>
+        </div>
+      </div>
+      ${rows ? `<div class="pc-body">${rows}</div>` : ""}
+      ${players}
+    </div>`;
+  }).join("");
+
+  const html = `<!doctype html><html><head><meta charset="utf-8">
+<title>${esc(typeLabel)} Report — ${esc(s.tournamentName || "EX-CAP")}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#f5f6fa;color:#0f1424;font-family:'Inter',system-ui,Arial,sans-serif;font-size:11px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .sheet{max-width:820px;margin:20px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 20px 50px -30px rgba(0,0,0,.35);border:1px solid #e6e8f0}
+
+  /* header */
+  .head{position:relative;padding:22px 30px 20px;background:linear-gradient(120deg,#7c3aed,#db2777);color:#fff;overflow:hidden}
+  .head::after{content:"";position:absolute;right:-70px;top:-70px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.09)}
+  .head-top{display:flex;align-items:center;gap:14px;position:relative;z-index:1}
+  .head-logos{display:flex;gap:8px}
+  .head-logos .lg{width:40px;height:40px;border-radius:9px;background:#fff;padding:4px;object-fit:contain}
+  .head-title h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:18px;letter-spacing:-.01em;line-height:1.1;text-transform:uppercase}
+  .head-title .k{font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.85;margin-top:3px}
+  .meta{position:relative;z-index:1;margin-top:14px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:8px 14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:10.5px}
+  .meta b{font-family:'Archivo',sans-serif;font-weight:800}
+
+  .body{padding:24px 24px 26px}
+  .section-lbl{font-family:'Archivo',sans-serif;font-weight:900;font-size:12px;color:#7c3aed;letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #ece5fa}
+
+  /* PROFILE GRID — 2 columns, 3-4 rows per page = 6-8 profiles per page */
+  .profile-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .profile-card{
+    background:#fff;
+    border:1px solid #e2e5f0;
+    border-radius:10px;
+    padding:12px 14px;
+    break-inside:avoid;
+    page-break-inside:avoid;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+
+  /* Card header */
+  .pc-head{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    padding-bottom:10px;
+    margin-bottom:10px;
+    border-bottom:1px solid #eef0f7;
+  }
+  .pc-photo{
+    flex:none;
+    width:52px;height:52px;
+    border-radius:10px;
+    overflow:hidden;
+    background:linear-gradient(135deg,#7c3aed,#db2777);
+    display:grid;place-items:center;
+  }
+  .pc-photo img{width:100%;height:100%;object-fit:cover}
+  .pc-photo span{
+    color:#fff;
+    font-family:'Archivo',sans-serif;
+    font-weight:900;font-size:16px;
+    letter-spacing:.02em;
+  }
+  .pc-title{flex:1;min-width:0}
+  .pc-num{
+    font-family:'Inter',monospace;
+    font-size:9px;
+    color:#9aa1b4;
+    font-weight:700;
+    margin-bottom:2px;
+  }
+  .pc-name{
+    font-family:'Archivo',sans-serif;
+    font-weight:800;
+    font-size:13.5px;
+    color:#0f1424;
+    letter-spacing:-.005em;
+    line-height:1.2;
+    margin-bottom:5px;
+    word-wrap:break-word;
+    overflow-wrap:break-word;
+  }
+  .pc-meta{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+  .pc-id{
+    font-family:'Inter',monospace;
+    font-size:8.5px;
+    color:#6b7280;
+    background:#f4f6fb;
+    padding:2px 6px;
+    border-radius:5px;
+    border:1px solid #e2e5f0;
+  }
+  .pc-st{
+    color:#fff;
+    font-size:8px;
+    font-weight:800;
+    letter-spacing:.06em;
+    padding:2px 7px;
+    border-radius:999px;
+    text-transform:uppercase;
+  }
+
+  /* Card body */
+  .pc-body{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    font-size:10.5px;
+  }
+  .p-row{
+    display:flex;
+    gap:8px;
+    align-items:baseline;
+    padding:3px 0;
+    border-bottom:1px dashed #f4f6fb;
+    min-height:0;
+  }
+  .p-row:last-child{border-bottom:0}
+  .p-lbl{
+    color:#9aa1b4;
+    font-weight:700;
+    font-size:8.5px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    width:78px;
+    flex:none;
+    padding-top:1px;
+  }
+  .p-val{
+    color:#0f1424;
+    font-weight:600;
+    flex:1;
+    word-wrap:break-word;
+    overflow-wrap:anywhere;
+    line-height:1.35;
+  }
+
+  /* Players sub-list (team only, if selected) */
+  .p-players{
+    margin-top:10px;
+    padding-top:10px;
+    border-top:1px solid #eef0f7;
+  }
+  .p-players-h{
+    font-family:'Archivo',sans-serif;
+    font-weight:800;
+    font-size:9px;
+    color:#7c3aed;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  .p-players-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:2px;
+  }
+  .p-player{
+    display:grid;
+    grid-template-columns:16px 1fr auto;
+    gap:6px;
+    padding:3px 6px;
+    background:#fafbff;
+    border-radius:4px;
+    font-size:9.5px;
+    align-items:center;
+  }
+  .pp-n{color:#9aa1b4;font-family:monospace;font-weight:600;font-size:9px}
+  .pp-name{color:#0f1424;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pp-role{color:#7c3aed;font-weight:700;font-size:8.5px;text-transform:uppercase;letter-spacing:.03em}
+
+  /* footer */
+  .foot{
+    background:#f7f8fc;
+    padding:12px 30px;
+    border-top:1px solid #eceef5;
+    font-size:10px;color:#6b7280;
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  }
+  .foot .brand{font-family:'Archivo',sans-serif;font-weight:800;color:#7c3aed;letter-spacing:.08em}
+
+  .empty{padding:40px;text-align:center;color:#9aa1b4;font-size:13px}
+
+  @media print{
+    html,body{background:#fff}
+    .sheet{margin:0;box-shadow:none;border:0;max-width:none;border-radius:0}
+    .profile-card{break-inside:avoid;page-break-inside:avoid}
+    @page{margin:10mm;size:A4 portrait}
+  }
+</style>
+</head><body>
+  <div class="sheet">
+    <div class="head">
+      <div class="head-top">
+        <div class="head-logos">${logoTag("scpsc")}${logoTag("tournament")}${logoTag("excap")}</div>
+        <div class="head-title">
+          <h1>${esc(s.tournamentName || "EX-CAP Football Tournament")} ${esc(s.edition || "")}</h1>
+          <div class="k">${esc(typeLabel)} · ${esc(scopeLabel)} · Custom Export</div>
+        </div>
+      </div>
+      <div class="meta">
+        <div>Generated: <b>${esc(dateStr)}</b> · <b>${esc(timeStr)}</b></div>
+        <div>Records: <b>${list.length}</b></div>
+        <div>Fields: <b>${activeFields.length}</b></div>
+        <div>Venue: <b>${esc(s.venue || "SCPSC field")}</b></div>
+      </div>
+    </div>
+
+    <div class="body">
+      <div class="section-lbl">${esc(typeLabel)} — ${esc(scopeLabel)} (${list.length} records)</div>
+      ${list.length ? `<div class="profile-grid">${cards}</div>` : `<div class="empty">No matching records.</div>`}
+    </div>
+
+    <div class="foot">
+      <span>Generated by EX-CAP admin platform · ${list.length} record${list.length === 1 ? "" : "s"}</span>
+      <span class="brand">EX-CAP · ALUMNI OF SCPSC</span>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('load', function(){
+      requestAnimationFrame(function(){
+        setTimeout(function(){ window.print(); }, 600);
+      });
+    });
+  <\/script>
+</body></html>`;
+  w.document.write(html);
+  w.document.close();
+}
+
 /* keep admin re-rendering on auth changes (Firebase restores session) */
 Store.onAuth(async u => {
   if (u && currentRoute() === "admin") {
     if (!Store._profile) await Store.getProfile();
     if (!App.regs || !App.regs.length) { try { App.regs = await Store.listRegs(); } catch (e) { } }
     App.isAdmin = true;
-    renderAdmin();
+    refreshCurrentTab();
   }
 });
+

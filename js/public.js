@@ -15,7 +15,7 @@ function field(id, label, o = {}) {
   return `<div class="fld">${lab}${helpEl}${input}<div class="field-err" id="${id}-err"></div></div>`;
 }
 function uploader(id, label, note = "PNG/JPG · max 5MB") {
-  return `<div class="fld"><label class="fl">${esc(label)} <span class="opt">(optional)</span></label>
+  return `<div class="fld"><label class="fl">${esc(label)} <span class="opt">(Required)</span></label>
   <div class="uploader" onclick="$('#${id}').click()"><div class="prev" id="${id}-prev">📷</div>
   <div class="ut"><b id="${id}-name">Click to upload</b><span>${note}</span></div></div>
   <input id="${id}" type="file" accept="image/*" class="hidden" onchange="handleUpload(event,'${id}')"></div>`;
@@ -64,6 +64,11 @@ function regGate(type) {
   }[p];
   renderInfo(msg[0], msg[1], msg[2]);
   return true;
+}
+function computeCategory(guestType) {
+  if (guestType === "current") return "Current student";
+  if (guestType === "team-guest") return "Team Guest";
+  return "Alumni";
 }
 
 /* small batch field helper — TWO independent SSC + HSC year selects */
@@ -1036,6 +1041,42 @@ registerRoute("register-guest", function () {
       <div class="grid2">
         ${batchFields("g")}
       </div>
+      <div class="fld">
+  <label class="fl">I'm attending as <span class="req">*</span></label>
+  <div class="guest-type-grid">
+    <label class="guest-type">
+      <input type="radio" name="g-type" value="alumni" checked>
+      <div class="gt-body">
+        <div class="gt-ic">🎓</div>
+        <b>Alumni</b>
+        <span>SCPSC graduate coming as a guest</span>
+      </div>
+    </label>
+    <label class="guest-type">
+      <input type="radio" name="g-type" value="current">
+      <div class="gt-body">
+        <div class="gt-ic">📚</div>
+        <b>Current student</b>
+        <span>Still studying at SCPSC</span>
+      </div>
+    </label>
+    <label class="guest-type">
+      <input type="radio" name="g-type" value="team-guest">
+      <div class="gt-body">
+        <div class="gt-ic">⚽</div>
+        <b>Team guest</b>
+        <span>Guest of a registered team</span>
+      </div>
+    </label>
+  </div>
+</div>
+
+<div class="fld" id="g-team-row" style="display:none">
+  <label class="fl">Which team? <span class="req">*</span></label>
+  <input id="g-team" placeholder="Enter the team name you're a guest of">
+  <div class="help">Type the team's name so organizers can link you to them at the gate.</div>
+</div>
+     
       ${field("g-nid", "NID number", { req: false, ph: "Security Reasons Only" })}
 
       <div class="fsec-h">Photo</div>
@@ -1043,6 +1084,17 @@ registerRoute("register-guest", function () {
 
       <div class="form-actions"><button class="btn btn-ghost" onclick="go('register')">← Cancel</button><button class="btn btn-pitch" id="submit-btn" onclick="submitGuest()">Submit ✓</button></div></div>
   </div>`+ footerHTML();
+
+
+  setTimeout(() => {
+    const toggleTeamField = () => {
+      const gType = document.querySelector('input[name="g-type"]:checked')?.value || "";
+      const teamRow = document.getElementById("g-team-row");
+      if (teamRow) teamRow.style.display = gType === "team-guest" ? "block" : "none";
+    };
+    document.querySelectorAll('input[name="g-type"]').forEach(r => r.addEventListener("change", toggleTeamField));
+    toggleTeamField();
+  }, 50);
 });
 async function submitGuest() {
   const edition = String((App.settings && App.settings.edition) || "2026").slice(-2);
@@ -1053,6 +1105,17 @@ async function submitGuest() {
     ["g-ssc", nonEmpty, "SSC batch year is required"],
     ["g-hsc", nonEmpty, "HSC batch year is required"]
   ])) return;
+  const gType = document.querySelector('input[name="g-type"]:checked')?.value || "";
+  if (gType === "team-guest") {
+    const teamName = val("g-team");
+    if (!teamName) {
+      setErr("g-team", "Please enter the team name");
+      document.getElementById("g-team")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      toast("Enter the team you're a guest of", "warn");
+      if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; }
+      return;
+    }
+  }
   // Photo required
   if (!uploadData["g-photo"]) {
     setErr("g-photo", "Please upload a photo — required for your gate pass");
@@ -1067,7 +1130,17 @@ async function submitGuest() {
   catch (e) { id = "EXCAP-FT" + edition + "-G" + Date.now().toString(36).toUpperCase().slice(-5); }
   const rec = {
     id, type: "guest", status: "review", created: Date.now(),
-    data: { name: val("g-name"), category: "Alumni", sscBatch: val("g-ssc"), hscBatch: val("g-hsc"), email: val("g-email"), nid: val("g-nid"), photo: uploadData["g-photo"] || "" },
+    data: {
+  name: val("g-name"),
+  category: computeCategory(gType),
+  guestType: gType,
+  hostTeam: gType === "team-guest" ? val("g-team") : "",
+  sscBatch: val("g-ssc"),
+  hscBatch: val("g-hsc"),
+  email: val("g-email"),
+  nid: val("g-nid"),
+  photo: uploadData["g-photo"] || ""
+},
     contact: val("g-phone")
   };
   try { await Store.saveReg(rec); }

@@ -2639,3 +2639,368 @@ select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(1
 .cat-badge.cat-team-guest {
   background: linear-gradient(120deg, #f59e0b, #ea580c);
 }
+
+/* ============================================================
+   CHECK-IN — professional layout
+   ============================================================ */
+   .ci-page { max-width: 1200px }
+
+   /* KPI row */
+   .ci-kpi-row {
+     display: grid;
+     grid-template-columns: repeat(4, 1fr);
+     gap: 12px;
+     margin-bottom: 14px;
+   }
+   .ci-kpi {
+     display: flex; align-items: center; gap: 14px;
+     background: var(--navy-2);
+     border: 1px solid var(--line);
+     border-radius: 14px;
+     padding: 16px 20px;
+   }
+   .ci-kpi.ok { background: linear-gradient(135deg, rgba(22,192,98,.12), var(--navy-2)); border-color: rgba(22,192,98,.4) }
+   .ci-kpi.rate { background: linear-gradient(135deg, rgba(124,58,237,.12), var(--navy-2)); border-color: rgba(124,58,237,.4) }
+   .ck-ic {
+     font-size: 22px;
+     width: 44px; height: 44px;
+     border-radius: 12px;
+     background: rgba(124,58,237,.14);
+     display: grid; place-items: center;
+     flex: none;
+   }
+   .ci-kpi.ok .ck-ic { background: rgba(22,192,98,.18) }
+   .ci-kpi b {
+     display: block;
+     font-family: var(--font-display);
+     font-weight: 900;
+     font-size: 24px;
+     color: var(--ink);
+     letter-spacing: -.01em;
+     line-height: 1;
+     margin-bottom: 3px;
+   }
+   .ci-kpi span {
+     font-size: 10.5px;
+     font-weight: 700;
+     letter-spacing: .08em;
+     text-transform: uppercase;
+     color: var(--muted-2);
+   }
+   
+   .ci-progress {
+     background: var(--navy-2);
+     border: 1px solid var(--line);
+     border-radius: 999px;
+     height: 6px;
+     overflow: hidden;
+     margin-bottom: 20px;
+   }
+   .ci-progress-fill {
+     background: linear-gradient(120deg, #16a34a, #059669);
+     height: 100%;
+     width: 0;
+     transition: width .4s cubic-bezier(.2,.7,.2,1);
+     border-radius: 999px;
+   }
+   
+   /* Main scan area — 2 columns */
+   .ci-main {
+     display: grid;
+     grid-template-columns: 1fr 1.15fr;
+     gap: 14px;
+     margin-bottom: 20px;
+   }
+   
+   /* Scanner card */
+   .ci-scanner-card {
+     background: var(--navy-2);
+     border: 1px solid var(--line);
+     border-radius: 16px;
+     padding: 18px 20px 20px;
+   }
+   .ci-hd {
+     display: flex; justify-content: space-between; align-items: center;
+     gap: 12px; margin-bottom: 14px;
+     padding-bottom: 12px;
+     border-bottom: 1px solid var(--line);
+   }
+   .ci-hd h3 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 16px }
+   .ci-hd-controls { display: flex; gap: 14px; align-items: center }
+   
+   .ci-toggle {
+     display: flex; align-items: center; gap: 8px;
+     cursor: pointer; font-size: 12px; color: var(--muted);
+     font-weight: 700;
+   }
+   .ci-toggle input { display: none }
+   .ci-toggle-slider {
+     width: 34px; height: 20px;
+     background: var(--navy);
+     border: 1px solid var(--line);
+     border-radius: 999px;
+     position: relative;
+     transition: .2s;
+   }
+   .ci-toggle-slider::before {
+     content: "";
+     position: absolute;
+     top: 2px; left: 2px;
+     width: 14px; height: 14px;
+     background: var(--muted-2);
+     border-radius: 50%;
+     transition: .2s;
+   }
+   .ci-toggle input:checked + .ci-toggle-slider {
+     background: linear-gradient(120deg, var(--purple), var(--magenta));
+     border-color: transparent;
+   }
+   .ci-toggle input:checked + .ci-toggle-slider::before {
+     left: 16px; background: #fff;
+   }
+   .ci-toggle-lbl { color: var(--ink) }
+   
+   .ci-vol-wrap {
+     display: flex; align-items: center; gap: 6px;
+     font-size: 14px;
+   }
+   .ci-vol-wrap input[type="range"] {
+     width: 80px; accent-color: var(--purple);
+   }
+   
+   .ci-reader {
+     min-height: 260px;
+     background: var(--navy);
+     border: 1px dashed var(--line);
+     border-radius: 12px;
+     overflow: hidden;
+     margin-bottom: 12px;
+   }
+   .ci-reader video { border-radius: 12px !important }
+   .ci-scanner-btns {
+     display: flex; gap: 8px; margin-bottom: 14px;
+     flex-wrap: wrap;
+   }
+   .ci-manual-row {
+     display: flex; gap: 8px;
+     padding-top: 14px;
+     border-top: 1px solid var(--line);
+   }
+   .ci-manual-row input {
+     flex: 1;
+     background: var(--navy);
+     border: 1px solid var(--line);
+     border-radius: 10px;
+     color: var(--ink);
+     padding: 12px 14px;
+     font-size: 13px;
+     font-family: 'Inter', monospace;
+   }
+   
+   /* Profile slot */
+   .ci-profile-col { min-height: 280px }
+   .ci-idle {
+     background: var(--navy-2);
+     border: 1px dashed var(--line);
+     border-radius: 16px;
+     padding: 40px 24px;
+     text-align: center;
+     color: var(--muted-2);
+     height: 100%;
+     display: grid; place-items: center;
+     align-content: center;
+   }
+   .ci-idle-ic { font-size: 48px; margin-bottom: 12px; opacity: .6 }
+   .ci-idle b { display: block; color: var(--ink); font-family: var(--font-display); font-weight: 800; font-size: 16px; margin-bottom: 6px }
+   .ci-idle p { font-size: 12.5px; line-height: 1.55; max-width: 300px; margin: 0 auto }
+   
+   /* The profile card */
+   .ci-card {
+     border-radius: 16px;
+     overflow: hidden;
+     background: var(--navy-2);
+     border: 1px solid var(--line);
+     animation: ciCardIn .35s cubic-bezier(.2,.7,.2,1);
+   }
+   @keyframes ciCardIn {
+     from { opacity: 0; transform: translateY(10px) scale(.98) }
+     to { opacity: 1; transform: none }
+   }
+   .cc-stripe {
+     padding: 12px 20px;
+     font-family: var(--font-display);
+     font-weight: 900;
+     font-size: 13px;
+     letter-spacing: .1em;
+     text-align: center;
+     color: #fff;
+   }
+   .ci-card-ok .cc-stripe { background: linear-gradient(120deg, #16a34a, #059669) }
+   .ci-card-ok.ci-card-solid .cc-stripe { background: linear-gradient(120deg, #16a34a, #10b981); animation: ciStripeBlink 1s ease }
+   @keyframes ciStripeBlink { 0%,100% {filter: brightness(1)} 50% {filter: brightness(1.4)} }
+   .ci-card-warn .cc-stripe { background: linear-gradient(120deg, #d97706, #f59e0b) }
+   .ci-card-err .cc-stripe { background: linear-gradient(120deg, #dc2626, #7f1d1d) }
+   
+   .cc-body {
+     display: grid;
+     grid-template-columns: 140px 1fr;
+     gap: 20px;
+     padding: 20px;
+   }
+   .cc-photo {
+     width: 140px; height: 140px;
+     border-radius: 14px;
+     overflow: hidden;
+     background: linear-gradient(135deg, var(--purple), var(--magenta));
+     display: grid; place-items: center;
+     border: 2px solid var(--line);
+   }
+   .cc-photo img { width: 100%; height: 100%; object-fit: cover }
+   .cc-photo span {
+     color: #fff;
+     font-family: var(--font-display);
+     font-weight: 900;
+     font-size: 42px;
+   }
+   .cc-info { min-width: 0 }
+   .cc-name {
+     font-family: var(--font-display);
+     font-weight: 900;
+     font-size: 22px;
+     color: var(--ink);
+     letter-spacing: -.01em;
+     line-height: 1.15;
+     margin-bottom: 8px;
+     word-break: break-word;
+   }
+   .cc-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px }
+   .cc-tag {
+     font-size: 10px;
+     font-weight: 800;
+     letter-spacing: .1em;
+     text-transform: uppercase;
+     color: var(--purple);
+     background: rgba(124,58,237,.15);
+     padding: 4px 10px;
+     border-radius: 999px;
+   }
+   .cc-rows {
+     display: grid;
+     gap: 4px;
+     padding: 10px 0;
+     border-top: 1px dashed var(--line);
+     border-bottom: 1px dashed var(--line);
+     margin-bottom: 10px;
+   }
+   .cc-rows > div {
+     display: flex; gap: 12px;
+     font-size: 12.5px;
+     align-items: baseline;
+   }
+   .cc-rows b {
+     color: var(--muted-2);
+     font-weight: 700;
+     font-size: 10px;
+     letter-spacing: .06em;
+     text-transform: uppercase;
+     width: 90px;
+     flex: none;
+   }
+   .cc-rows span { color: var(--ink); font-weight: 600 }
+   .cc-status {
+     color: var(--muted);
+     font-size: 12.5px;
+     line-height: 1.5;
+     margin: 0;
+   }
+   
+   .cc-body-err {
+     padding: 24px;
+     text-align: center;
+   }
+   .cce-ic { font-size: 44px; margin-bottom: 10px }
+   .cc-body-err b {
+     display: block;
+     font-family: var(--font-display);
+     font-weight: 800;
+     font-size: 16px;
+     color: var(--ink);
+     margin-bottom: 8px;
+   }
+   .cc-body-err span, .cc-body-err p {
+     color: var(--muted-2);
+     font-size: 12.5px;
+     margin: 4px 0;
+     line-height: 1.5;
+   }
+   .cc-body-err code {
+     font-family: monospace;
+     background: var(--navy);
+     padding: 2px 8px;
+     border-radius: 4px;
+     border: 1px solid var(--line);
+     color: var(--purple);
+   }
+   
+   .cc-actions {
+     display: flex;
+     gap: 8px;
+     padding: 14px 20px 20px;
+     border-top: 1px solid var(--line);
+   }
+   .ci-btn-big {
+     flex: 1;
+     padding: 16px !important;
+     font-size: 14px !important;
+     font-weight: 800 !important;
+   }
+   .ci-btn-ok {
+     background: linear-gradient(120deg, #16a34a, #059669) !important;
+     color: #fff !important;
+     border: 0 !important;
+   }
+   .ci-btn-deny {
+     background: linear-gradient(120deg, #dc2626, #b91c1c) !important;
+     color: #fff !important;
+     border: 0 !important;
+   }
+   .ci-deny-reasons {
+     display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+     margin: 16px 0;
+   }
+   
+   /* Recent panel */
+   .ci-recent-hd {
+     display: flex; justify-content: space-between; align-items: center;
+     margin-bottom: 12px;
+   }
+   .ci-recent-hd h3 { margin: 0 }
+   .ci-recent-count {
+     font-size: 11px;
+     color: var(--purple);
+     background: rgba(124,58,237,.14);
+     padding: 4px 12px;
+     border-radius: 999px;
+     font-weight: 800;
+     letter-spacing: .04em;
+   }
+   
+   /* Mobile */
+   @media (max-width: 900px) {
+     .ci-kpi-row { grid-template-columns: 1fr 1fr }
+     .ci-main { grid-template-columns: 1fr }
+   }
+   @media (max-width: 520px) {
+     .ci-kpi-row { grid-template-columns: 1fr 1fr; gap: 8px }
+     .ci-kpi { padding: 12px 14px }
+     .ci-kpi b { font-size: 20px }
+     .cc-body { grid-template-columns: 100px 1fr; gap: 14px; padding: 14px }
+     .cc-photo { width: 100px; height: 100px }
+     .cc-photo span { font-size: 32px }
+     .cc-name { font-size: 18px }
+     .cc-actions { flex-direction: column }
+     .ci-btn-big { padding: 14px !important }
+     .ci-hd { flex-wrap: wrap; gap: 10px }
+     .ci-hd-controls { width: 100%; justify-content: space-between }
+     .ci-vol-wrap input[type="range"] { width: 100px }
+   }

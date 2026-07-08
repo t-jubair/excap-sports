@@ -21,9 +21,9 @@
     /* ---- EmailJS — ONE template handles every email type ----
        Create a single template, paste its ID into templateAll. */
     emailjs: {
-      publicKey:   "OJzrr-eGrHVoPCXbo",
-      serviceId:   "service_0lg8xhu",
-      templateAll: "template_kd2u3aq"
+      publicKey:   "Anp-kfhylc4aZIFJN",
+      serviceId:   "service_k5e4kjn",
+      templateAll: "template_d93qpda"
     },
   
     /* ---- API base for serverless functions (bKash + SMS). 

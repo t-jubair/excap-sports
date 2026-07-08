@@ -772,6 +772,103 @@ registerRoute("tournament", function () {
           <button class="btn btn-ghost" onclick="emergencyModal()">🆘 Contact organizers</button>
         </div>
       </div>
+
+      <div class="rules-official">
+        <div class="ti-eyebrow">Official Rules · Match Day</div>
+        <h2 class="sec">Complete Tournament Rules</h2>
+        <div class="rules-grid">
+          <div class="rule-card">
+            <div class="rc-ic">⚽</div>
+            <b>Format</b>
+            <p>7-a-side football (7 outfield players + 1 goalkeeper per team). Single-day tournament with 25 total matches.</p>
+          </div>
+          <div class="rule-card">
+            <div class="rc-ic">⏱️</div>
+            <b>Match Duration</b>
+            <p>Two halves of 10 minutes each = 20 minutes total. Short break between halves.</p>
+          </div>
+          <div class="rule-card">
+            <div class="rc-ic">🔠</div>
+            <b>Group Stage</b>
+            <p>18 teams divided into 6 groups of 3. Each team plays 2 matches (round-robin) within its group.</p>
+          </div>
+          <div class="rule-card">
+            <div class="rc-ic">🏆</div>
+            <b>Advancement</b>
+            <p>All 6 group winners qualify for QF. Plus best 2 runners-up ranked across all groups. Total 8 QF teams.</p>
+          </div>
+          <div class="rule-card">
+            <div class="rc-ic">📊</div>
+            <b>Group Tiebreakers</b>
+            <p>1. Points → 2. Goal difference → 3. Goals for → 4. Head-to-head → 5. Discipline (yellow/red cards).</p>
+          </div>
+          <div class="rule-card">
+            <div class="rc-ic">🥈</div>
+            <b>Runners-up Ranking</b>
+            <p>Same tiebreakers applied across all 6 group runners-up. Top 2 qualify for QF.</p>
+          </div>
+          <div class="rule-card">
+            <div class="rc-ic">🎯</div>
+            <b>Knockout Stage</b>
+            <p>QF (4 matches) → SF (2 matches) → Final (1 match). Same-batch pairing allowed in knockouts.</p>
+          </div>
+          <div class="rule-card">
+            <div class="rc-ic">⚖️</div>
+            <b>Draws in Knockouts</b>
+            <p>Extra time or penalty shootout — decided by admin per match. No draws in knockout stages.</p>
+          </div>
+          <div class="rule-card">
+            <div class="rc-ic">👥</div>
+            <b>Squad Size</b>
+            <p>Minimum 6, maximum 10 players per team. Team captain nominated at registration.</p>
+          </div>
+          <div class="rule-card">
+            <div class="rc-ic">🔄</div>
+            <b>Substitutions</b>
+            <p>Rolling substitutions permitted throughout the match. No limit on number of substitutions.</p>
+          </div>
+          <div class="rule-card">
+            <div class="rc-ic">👣</div>
+            <b>Footwear</b>
+            <p>As per your registration selection — barefoot / studless / regular. Consistent throughout the match.</p>
+          </div>
+          <div class="rule-card">
+            <div class="rc-ic">🥅</div>
+            <b>Goals & Offsides</b>
+            <p>Chinese bar goals used at the venue. Standard offside rules apply.</p>
+          </div>
+        </div>
+
+        <div class="ti-eyebrow" style="margin-top:36px">Prizes & Recognition</div>
+        <h2 class="sec">Tournament Awards</h2>
+        <div class="awards-grid">
+          <div class="award-card gold">
+            <div class="ac-ic">🏆</div>
+            <b>Champion</b>
+            <p>The winning team of the Final</p>
+          </div>
+          <div class="award-card silver">
+            <div class="ac-ic">🥈</div>
+            <b>Runners-up</b>
+            <p>The losing finalist</p>
+          </div>
+          <div class="award-card bronze">
+            <div class="ac-ic">⚽</div>
+            <b>Top Scorer</b>
+            <p>Highest goals across all tournament matches</p>
+          </div>
+          <div class="award-card bronze">
+            <div class="ac-ic">🧤</div>
+            <b>Best Goalkeeper</b>
+            <p>Selected by organizers based on performance</p>
+          </div>
+          <div class="award-card special" style="grid-column:1/-1">
+            <div class="ac-ic">⭐</div>
+            <b>Man of the Tournament</b>
+            <p>Overall best performer of the day — selected by tournament organizers</p>
+          </div>
+        </div>
+      </div>
     </div>` + footerHTML();
 });
 registerRoute("help", function () {
@@ -1131,16 +1228,16 @@ async function submitGuest() {
   const rec = {
     id, type: "guest", status: "review", created: Date.now(),
     data: {
-  name: val("g-name"),
-  category: computeCategory(gType),
-  guestType: gType,
-  hostTeam: gType === "team-guest" ? val("g-team") : "",
-  sscBatch: val("g-ssc"),
-  hscBatch: val("g-hsc"),
-  email: val("g-email"),
-  nid: val("g-nid"),
-  photo: uploadData["g-photo"] || ""
-},
+      name: val("g-name"),
+      category: computeCategory(gType),
+      guestType: gType,
+      hostTeam: gType === "team-guest" ? val("g-team") : "",
+      sscBatch: val("g-ssc"),
+      hscBatch: val("g-hsc"),
+      email: val("g-email"),
+      nid: val("g-nid"),
+      photo: uploadData["g-photo"] || ""
+    },
     contact: val("g-phone")
   };
   try { await Store.saveReg(rec); }
@@ -1331,6 +1428,442 @@ async function submitVisitor() {
     }
   } catch (e) { }
 }
+
+registerRoute("fixtures", function () {
+  const fixtures = App.fixtures || [];
+  const teams = allTeams();
+
+  // Filter tabs
+  const activeTab = window._fxTab || "schedule";
+  const activeGroup = window._fxGroup || "all";
+
+  // Team lookup helper
+  const teamByName = (name) => {
+    if (!name) return null;
+    const normalized = String(name).toLowerCase().trim();
+    return teams.find(t => (t.data.teamName || "").toLowerCase().trim() === normalized) || null;
+  };
+
+  const teamCard = (name, placeholder) => {
+    const t = teamByName(name);
+    if (!t && placeholder) {
+      return `<div class="fx-team fx-team-tbd">
+        <div class="fxt-crest fxt-crest-tbd">?</div>
+        <div class="fxt-name">${esc(placeholder)}</div>
+      </div>`;
+    }
+    if (!t) {
+      return `<div class="fx-team">
+        <div class="fxt-crest" style="background:linear-gradient(135deg,hsl(${(name || '').length * 47 % 360},65%,45%),hsl(${(name || '').length * 71 % 360},60%,55%))">${esc((name || '?').slice(0, 2).toUpperCase())}</div>
+        <div class="fxt-name">${esc(name || 'TBD')}</div>
+      </div>`;
+    }
+    const logo = t.data.logo || "";
+    const hue = (t.data.teamName || '').length * 47 % 360;
+    return `<div class="fx-team">
+      <div class="fxt-crest" style="${logo ? `background:#fff` : `background:linear-gradient(135deg,hsl(${hue},65%,45%),hsl(${(hue + 40) % 360},60%,55%))`}">
+        ${logo ? `<img src="${esc(logo)}">` : esc((t.data.teamName || '?').slice(0, 2).toUpperCase())}
+      </div>
+      <div class="fxt-name">${esc(t.data.teamName)}</div>
+    </div>`;
+  };
+
+  const matchCard = (m) => {
+    const home = m.homeTeamName || m.homePlaceholder;
+    const away = m.awayTeamName || m.awayPlaceholder;
+    const kickoffDate = m.kickoff ? new Date(m.kickoff) : null;
+    const timeStr = kickoffDate ? kickoffDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }) : "TBD";
+    const stagePill = m.stage === "quarterfinal" ? "QF" : m.stage === "semifinal" ? "SF" : m.stage === "final" ? "FINAL" : `Group ${m.group}`;
+    const stageClass = m.stage === "quarterfinal" ? "qf" : m.stage === "semifinal" ? "sf" : m.stage === "final" ? "final" : "grp";
+    const isLive = m.status === "live";
+    const isFinished = m.status === "finished" || m.status === "verified";
+    const homeScore = m.homeScore ?? "";
+    const awayScore = m.awayScore ?? "";
+
+    return `<div class="fx-card ${isLive ? "fx-live" : ""} ${isFinished ? "fx-done" : ""}">
+      <div class="fx-head">
+        <span class="fx-stage ${stageClass}">${esc(stagePill)}</span>
+        <span class="fx-mno">Match ${m.matchNo}</span>
+        <span class="fx-time">${esc(timeStr)}</span>
+        ${isLive ? `<span class="fx-live-badge"><span class="dot"></span>LIVE</span>` : ""}
+      </div>
+      <div class="fx-body">
+        ${teamCard(m.homeTeamName, m.homePlaceholder)}
+        <div class="fx-vs">
+          ${isLive || isFinished ? `<div class="fx-score"><b>${homeScore}</b><span>–</span><b>${awayScore}</b></div>` : `<span class="fx-vs-x">VS</span>`}
+        </div>
+        ${teamCard(m.awayTeamName, m.awayPlaceholder)}
+      </div>
+      <div class="fx-foot">
+        <span>📍 ${esc(m.venue || "SCPSC School Field")}</span>
+      </div>
+    </div>`;
+  };
+
+  // Tab content
+  let content = "";
+
+  if (activeTab === "schedule") {
+    let filtered = fixtures;
+    if (activeGroup !== "all") {
+      if (activeGroup === "knockouts") filtered = fixtures.filter(m => m.stage !== "group");
+      else filtered = fixtures.filter(m => m.group === activeGroup);
+    }
+
+    // Group by kickoff time slot
+    const slots = {};
+    filtered.forEach(m => {
+      const key = m.kickoff || "unknown";
+      if (!slots[key]) slots[key] = [];
+      slots[key].push(m);
+    });
+
+    const sortedTimes = Object.keys(slots).sort();
+    const now = Date.now();
+
+    // Detect the day break (lunch gap between 13:00 and 14:30)
+    const timelineBlocks = sortedTimes.map((koIso, i) => {
+      const slot = slots[koIso];
+      const koDate = new Date(koIso);
+      const koEnd = slot[0].endsAt ? new Date(slot[0].endsAt) : null;
+      const timeStr = koDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+      const endStr = koEnd ? koEnd.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true }) : "";
+      const isPast = koEnd && koEnd.getTime() < now;
+      const isLive = koDate.getTime() <= now && (!koEnd || koEnd.getTime() >= now);
+      const isNext = !isPast && !isLive;
+      const slotStatus = isLive ? "live" : isPast ? "done" : "next";
+      const slotLabel = isLive ? "LIVE NOW" : isPast ? "Completed" : "Upcoming";
+      const stageInfo = [...new Set(slot.map(m => m.stage === "group" ? `Group ${m.group}` : m.stage.charAt(0).toUpperCase() + m.stage.slice(1)))].join(" · ");
+
+      // Check for lunch break before this slot
+      let breakBanner = "";
+      if (i > 0) {
+        const prevEnd = new Date(slots[sortedTimes[i - 1]][0].endsAt);
+        const gap = (koDate - prevEnd) / (60 * 1000); // gap in minutes
+        if (gap >= 60) {
+          breakBanner = `<div class="fx-break">
+            <span class="fx-break-line"></span>
+            <span class="fx-break-lbl">🍽️ ${Math.round(gap)}-min break</span>
+            <span class="fx-break-line"></span>
+          </div>`;
+        }
+      }
+
+      return breakBanner + `<div class="fx-slot fx-slot-${slotStatus}">
+        <div class="fx-slot-time">
+          <div class="fxst-dot"></div>
+          <div class="fxst-info">
+            <div class="fxst-time">${esc(timeStr)}${endStr ? ` – ${esc(endStr)}` : ""}</div>
+            <div class="fxst-lbl">${esc(slotLabel)} · ${esc(stageInfo)}</div>
+          </div>
+          <div class="fxst-count">${slot.length} match${slot.length === 1 ? "" : "es"}</div>
+        </div>
+        <div class="fx-slot-matches">
+          ${slot.map(matchCard).join("")}
+        </div>
+      </div>`;
+    }).join("");
+
+    content = `<div class="fx-timeline">${timelineBlocks}</div>`;
+    if (!filtered.length) content = `<div class="empty-wall">No matches match this filter.</div>`;
+  } else if (activeTab === "bracket") {
+    const qfs = fixtures.filter(m => m.stage === "quarterfinal");
+    const sfs = fixtures.filter(m => m.stage === "semifinal");
+    const finals = fixtures.filter(m => m.stage === "final");
+    content = `<div class="fx-bracket">
+      <div class="fxb-round">
+        <div class="fxb-round-h">Quarter Finals</div>
+        ${qfs.map(matchCard).join("")}
+      </div>
+      <div class="fxb-round">
+        <div class="fxb-round-h">Semi Finals</div>
+        ${sfs.map(matchCard).join("")}
+      </div>
+      <div class="fxb-round">
+        <div class="fxb-round-h">Final</div>
+        ${finals.map(matchCard).join("")}
+      </div>
+    </div>`;
+  } else if (activeTab === "groups") {
+    const groups = ["A", "B", "C", "D", "E", "F"];
+    const teamsByGroup = {};
+    fixtures.filter(m => m.stage === "group").forEach(m => {
+      teamsByGroup[m.group] = teamsByGroup[m.group] || new Set();
+      teamsByGroup[m.group].add(m.homeTeamName);
+      teamsByGroup[m.group].add(m.awayTeamName);
+    });
+    content = `<div class="fx-groups">
+      ${groups.map(g => {
+      const list = [...(teamsByGroup[g] || [])];
+      return `<div class="fxg-card">
+          <div class="fxg-h">Group ${esc(g)}</div>
+          ${list.map((tn, i) => `<div class="fxg-team">
+            <span class="fxg-num">${i + 1}</span>
+            ${teamCard(tn)}
+          </div>`).join("")}
+        </div>`;
+    }).join("")}
+    </div>`;
+  }
+
+  $("#app").innerHTML = anncHTML() + navHTML("fixtures") + `
+    <div class="wrap page">
+      <div class="page-head">
+        <span class="crumb" onclick="go('home')">← Back to home</span>
+        <h1 class="ph">Fixtures</h1>
+        <p class="ph-sub">${fixtures.length} matches · Match day 10 July 2026</p>
+      </div>
+
+      <div class="fx-header-row">
+  <div class="fx-tabs">
+    <button class="fx-tab ${activeTab === 'schedule' ? 'active' : ''}" onclick="setFxTab('schedule')">📅 Schedule</button>
+    <button class="fx-tab ${activeTab === 'bracket' ? 'active' : ''}" onclick="setFxTab('bracket')">🏆 Knockouts</button>
+    <button class="fx-tab ${activeTab === 'groups' ? 'active' : ''}" onclick="setFxTab('groups')">🔠 Groups</button>
+  </div>
+  <button class="btn btn-primary fx-dl-btn" onclick="downloadFixturesPdf()">⤓ Download PDF</button>
+</div>
+
+      ${activeTab === 'schedule' ? `<div class="fx-group-chips">
+        <button class="fx-chip ${activeGroup === 'all' ? 'active' : ''}" onclick="setFxGroup('all')">All</button>
+        ${["A", "B", "C", "D", "E", "F"].map(g => `<button class="fx-chip ${activeGroup === g ? 'active' : ''}" onclick="setFxGroup('${g}')">Group ${g}</button>`).join("")}
+        <button class="fx-chip ${activeGroup === 'knockouts' ? 'active' : ''}" onclick="setFxGroup('knockouts')">Knockouts</button>
+      </div>` : ""}
+
+      ${!fixtures.length ? `<div class="empty-wall">
+        <div class="ew-ic">📅</div>
+        <b>Fixtures coming soon</b>
+        <p>The organizer is preparing the match schedule. Check back shortly.</p>
+      </div>` : content}
+    </div>` + footerHTML();
+});
+
+function downloadFixturesPdf() {
+  const fixtures = App.fixtures || [];
+  if (!fixtures.length) { toast("No fixtures to download yet", "warn"); return; }
+
+  const s = App.settings;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+
+  // Group by time slot
+  const slots = {};
+  fixtures.forEach(m => {
+    const key = m.kickoff || "unknown";
+    if (!slots[key]) slots[key] = [];
+    slots[key].push(m);
+  });
+  const sortedTimes = Object.keys(slots).sort();
+
+  // Group by group (for group standings table)
+  const groups = ["A", "B", "C", "D", "E", "F"];
+  const teamsByGroup = {};
+  fixtures.filter(m => m.stage === "group").forEach(m => {
+    if (!teamsByGroup[m.group]) teamsByGroup[m.group] = new Set();
+    teamsByGroup[m.group].add(m.homeTeamName);
+    teamsByGroup[m.group].add(m.awayTeamName);
+  });
+
+  const logoTag = (key) => {
+    const up = App.logos && App.logos[key];
+    if (up) return `<img src="${up}" alt="" style="width:38px;height:38px;border-radius:8px;background:#fff;padding:3px;object-fit:contain">`;
+    return `<img src="${location.origin}/assets/logo-${key}.png" alt="" style="width:38px;height:38px;border-radius:8px;background:#fff;padding:3px;object-fit:contain" onerror="this.style.display='none'">`;
+  };
+
+  const w = window.open("", "_blank");
+  if (!w) { toast("Allow pop-ups to download the PDF", "warn"); return; }
+
+  // Build sections
+  const timelineHtml = sortedTimes.map(koIso => {
+    const slot = slots[koIso];
+    const koDate = new Date(koIso);
+    const koEnd = slot[0].endsAt ? new Date(slot[0].endsAt) : null;
+    const timeStr = koDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+    const endStr = koEnd ? koEnd.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true }) : "";
+
+    return `<div class="slot">
+      <div class="slot-time">${esc(timeStr)}${endStr ? `<span> – ${esc(endStr)}</span>` : ""}</div>
+      <div class="slot-matches">
+        ${slot.map(m => {
+      const home = m.homeTeamName || m.homePlaceholder || "TBD";
+      const away = m.awayTeamName || m.awayPlaceholder || "TBD";
+      const stageBadge = m.stage === "group" ? `Group ${m.group}` :
+        m.stage === "quarterfinal" ? "QF" :
+        m.stage === "semifinal" ? "SF" :
+        m.stage === "final" ? "FINAL" : m.stage;
+      const stageCls = m.stage === "final" ? "final" : m.stage === "semifinal" ? "sf" : m.stage === "quarterfinal" ? "qf" : "grp";
+      return `<div class="m">
+            <span class="mno">#${m.matchNo}</span>
+            <span class="stage ${stageCls}">${esc(stageBadge)}</span>
+            <span class="team">${esc(home)}</span>
+            <span class="vs">vs</span>
+            <span class="team">${esc(away)}</span>
+          </div>`;
+    }).join("")}
+      </div>
+    </div>`;
+  }).join("");
+
+  const groupsHtml = groups.map(g => {
+    const list = [...(teamsByGroup[g] || [])];
+    return `<div class="grp-card">
+      <div class="grp-h">Group ${esc(g)}</div>
+      ${list.map((t, i) => `<div class="grp-team"><span>${i + 1}</span>${esc(t)}</div>`).join("")}
+    </div>`;
+  }).join("");
+
+  const html = `<!doctype html><html><head><meta charset="utf-8">
+<title>EX-CAP Football Tournament — Fixtures & Rules</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#f5f6fa;color:#0f1424;font-family:'Inter',system-ui,Arial,sans-serif;font-size:10px;line-height:1.4;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .sheet{max-width:820px;margin:12px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 20px 50px -30px rgba(0,0,0,.35);border:1px solid #e6e8f0}
+
+  /* header */
+  .head{position:relative;padding:16px 22px 14px;background:linear-gradient(120deg,#7c3aed,#db2777);color:#fff;overflow:hidden}
+  .head::after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.09)}
+  .head-top{display:flex;align-items:center;gap:12px;position:relative;z-index:1}
+  .head-logos{display:flex;gap:6px}
+  .head-title h1{font-family:'Archivo',sans-serif;font-weight:900;font-size:16px;letter-spacing:-.01em;line-height:1.1;text-transform:uppercase}
+  .head-title .k{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.85;margin-top:2px}
+  .meta{position:relative;z-index:1;margin-top:10px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px 12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:9.5px}
+  .meta b{font-family:'Archivo',sans-serif;font-weight:800}
+
+  .body{padding:16px 20px}
+
+  /* Two-column layout: schedule + groups/rules */
+  .cols{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+
+  /* Left column — schedule */
+  .col-left {}
+  .sec-h{font-family:'Archivo',sans-serif;font-weight:900;font-size:11px;color:#7c3aed;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1.5px solid #ece5fa}
+
+  .slot{margin-bottom:9px}
+  .slot-time{font-family:'Archivo',sans-serif;font-weight:800;font-size:10.5px;color:#0f1424;background:linear-gradient(90deg,#f4f0ff,transparent);padding:3px 8px;border-radius:5px;border-left:3px solid #7c3aed;margin-bottom:4px;letter-spacing:-.005em}
+  .slot-time span{color:#7c3aed;font-weight:700}
+  .slot-matches{display:flex;flex-direction:column;gap:2px;padding-left:6px}
+  .m{display:grid;grid-template-columns:20px 44px 1fr 18px 1fr;gap:6px;align-items:center;padding:3px 6px;background:#fafbff;border-radius:5px;font-size:9.5px;border:1px solid #eceef7}
+  .mno{color:#9aa1b4;font-family:monospace;font-weight:600;font-size:8.5px}
+  .stage{color:#fff;font-size:7.5px;font-weight:800;letter-spacing:.05em;padding:2px 5px;border-radius:4px;text-align:center;text-transform:uppercase}
+  .stage.grp{background:#7c3aed}
+  .stage.qf{background:#ea580c}
+  .stage.sf{background:#dc2626}
+  .stage.final{background:#eab308;color:#422006}
+  .team{color:#0f1424;font-weight:600;font-size:9.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
+  .team:last-of-type{text-align:right}
+  .vs{color:#9aa1b4;font-size:8px;font-weight:700;text-align:center}
+
+  /* Right column — groups + rules */
+  .grp-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+  .grp-card{background:#fafbff;border:1px solid #eceef7;border-radius:6px;padding:6px 8px}
+  .grp-h{font-family:'Archivo',sans-serif;font-weight:900;font-size:9.5px;color:#7c3aed;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid #ece5fa}
+  .grp-team{display:flex;gap:6px;padding:2px 0;font-size:8.5px;color:#0f1424;font-weight:500;line-height:1.3}
+  .grp-team span{color:#9aa1b4;font-family:monospace;font-weight:600;width:12px;flex:none}
+
+  /* Rules block */
+  .rules{background:linear-gradient(180deg,#fbfaff,#fff);border:1px solid #ece5fa;border-radius:8px;padding:10px 12px}
+  .rule-row{display:grid;grid-template-columns:60px 1fr;gap:6px;padding:4px 0;border-bottom:1px dashed #eef0f7;font-size:9px}
+  .rule-row:last-child{border-bottom:0}
+  .rule-row b{color:#7c3aed;font-weight:700;font-size:8.5px;letter-spacing:.03em;text-transform:uppercase}
+  .rule-row span{color:#334155;line-height:1.4}
+
+  /* Awards */
+  .awards{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px}
+  .aw{display:flex;gap:6px;align-items:center;padding:5px 7px;background:linear-gradient(120deg,#fef3c7,#fef9e7);border:1px solid #fde68a;border-radius:5px;font-size:8.5px}
+  .aw-ic{font-size:12px;line-height:1}
+  .aw b{color:#78350f;font-weight:800;font-size:8.5px;letter-spacing:.02em;text-transform:uppercase;display:block;line-height:1.2}
+  .aw span{color:#7c2d12;font-size:8px;display:block;margin-top:1px}
+
+  .foot{background:#f7f8fc;padding:8px 22px;border-top:1px solid #eceef5;font-size:8.5px;color:#6b7280;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+  .foot .brand{font-family:'Archivo',sans-serif;font-weight:800;color:#7c3aed;letter-spacing:.08em}
+
+  @media print{
+    html,body{background:#fff}
+    .sheet{margin:0;box-shadow:none;border:0;max-width:none;border-radius:0}
+    @page{margin:6mm;size:A4 portrait}
+  }
+</style>
+</head><body>
+  <div class="sheet">
+    <div class="head">
+      <div class="head-top">
+        <div class="head-logos">${logoTag("scpsc")}${logoTag("tournament")}${logoTag("excap")}</div>
+        <div class="head-title">
+          <h1>${esc(s.tournamentName || "EX-CAP Football Tournament")} ${esc(s.edition || "")}</h1>
+          <div class="k">Fixtures &amp; Rules · Match Day 10 July 2026</div>
+        </div>
+      </div>
+      <div class="meta">
+        <div>Venue: <b>${esc(s.venue || "SCPSC School Field")}</b></div>
+        <div>Format: <b>7-a-side · 2×10 min halves</b></div>
+        <div>Teams: <b>18</b> · Matches: <b>${fixtures.length}</b></div>
+        <div>Generated: <b>${esc(dateStr)}</b></div>
+      </div>
+    </div>
+
+    <div class="body">
+      <div class="cols">
+        <!-- Left column: schedule -->
+        <div class="col-left">
+          <div class="sec-h">Match Schedule</div>
+          ${timelineHtml}
+        </div>
+
+        <!-- Right column: groups + rules + awards -->
+        <div class="col-right">
+          <div class="sec-h">Groups</div>
+          <div class="grp-grid">${groupsHtml}</div>
+
+          <div class="sec-h">Tournament Rules</div>
+          <div class="rules">
+            <div class="rule-row"><b>Format</b><span>7-a-side football, single-day tournament</span></div>
+            <div class="rule-row"><b>Duration</b><span>2 halves × 10 min each (20 min total)</span></div>
+            <div class="rule-row"><b>Groups</b><span>6 groups of 3 teams, round-robin</span></div>
+            <div class="rule-row"><b>Advancement</b><span>6 Group Winners + Best 2 Runners-up → QF</span></div>
+            <div class="rule-row"><b>Tiebreakers</b><span>Points → GD → GF → H2H → Discipline</span></div>
+            <div class="rule-row"><b>Runners-up rank</b><span>Same tiebreakers applied across all 6 group runners-up</span></div>
+            <div class="rule-row"><b>Knockouts</b><span>QF → SF → Final. Same-batch pairing allowed in KO stages</span></div>
+            <div class="rule-row"><b>Draws in KO</b><span>Extra time or penalty shootout (admin choice per match)</span></div>
+            <div class="rule-row"><b>Squad</b><span>Min 6, max 10 players per team</span></div>
+            <div class="rule-row"><b>Substitutions</b><span>Rolling substitutions permitted</span></div>
+            <div class="rule-row"><b>Footwear</b><span>Barefoot / studless as specified in registration</span></div>
+            <div class="rule-row"><b>Goals</b><span>Chinese bar goals · standard offside rules</span></div>
+          </div>
+
+          <div class="sec-h" style="margin-top:12px">Awards</div>
+          <div class="awards">
+            <div class="aw"><span class="aw-ic">🏆</span><div><b>Champion</b><span>Tournament winner</span></div></div>
+            <div class="aw"><span class="aw-ic">🥈</span><div><b>Runners-up</b><span>Final losers</span></div></div>
+            <div class="aw"><span class="aw-ic">⚽</span><div><b>Top Scorer</b><span>Most goals</span></div></div>
+            <div class="aw"><span class="aw-ic">🧤</span><div><b>Best Goalkeeper</b><span>Admin selection</span></div></div>
+            <div class="aw" style="grid-column:1/-1"><span class="aw-ic">⭐</span><div><b>Man of the Tournament</b><span>Best overall performer, selected by organizers</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <span>Alumni Association of SCPSC · sports.excapscpsc.com</span>
+      <span class="brand">EX-CAP · ALUMNI OF SCPSC</span>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('load', function(){
+      requestAnimationFrame(function(){
+        setTimeout(function(){ window.print(); }, 500);
+      });
+    });
+  <\/script>
+</body></html>`;
+  w.document.write(html);
+  w.document.close();
+}
+
+function setFxTab(tab) { window._fxTab = tab; route(); }
+function setFxGroup(g) { window._fxGroup = g; route(); }
 
 /* ============================================================
    VOLUNTEER

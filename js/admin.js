@@ -1827,6 +1827,16 @@ function adminSettings() {
       return `<div class="regctl"><span class="rc-name">${t}</span><div class="seg">${["open", "paused", "closed"].map(o => `<button data-v="${o}" class="${v === o ? 'on' : ''}" onclick="setRegStatus('${t}','${o}')">${o}</button>`).join("")}</div></div>`;
     }).join("")}
       </div>
+
+      <div class="panel" style="margin-top:20px">
+        <h3>Tournament data</h3>
+        <p class="ph-help">One-time setup: seed the 25 match fixtures into the database. Team names are matched to registered teams at render time — no manual mapping needed.</p>
+        <div id="seed-status" style="margin:12px 0">Loading…</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="seedFixtures()" id="seed-btn">🌱 Seed fixtures</button>
+          <button class="btn btn-line" onclick="checkSeedStatus()">↻ Refresh status</button>
+        </div>
+      </div>
   
       <div class="panel" style="max-width:620px">
         <h3>Payment — bKash merchant QR</h3>
@@ -1840,6 +1850,7 @@ function adminSettings() {
           </div>
         </div>
       </div>`;
+  setTimeout(() => checkSeedStatus(), 100);
 }
 function setRegStatus(type, v) {
   App.settings.regStatus = App.settings.regStatus || { ...(cfg.settings.regStatus || {}) };
@@ -1855,6 +1866,44 @@ function setBkashQR(e) {
     catch (ex) { toast("Save failed: " + (ex.message || "error"), "err"); }
   });
   e.target.value = "";
+}
+
+async function checkSeedStatus() {
+  const el = document.getElementById("seed-status");
+  const btn = document.getElementById("seed-btn");
+  if (!el) return;
+  try {
+    const count = await Store.countFixtures();
+    if (count > 0) {
+      el.innerHTML = `<span style="color:var(--pitch);font-weight:800">✓ Already seeded — ${count} fixture${count === 1 ? "" : "s"} exist</span>`;
+      if (btn) btn.textContent = "🔄 Re-seed (advanced)";
+      window._seedAlreadyDone = true;
+    } else {
+      el.innerHTML = `<span style="color:var(--muted-2)">No fixtures yet — click Seed to populate the 25 matches.</span>`;
+      if (btn) btn.textContent = "🌱 Seed fixtures";
+      window._seedAlreadyDone = false;
+    }
+  } catch (e) {
+    el.innerHTML = `<span style="color:#dc2626">Error: ${esc(e.message || "unknown")}</span>`;
+  }
+}
+
+async function seedFixtures() {
+  if (window._seedAlreadyDone) {
+    const confirm = prompt('Fixtures already exist. Type "SEED" to overwrite them with the default data (existing matches will be reset):');
+    if (confirm !== "SEED") { toast("Cancelled", "warn"); return; }
+  }
+  const btn = document.getElementById("seed-btn");
+  if (btn) { btn.disabled = true; btn.textContent = "⏳ Seeding…"; }
+  try {
+    const res = await Store.seedFixtures(FIXTURES_SEED);
+    await Store.logAction("Seeded fixtures", `${res.count} matches`);
+    toast(`✓ Seeded ${res.count} fixtures`);
+    checkSeedStatus();
+  } catch (e) {
+    toast("Seed failed: " + (e.message || "error"), "err");
+    if (btn) { btn.disabled = false; btn.textContent = "🌱 Seed fixtures"; }
+  }
 }
 async function removeBkashQR() { App.settings.bkashQR = ""; await Store.saveSettings({ bkashQR: "" }); toast("QR removed"); adminSettings(); }
 async function saveBkashNum() { const n = val("set-bknum"); App.settings.bkashNumber = n; await Store.saveSettings({ bkashNumber: n }); toast("bKash number saved"); }
@@ -2862,6 +2911,35 @@ const PDF_FIELDS = {
     { k: "status",         l: "Status",            d: true  }
   ]
 };
+
+/* Tournament fixtures seed data — 25 matches, 18 teams */
+const FIXTURES_SEED = [
+  { id: "M01", matchNo: 1, stage: "group", group: "A", homeTeamName: "SCPSC Gladiators", awayTeamName: "Rampant XI-25", kickoff: "2026-07-10T09:00:00+06:00", endsAt: "2026-07-10T09:30:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M02", matchNo: 2, stage: "group", group: "B", homeTeamName: "Dark Horse-25", awayTeamName: "Elite United 23", kickoff: "2026-07-10T09:00:00+06:00", endsAt: "2026-07-10T09:30:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M03", matchNo: 3, stage: "group", group: "C", homeTeamName: "Conspiracy FC", awayTeamName: "Aether FC", kickoff: "2026-07-10T09:30:00+06:00", endsAt: "2026-07-10T10:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M04", matchNo: 4, stage: "group", group: "D", homeTeamName: "SCPSCSC B", awayTeamName: "Dominators", kickoff: "2026-07-10T09:30:00+06:00", endsAt: "2026-07-10T10:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M05", matchNo: 5, stage: "group", group: "E", homeTeamName: "Boyosh Kom Rokto Gorom Ekadosh'26", awayTeamName: "Dark Hawks", kickoff: "2026-07-10T10:00:00+06:00", endsAt: "2026-07-10T10:30:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M06", matchNo: 6, stage: "group", group: "F", homeTeamName: "SCPSC Warriors 05/07", awayTeamName: "SCPSCSC A", kickoff: "2026-07-10T10:00:00+06:00", endsAt: "2026-07-10T10:30:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M07", matchNo: 7, stage: "group", group: "B", homeTeamName: "Dark Horse-25", awayTeamName: "Obscure XI", kickoff: "2026-07-10T10:30:00+06:00", endsAt: "2026-07-10T11:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M08", matchNo: 8, stage: "group", group: "A", homeTeamName: "SCPSC Gladiators", awayTeamName: "Champs (C-24)", kickoff: "2026-07-10T10:30:00+06:00", endsAt: "2026-07-10T11:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M09", matchNo: 9, stage: "group", group: "C", homeTeamName: "Real Classicos CF", awayTeamName: "Aether FC", kickoff: "2026-07-10T11:00:00+06:00", endsAt: "2026-07-10T11:30:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M10", matchNo: 10, stage: "group", group: "D", homeTeamName: "SCPSCSC B", awayTeamName: "Retro Reign 16'18'", kickoff: "2026-07-10T11:00:00+06:00", endsAt: "2026-07-10T11:30:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M11", matchNo: 11, stage: "group", group: "E", homeTeamName: "Boyosh Kom Rokto Gorom Ekadosh'26", awayTeamName: "Covid-19", kickoff: "2026-07-10T11:30:00+06:00", endsAt: "2026-07-10T12:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M12", matchNo: 12, stage: "group", group: "A", homeTeamName: "Rampant XI-25", awayTeamName: "Champs (C-24)", kickoff: "2026-07-10T11:30:00+06:00", endsAt: "2026-07-10T12:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M13", matchNo: 13, stage: "group", group: "B", homeTeamName: "Elite United 23", awayTeamName: "Obscure XI", kickoff: "2026-07-10T12:00:00+06:00", endsAt: "2026-07-10T12:30:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M14", matchNo: 14, stage: "group", group: "C", homeTeamName: "Aether FC", awayTeamName: "Conspiracy FC", kickoff: "2026-07-10T12:00:00+06:00", endsAt: "2026-07-10T12:30:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M15", matchNo: 15, stage: "group", group: "F", homeTeamName: "SSC Batch 2000", awayTeamName: "SCPSC Warriors 05/07", kickoff: "2026-07-10T12:30:00+06:00", endsAt: "2026-07-10T13:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M16", matchNo: 16, stage: "group", group: "E", homeTeamName: "Dark Hawks", awayTeamName: "Covid-19", kickoff: "2026-07-10T12:30:00+06:00", endsAt: "2026-07-10T13:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M17", matchNo: 17, stage: "group", group: "F", homeTeamName: "SSC Batch 2000", awayTeamName: "SCPSCSC A", kickoff: "2026-07-10T14:30:00+06:00", endsAt: "2026-07-10T15:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M18", matchNo: 18, stage: "group", group: "D", homeTeamName: "Dominators", awayTeamName: "Retro Reign 16'18'", kickoff: "2026-07-10T14:30:00+06:00", endsAt: "2026-07-10T15:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "QF1", matchNo: 19, stage: "quarterfinal", group: null, homeTeamName: null, awayTeamName: null, homePlaceholder: "Winner Group A", awayPlaceholder: "Winner Group C", kickoff: "2026-07-10T15:00:00+06:00", endsAt: "2026-07-10T15:30:00+06:00", venue: "SCPSC School Field", status: "awaiting-teams" },
+  { id: "QF2", matchNo: 20, stage: "quarterfinal", group: null, homeTeamName: null, awayTeamName: null, homePlaceholder: "Winner Group E", awayPlaceholder: "1st Runner-up", kickoff: "2026-07-10T15:00:00+06:00", endsAt: "2026-07-10T15:30:00+06:00", venue: "SCPSC School Field", status: "awaiting-teams" },
+  { id: "QF3", matchNo: 21, stage: "quarterfinal", group: null, homeTeamName: null, awayTeamName: null, homePlaceholder: "Winner Group B", awayPlaceholder: "Winner Group D", kickoff: "2026-07-10T15:30:00+06:00", endsAt: "2026-07-10T16:00:00+06:00", venue: "SCPSC School Field", status: "awaiting-teams" },
+  { id: "QF4", matchNo: 22, stage: "quarterfinal", group: null, homeTeamName: null, awayTeamName: null, homePlaceholder: "Winner Group F", awayPlaceholder: "2nd Runner-up", kickoff: "2026-07-10T15:30:00+06:00", endsAt: "2026-07-10T16:00:00+06:00", venue: "SCPSC School Field", status: "awaiting-teams" },
+  { id: "SF1", matchNo: 23, stage: "semifinal", group: null, homeTeamName: null, awayTeamName: null, homePlaceholder: "Winner QF1", awayPlaceholder: "Winner QF2", kickoff: "2026-07-10T16:15:00+06:00", endsAt: "2026-07-10T16:45:00+06:00", venue: "SCPSC School Field", status: "awaiting-teams" },
+  { id: "SF2", matchNo: 24, stage: "semifinal", group: null, homeTeamName: null, awayTeamName: null, homePlaceholder: "Winner QF3", awayPlaceholder: "Winner QF4", kickoff: "2026-07-10T16:15:00+06:00", endsAt: "2026-07-10T16:45:00+06:00", venue: "SCPSC School Field", status: "awaiting-teams" },
+  { id: "F1", matchNo: 25, stage: "final", group: null, homeTeamName: null, awayTeamName: null, homePlaceholder: "Winner SF1", awayPlaceholder: "Winner SF2", kickoff: "2026-07-10T17:15:00+06:00", endsAt: "2026-07-10T17:45:00+06:00", venue: "SCPSC School Field", status: "awaiting-teams" }
+];
 
 let _pdfExportType = "team";
 let _pdfExportScope = "all";

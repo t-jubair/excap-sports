@@ -381,4 +381,57 @@ Store.subscribeTickets = function(cb){
       });
     };
     window.Store = Store;
+    /* ===== FIXTURES + LIVE STATE ===== */
+    Store.subscribeFixtures = function(cb){
+      if(Store.mode==="local"){ cb(LS.read().fixtures||[]); return ()=>{}; }
+      try{
+        return fb.onSnapshot(fb.collection(db,"fixtures"), snap=>{
+          const list=[]; snap.forEach(d=>list.push(d.data()));
+          list.sort((a,b)=>(a.matchNo||0)-(b.matchNo||0));
+          cb(list);
+        });
+      }catch(e){ return ()=>{}; }
+    };
+
+    Store.subscribeLiveState = function(cb){
+      if(Store.mode==="local"){ cb(LS.read().liveState||null); return ()=>{}; }
+      try{
+        return fb.onSnapshot(fb.doc(db,"liveState","current"), snap=>{
+          cb(snap.exists() ? snap.data() : null);
+        });
+      }catch(e){ return ()=>{}; }
+    };
+
+    Store.saveFixture = async function(fixture){
+      if(Store.mode==="local"){
+        const d=LS.read(); d.fixtures=d.fixtures||[];
+        const i=d.fixtures.findIndex(x=>x.id===fixture.id);
+        if(i>=0) d.fixtures[i]=fixture; else d.fixtures.push(fixture);
+        LS.write(d); return fixture;
+      }
+      await fb.setDoc(fb.doc(db,"fixtures",fixture.id), fixture, {merge:true});
+      return fixture;
+    };
+
+    Store.seedFixtures = async function(fixturesArray){
+      if(Store.mode==="local"){
+        const d=LS.read(); d.fixtures=fixturesArray; LS.write(d);
+        return { count: fixturesArray.length };
+      }
+      // Batch write for speed and atomicity
+      let written = 0;
+      for(const f of fixturesArray){
+        await fb.setDoc(fb.doc(db,"fixtures",f.id), f, {merge:true});
+        written++;
+      }
+      return { count: written };
+    };
+
+    Store.countFixtures = async function(){
+      if(Store.mode==="local"){ return (LS.read().fixtures||[]).length; }
+      try{
+        const snap = await fb.getDocs(fb.collection(db,"fixtures"));
+        return snap.size;
+      }catch(e){ return 0; }
+    };
   })();

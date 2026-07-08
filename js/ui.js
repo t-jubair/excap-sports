@@ -95,7 +95,7 @@ function hexA(hex, a) { const m = hex.replace("#", ""); const r = parseInt(m.sli
 /* ============================================================
    NAV + DRAWER
    ============================================================ */
-const NAV = [["home", "Home"], ["tournament", "Rules"], ["contact", "Contact"], ["brand", "Brand Kit"], ["conduct", "Code of Conduct"], ["register", "Register"]];
+const NAV = [["home", "Home"], ["fixtures", "Fixtures"], ["tournament", "Rules"], ["conduct", "Terms"], ["score", "Scoreboard"], ["brand", "Brand Kit"], ["contact", "Contact"], ["register", "Register"]];
 // Hidden for now (add back when needed): ["live","Live"], ["teams","Teams"]
 
 function navHTML(active) {
@@ -264,6 +264,7 @@ async function boot() {
   App.settings = App.settings || { ...cfg.settings };
   App.logos = App.logos || {};
   App.publicTeams = App.publicTeams || [];
+  App.fixtures = App.fixtures || [];
   App.regs = App.regs || [];
   applyPreviewParam();
   const minLoaderTime = 2800;
@@ -380,6 +381,12 @@ async function boot() {
   // Wire subscriptions for live updates AFTER first render
   if (Store.subscribeBrand) {
     Store.subscribeBrand(list => { App.brand = list; if (currentRoute() === "brand") route(); });
+  }
+  if(Store.subscribeFixtures){
+    Store.subscribeFixtures(list => {
+      App.fixtures = list;
+      if(currentRoute() === "fixtures") route();
+    });
   }
 
   if (window._blMsgTimer) { clearInterval(window._blMsgTimer); window._blMsgTimer = null; }

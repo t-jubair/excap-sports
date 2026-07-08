@@ -56,24 +56,8 @@
      });
    }
    
-   /* ---------- FIXTURES ---------- */
-   registerRoute("fixtures",renderFixtures);
-   function renderFixtures(){
-     $("#app").innerHTML=anncHTML()+navHTML("fixtures")+`<div class="wrap page">
-       <div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span>
-         <h1 class="ph">Fixtures & schedule</h1><p class="ph-sub">Full match schedule by stage. Tap Live for in-progress scores.</p></div>
-       <div id="fx-wrap"><div class="empty-wall">Loading…</div></div>
-     </div>`+footerHTML();
-     clearLiveSubs();
-     _liveUnsub=Store.subscribeMatches(matches=>{
-       const wrap=$("#fx-wrap"); if(!wrap) return;
-       if(!matches.length){ wrap.innerHTML=`<div class="empty-wall">No fixtures published yet.</div>`; return; }
-       const byRound={}; matches.forEach(m=>{ (byRound[m.round||"Group"]=byRound[m.round||"Group"]||[]).push(m); });
-       wrap.innerHTML=ROUNDS.filter(r=>byRound[r]).map(r=>`
-         <h2 class="sec" style="font-size:22px;margin:8px 0 14px">${r}</h2>
-         <div class="match-grid">${byRound[r].map(m=>matchCard(m)).join("")}</div>`).join("");
-     });
-   }
+ 
+   
    
    /* ---------- RESULTS / CHAMPIONS ---------- */
    registerRoute("results",renderResults);

@@ -3562,3 +3562,200 @@ select:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(1
   .rule-card { padding: 18px 16px }
   .rc-ic { width: 42px; height: 42px; font-size: 22px }
 }
+
+/* Volunteer type radio-card grid */
+.vol-type-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.vol-type {
+  cursor: pointer;
+  position: relative;
+}
+.vol-type input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.vt-body {
+  background: var(--navy-2);
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 14px 14px;
+  text-align: center;
+  transition: .2s;
+  height: 100%;
+}
+.vol-type:hover .vt-body {
+  border-color: var(--purple);
+  transform: translateY(-2px);
+}
+.vol-type input:checked + .vt-body {
+  border-color: var(--purple);
+  background: linear-gradient(180deg, rgba(124, 58, 237, .12), rgba(124, 58, 237, .04));
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, .18);
+}
+.vt-ic {
+  font-size: 24px;
+  margin-bottom: 6px;
+  line-height: 1;
+}
+.vt-body b {
+  display: block;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: -.005em;
+  margin-bottom: 3px;
+}
+.vt-body span {
+  display: block;
+  color: var(--muted-2);
+  font-size: 11px;
+  line-height: 1.4;
+}
+@media (max-width: 640px) {
+  .vol-type-grid { grid-template-columns: 1fr; gap: 8px }
+  .vt-body {
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 10px;
+    text-align: left;
+    align-items: center;
+  }
+  .vt-ic { margin-bottom: 0; grid-row: span 2; align-self: center }
+  .vt-body b { grid-column: 2; margin-bottom: 2px }
+  .vt-body span { grid-column: 2 }
+}
+
+/* Volunteer agreement box */
+.vol-agree-box {
+  background: linear-gradient(180deg, rgba(124, 58, 237, .08), rgba(124, 58, 237, .02));
+  border: 1px solid rgba(124, 58, 237, .35);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 8px;
+}
+.vol-agree {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+.vol-agree input[type="checkbox"] {
+  appearance: auto;
+  -webkit-appearance: auto;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px;
+  max-width: 22px;
+  padding: 0 !important;
+  margin: 2px 0 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 4px !important;
+  flex: none !important;
+  accent-color: var(--purple);
+  cursor: pointer;
+  box-shadow: none !important;
+}
+.vol-agree > span {
+  flex: 1;
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.vol-agree > span b {
+  display: block;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 14px;
+  margin-bottom: 6px;
+  letter-spacing: -.005em;
+}
+
+/* Volunteer club radio-card grid */
+.vol-club-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.vol-club {
+  cursor: pointer;
+  position: relative;
+}
+.vol-club input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.vc-body {
+  background: var(--navy-2);
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: .2s;
+  height: 100%;
+}
+.vol-club:hover .vc-body {
+  border-color: var(--purple);
+  transform: translateY(-2px);
+}
+.vol-club input:checked + .vc-body {
+  border-color: var(--purple);
+  background: linear-gradient(180deg, rgba(124, 58, 237, .12), rgba(124, 58, 237, .04));
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, .18);
+}
+.vc-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  flex: none;
+}
+.vc-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 4px;
+}
+.vc-logo span {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 14px;
+  color: var(--purple);
+  letter-spacing: .04em;
+}
+.vc-info {
+  flex: 1;
+  min-width: 0;
+}
+.vc-info b {
+  display: block;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: -.005em;
+  margin-bottom: 3px;
+  line-height: 1.2;
+}
+.vc-info span {
+  display: block;
+  color: var(--muted-2);
+  font-size: 11px;
+  line-height: 1.4;
+}
+@media (max-width: 640px) {
+  .vol-club-grid { grid-template-columns: 1fr }
+}

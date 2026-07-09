@@ -981,35 +981,46 @@ function renderVisitorEditor(r, d) {
 /* -- VOLUNTEER editor -- */
 function renderVolunteerEditor(r, d) {
   showModal(`<div class="reg-editor">
-      ${_header(r, d)}
-  
-      <section class="er-sec">
-        <h4>Personal information</h4>
-        ${_fld("name", "Full name", d.name, { req: true })}
+    ${_header(r, d)}
+
+    <section class="er-sec">
+      <h4>Personal information</h4>
+      ${_fld("name", "Full name", d.name, { req: true })}
+      <div class="grid2">
+        ${_fld("contact", "Mobile", r.contact || d.phone, { req: true, type: "tel" })}
+        ${_fld("email", "Email", d.email, { req: true, type: "email" })}
+      </div>
+      ${_sel("volunteerType", "Type", d.volunteerType || "ex", ["ex", "present"])}
+      ${_sel("club", "Volunteering under club", d.club || "business", ["business", "sports"])}
+    </section>
+
+    <section class="er-sec">
+      <h4>Batch</h4>
+      <div class="grid2">
+        ${_sel("sscBatch", "SSC batch", d.sscBatch, ["", ..._batchYears])}
+        ${_sel("hscBatch", "HSC batch", d.hscBatch, ["", ..._batchYears])}
+      </div>
+      ${d.volunteerType === "present" ? `
         <div class="grid2">
-          ${_fld("contact", "Mobile", r.contact || d.phone, { req: true, type: "tel" })}
-          ${_fld("email", "Email", d.email, { req: true, type: "email" })}
+          ${_sel("studentClass", "Class", d.studentClass, ["", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"])}
+          ${_fld("studentId", "Student ID", d.studentId)}
         </div>
-      </section>
-  
-      <section class="er-sec">
-        <h4>Volunteering details</h4>
-        ${_fld("preferredRole", "Preferred role", d.preferredRole, { ph: "e.g. Registration desk, First aid, Referee assistant" })}
-        ${_fld("availability", "Availability", d.availability, { ph: "e.g. All day, Morning only" })}
-        ${_txt("experience", "Prior experience (optional)", d.experience, { rows: 2 })}
-      </section>
-  
-      <section class="er-sec">
-        <h4>Batch (optional)</h4>
-        <div class="grid2">
-          ${_sel("sscBatch", "SSC batch", d.sscBatch, ["", ..._batchYears])}
-          ${_sel("hscBatch", "HSC batch", d.hscBatch, ["", ..._batchYears])}
-        </div>
-      </section>
-  
-      ${_statusSection(r)}
-      ${_footer(r)}
-    </div>`, "wide");
+      ` : ""}
+    </section>
+
+    <section class="er-sec">
+      <h4>Volunteer assignment (admin only)</h4>
+      ${_fld("assignedRole", "Assigned role", d.assignedRole, { ph: "e.g. Registration desk, First aid, Referee assistant" })}
+      <div class="grid2">
+        ${_fld("assignedZone", "Zone", d.assignedZone, { ph: "e.g. Gate 1, Field north side" })}
+        ${_fld("shift", "Shift", d.shift, { ph: "e.g. 9am–1pm" })}
+      </div>
+      ${_sel("dutyStatus", "Duty status", d.dutyStatus || "Pending", ["Pending", "Confirmed", "On duty", "Completed", "No show"])}
+    </section>
+
+    ${_statusSection(r)}
+    ${_footer(r)}
+  </div>`, "wide");
 }
 
 /* -- unified save -- */
@@ -1068,6 +1079,23 @@ async function saveRegEdits(id) {
       setIf(r.data, "preferredRole", gv("preferredRole"));
       setIf(r.data, "availability", gv("availability"));
       setIf(r.data, "experience", gv("experience"));
+      // Volunteer-specific
+      setIf(r.data, "volunteerType", gv("volunteerType"));
+      setIf(r.data, "studentClass", gv("studentClass"));
+      setIf(r.data, "studentId", gv("studentId"));
+      setIf(r.data, "assignedRole", gv("assignedRole"));
+      setIf(r.data, "assignedZone", gv("assignedZone"));
+      setIf(r.data, "shift", gv("shift"));
+      setIf(r.data, "dutyStatus", gv("dutyStatus"));
+      setIf(r.data, "volunteerType", gv("volunteerType"));
+      setIf(r.data, "club", gv("club"));
+      setIf(r.data, "clubName", gv("club") === "sports" ? "Sports Club" : gv("club") === "business" ? "Business & Career Club" : undefined);
+      setIf(r.data, "studentClass", gv("studentClass"));
+      setIf(r.data, "studentId", gv("studentId"));
+      setIf(r.data, "assignedRole", gv("assignedRole"));
+      setIf(r.data, "assignedZone", gv("assignedZone"));
+      setIf(r.data, "shift", gv("shift"));
+      setIf(r.data, "dutyStatus", gv("dutyStatus"));
     }
 
     // Status + notes (all types)
@@ -1262,6 +1290,14 @@ async function approveReg(id) {
   r.status = "approved"; if (r.paymentStatus && r.paymentStatus === "submitted") r.paymentStatus = "verified";
   await Store.saveReg(r);
   await Store.logAction("Approved registration", r.id + " — " + (r.data.teamName || r.data.name || r.type));
+
+  // Volunteers get no notifications — organizers contact them directly
+  if (r.type === "volunteer") {
+    toast("Volunteer approved (no notifications sent)");
+    refreshCurrentTab();
+    return;
+  }
+
   toast("Approved — sending email & SMS…");
   const res = await Notify.onApproved(r, App.settings);
   const e = res.email, s = res.sms;
@@ -2857,6 +2893,7 @@ const PDF_FIELDS = {
     { k: "id",            l: "Registration ID",   d: true  },
     { k: "teamName",      l: "Team name",          d: true  },
     { k: "category",      l: "Category",           d: true  },
+    { k: "clubName", l: "Club", d: true },
     { k: "captainName",   l: "Captain name",       d: true  },
     { k: "captainPhone",  l: "Captain phone",      d: true  },
     { k: "viceName",      l: "Vice-captain",       d: false },
@@ -3104,6 +3141,7 @@ function _renderCustomPdf(list, activeFields, type, scope) {
       case "hscBatch": return d.hscBatch ? `HSC ${d.hscBatch}` : "—";
       case "playerCount": return `${(r.players || []).length}/${s.playersPerTeam}`;
       case "tshirt": return d.tshirt || "—";
+      case "clubName": return d.clubName || (d.club === "sports" ? "Sports Club" : d.club === "business" ? "Business & Career Club" : "—");
       case "nid": return d.nid || "—";
       case "relation": return d.relation || "—";
       case "preferredRole": return d.preferredRole || "—";

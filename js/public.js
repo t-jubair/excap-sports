@@ -1868,101 +1868,196 @@ function setFxGroup(g) { window._fxGroup = g; route(); }
 /* ============================================================
    VOLUNTEER
    ============================================================ */
-registerRoute("register-volunteer", function () {
-  if (regGate("volunteer")) return;
-  const roles = App.settings.volunteerRoles || [];
-  $("#app").innerHTML = anncHTML() + navHTML("register") + `<div class="wrap page"><div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span>
-    <h1 class="ph">Volunteer registration</h1><p class="ph-sub">Join the crew that makes match day run. Organizers review and assign you a role and zone.</p></div>
-    <div class="form-shell">
-      <div class="note-box"><span class="i">🤝</span><div>Tell us where you'd like to help. You'll get an email + SMS once an organizer confirms your role and shift.</div></div>
-
-      <div class="fsec-h">Your details</div>
-      ${field("vol-name", "Full name", { req: true })}
-      <div class="grid2">
-        ${field("vol-phone", "Mobile", { type: "tel", req: true, ph: "01XXXXXXXXX" })}
-        ${field("vol-email", "Email", { type: "email", help: "Confirmation is sent here." })}
+   registerRoute("register-volunteer", function () {
+    if (regGate("volunteer")) return;
+    $("#app").innerHTML = anncHTML() + navHTML("register") + `<div class="wrap page"><div class="page-head"><span class="crumb" onclick="go('home')">← Back to home</span>
+      <h1 class="ph">Volunteer registration</h1><p class="ph-sub">Join the crew that makes match day run. Organizers review and assign your role.</p></div>
+      <div class="form-shell">
+        <div class="note-box"><span class="i">🤝</span><div>Thanks for stepping up. Fill this in and we'll confirm your role and shift by email + SMS.</div></div>
+  
+        <div class="fsec-h">Your details</div>
+        ${field("vol-name", "Full name", { req: true })}
+        <div class="grid2">
+          ${field("vol-phone", "Mobile", { type: "tel", req: true, ph: "01XXXXXXXXX" })}
+          ${field("vol-email", "Email", { type: "email", req: true, help: "Confirmation is sent here." })}
+        </div>
+        ${uploader("vol-photo", "Photo (required — for your crew pass)")}
+  
+        <div class="fsec-h">Your background</div>
+        <div class="fld">
+        <label class="fl">Volunteering under which club? <span class="req">*</span></label>
+        <div class="vol-club-grid">
+          <label class="vol-club">
+            <input type="radio" name="vol-club" value="business" checked>
+            <div class="vc-body">
+              <div class="vc-logo">${logoImg("business", "BC")}</div>
+              <div class="vc-info">
+                <b>Business &amp; Career Club</b>
+                <span>Sponsorship &amp; operations</span>
+              </div>
+            </div>
+          </label>
+          <label class="vol-club">
+            <input type="radio" name="vol-club" value="sports">
+            <div class="vc-body">
+              <div class="vc-logo">${logoImg("sports", "SC")}</div>
+              <div class="vc-info">
+                <b>Sports Club</b>
+                <span>Match-day logistics</span>
+              </div>
+            </div>
+          </label>
+        </div>
       </div>
-
-      <div class="fsec-h">Role & shift</div>
-      <div class="grid2">
-        ${field("vol-role", "Preferred role", { type: "select", options: roles })}
-        ${field("vol-avail", "Availability", { type: "select", options: ["Full day", "Morning only", "Afternoon only", "Flexible"] })}
+        <div class="fld">
+          <label class="fl">I am a <span class="req">*</span></label>
+          <div class="vol-type-grid">
+            <label class="vol-type">
+              <input type="radio" name="vol-type" value="ex" checked onchange="volToggleStudent()">
+              <div class="vt-body">
+                <div class="vt-ic">🎓</div>
+                <b>Ex-student (Alumni)</b>
+                <span>Already graduated from SCPSC</span>
+              </div>
+            </label>
+            <label class="vol-type">
+              <input type="radio" name="vol-type" value="present" onchange="volToggleStudent()">
+              <div class="vt-body">
+                <div class="vt-ic">📚</div>
+                <b>Present student</b>
+                <span>Currently studying at SCPSC</span>
+              </div>
+            </label>
+          </div>
+        </div>
+  
+        <div class="fsec-h">Batch</div>
+        <div class="grid2">
+          ${batchFields("vol")}
+        </div>
+  
+        <div id="vol-student-row" style="display:none">
+          <div class="fsec-h">Student details</div>
+          <div class="grid2">
+            ${field("vol-class", "Class", { type: "select", options: ["", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"] })}
+            ${field("vol-studentid", "Student ID")}
+          </div>
+        </div>
+  
+        <div class="fsec-h">Agreement</div>
+        <div class="vol-agree-box">
+          <label class="vol-agree">
+            <input type="checkbox" id="vol-agree">
+            <span>
+              <b>I agree to volunteer for the EX-CAP Football Tournament.</b>
+              I will follow the organizers' instructions, be present during my assigned shift, and abide by the volunteer guidelines and code of conduct.
+            </span>
+          </label>
+        </div>
+  
+        <div class="form-actions">
+          <button class="btn btn-ghost" onclick="go('home')">← Cancel</button>
+          <button class="btn btn-pitch" id="submit-btn" onclick="submitVolunteer()">Submit ✓</button>
+        </div>
       </div>
-      <div class="grid2">
-        ${field("vol-batch", "SCPSC batch (if any)", { ph: "2018" })}
-        ${field("vol-tshirt", "T-shirt size", { type: "select", options: ["S", "M", "L", "XL", "XXL"] })}
-      </div>
-      ${field("vol-exp", "Relevant experience", { type: "textarea", ph: "Optional — past events, skills, etc." })}
-      ${field("vol-emergency", "Emergency contact", { type: "tel", ph: "Family member's number" })}
-
-      <div class="fsec-h">Finish</div>
-      ${uploader("vol-photo", "Photo")}
-      ${field("vol-rules", "Volunteer guidelines", { type: "select", options: ["I agree to volunteer guidelines", "I do not agree"], help: "Required" })}
-
-      <div class="form-actions"><button class="btn btn-ghost" onclick="go('home')">← Cancel</button><button class="btn btn-pitch" id="submit-btn" onclick="submitVolunteer()">Submit ✓</button></div></div>
-  </div>`+ footerHTML();
-});
-async function submitVolunteer() {
-  if (!validate([["vol-name", nonEmpty, "Name required"], ["vol-phone", isPhone, "Valid mobile required"], ["vol-email", isEmail, "Valid email"]])) return;
-  if ($("#vol-rules").value.startsWith("I do not")) { toast("You must agree to the volunteer guidelines", "warn"); return; }
-  const btn = $("#submit-btn"); btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
-  let id;
-  try { id = await Store.nextId("volunteer", "EXCAP-FT" + App.settings.edition.slice(-2) + "-VL", 3); }
-  catch (e) { id = "EXCAP-FT" + App.settings.edition.slice(-2) + "-VL" + Date.now().toString(36).toUpperCase().slice(-5); }
-  const rec = {
-    id, type: "volunteer", status: "review", created: Date.now(),
-    data: {
-      name: val("vol-name"), email: val("vol-email"), preferredRole: val("vol-role"), batch: val("vol-batch"),
-      availability: val("vol-avail"), tshirt: val("vol-tshirt"), experience: val("vol-exp"), emergency: val("vol-emergency"), photo: uploadData["vol-photo"] || "",
-      assignedRole: "", assignedZone: "", shift: "", dutyStatus: "Pending"
-    },
-    contact: val("vol-phone")
-  };
-  try { await Store.saveReg(rec); }
-  catch (e) {
-    const em = emergencyInfo();
-    showModal(`<div class="emerg-card">
-    <div class="emerg-ic" style="background:rgba(220,38,38,.12);border-color:#dc2626">⚠️</div>
-    <h3>Registration didn't go through</h3>
-    <p class="emerg-msg">We couldn't save your registration. Reason:<br><b style="color:#dc2626">${esc(e && e.message ? e.message : (e && e.code) ? e.code : "Unknown error — check your connection")}</b><br><br>Please try again or contact us directly and we'll register you manually.</p>
-    <div class="emerg-person">
-      <div class="ep-ava">${esc(initials(em.name || "EX"))}</div>
-      <div><b>${esc(em.name || "")}</b><span>${esc(em.role || "")}</span></div>
-    </div>
-    <div class="emerg-actions">
-      ${em.phone ? `<a class="btn btn-primary" href="tel:${esc((em.phone || "").replace(/[^\d+]/g, ""))}">📞 Call ${esc(em.phone)}</a>` : ""}
-      ${em.email ? `<a class="btn btn-line" href="mailto:${esc(em.email)}">✉ Email us</a>` : ""}
-    </div>
-    <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="closeModal()">Try again</button>
-  </div>`, "narrow");
-    if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; }
-    return;
+    </div>`+ footerHTML();
+  
+    // Reveal / hide student details based on ex/present selection
+    setTimeout(() => {
+      volToggleStudent();
+    }, 50);
+  });
+  
+  function volToggleStudent() {
+    const type = document.querySelector('input[name="vol-type"]:checked')?.value || "ex";
+    const row = document.getElementById("vol-student-row");
+    if (row) row.style.display = (type === "present") ? "block" : "none";
   }
-  App.regs.unshift(rec); renderConfirm("volunteer", rec);
-  try {
-    const shortId = rec.id.replace("EXCAP-FT26-", "");
-    const name = rec.data.teamName || rec.data.name || "there";
-
-    // Email (registration received)
-    if (rec.data.email || rec.captainEmail) {
-      Notify.sendBroadcastEmail({
-        toEmail: rec.data.email || rec.captainEmail,
-        toName: name,
-        subject: "We received your EX-CAP registration",
-        message: `Great news — we've received your ${rec.type} registration (ID: ${rec.id}).\n\nOur organizers will review it and confirm by SMS + email shortly. Once approved, your QR pass activates and you can use it at the gate.\n\nUse the buttons below to download your provisional pass or read the tournament rules.`
-      });
+  async function submitVolunteer() {
+    const edition = String((App.settings && App.settings.edition) || "2026").slice(-2);
+    const volType = document.querySelector('input[name="vol-type"]:checked')?.value || "ex";
+  
+    if (!validate([
+      ["vol-name", nonEmpty, "Name required"],
+      ["vol-phone", isPhone, "Valid mobile required (11 digits, starts with 01)"],
+      ["vol-email", isEmail, "Valid email required"],
+      ["vol-ssc", nonEmpty, "SSC batch year is required"],
+      ["vol-hsc", nonEmpty, "HSC batch year is required"]
+    ])) return;
+  
+    // Photo required
+    if (!uploadData["vol-photo"]) {
+      setErr("vol-photo", "Please upload a photo — required for your crew pass");
+      document.getElementById("vol-photo")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      toast("Photo is required", "warn");
+      return;
     }
-
-    // SMS (registration received) — professional format
-    if (rec.contact) {
-      const smsBody =
-        `Dear ${name},\n\n` +
-        `We've received your ${rec.type} registration (${shortId}) for the EX-CAP Football Tournament. ` +
-        `Our organizers will review it and confirm shortly by SMS + email.\n\n` +
-        `Regards,\nEX-CAP Team`;
-      Notify.sendSMS({ to: rec.contact, message: smsBody });
+  
+    // If present student, class + student ID required
+    if (volType === "present") {
+      if (!val("vol-class")) { setErr("vol-class", "Class required for present students"); toast("Select your class", "warn"); return; }
+      if (!val("vol-studentid")) { setErr("vol-studentid", "Student ID required for present students"); toast("Enter your student ID", "warn"); return; }
     }
-  } catch (e) { console.warn("Post-submit notify failed", e); }
+  
+    // Agreement checkbox required
+    if (!document.getElementById("vol-agree")?.checked) {
+      toast("Please accept the volunteer agreement to continue", "warn");
+      document.getElementById("vol-agree")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+  
+    const btn = $("#submit-btn"); btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+  
+    let id;
+    try { id = await Store.nextId("volunteer", "EXCAP-FT" + edition + "-VL", 3); }
+    catch (e) { id = "EXCAP-FT" + edition + "-VL" + Date.now().toString(36).toUpperCase().slice(-5); }
+  
+    const rec = {
+      id, type: "volunteer", status: "review", created: Date.now(),
+      data: {
+        name: val("vol-name"),
+        email: val("vol-email"),
+        volunteerType: volType,                              // "ex" or "present"
+        club: document.querySelector('input[name="vol-club"]:checked')?.value || "business",
+        clubName: document.querySelector('input[name="vol-club"]:checked')?.value === "sports" ? "Sports Club" : "Business & Career Club",
+        category: volType === "ex" ? "Alumni" : "Current student",
+        sscBatch: val("vol-ssc"),
+        hscBatch: val("vol-hsc"),
+        studentClass: volType === "present" ? val("vol-class") : "",
+        studentId: volType === "present" ? val("vol-studentid") : "",
+        photo: uploadData["vol-photo"] || "",
+        agreedToTerms: true,
+        agreedAt: Date.now(),
+        assignedRole: "",
+        assignedZone: "",
+        shift: "",
+        dutyStatus: "Pending"
+      },
+      contact: val("vol-phone")
+    };
+  
+    try { await Store.saveReg(rec); }
+    catch (e) {
+      const em = emergencyInfo();
+      showModal(`<div class="emerg-card">
+      <div class="emerg-ic" style="background:rgba(220,38,38,.12);border-color:#dc2626">⚠️</div>
+      <h3>Registration didn't go through</h3>
+      <p class="emerg-msg">We couldn't save your registration. Reason:<br><b style="color:#dc2626">${esc(e && e.message ? e.message : (e && e.code) ? e.code : "Unknown error — check your connection")}</b><br><br>Please try again or contact us directly and we'll register you manually.</p>
+      <div class="emerg-person">
+        <div class="ep-ava">${esc(initials(em.name || "EX"))}</div>
+        <div><b>${esc(em.name || "")}</b><span>${esc(em.role || "")}</span></div>
+      </div>
+      <div class="emerg-actions">
+        ${em.phone ? `<a class="btn btn-primary" href="tel:${esc((em.phone || "").replace(/[^\d+]/g, ""))}">📞 Call ${esc(em.phone)}</a>` : ""}
+        ${em.email ? `<a class="btn btn-line" href="mailto:${esc(em.email)}">✉ Email us</a>` : ""}
+      </div>
+      <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="closeModal()">Try again</button>
+    </div>`, "narrow");
+      if (btn) { btn.disabled = false; btn.innerHTML = "Submit ✓"; }
+      return;
+    }
+    App.regs.unshift(rec);
+    renderConfirm("volunteer", rec);
 }
 
 /* ============================================================

@@ -820,7 +820,7 @@ registerRoute("tournament", function () {
           <div class="rule-card">
             <div class="rc-ic">👥</div>
             <b>Squad Size</b>
-            <p>Minimum 6, maximum 10 players per team. Team captain nominated at registration.</p>
+            <p>Minimum 7, maximum 11 players per team. Team captain nominated at registration.</p>
           </div>
           <div class="rule-card">
             <div class="rc-ic">🔄</div>

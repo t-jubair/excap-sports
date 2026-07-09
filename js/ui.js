@@ -388,6 +388,14 @@ async function boot() {
       if(currentRoute() === "fixtures") route();
     });
   }
+  // Load admin's full registration list globally (needed for fixtures logo lookup, etc.)
+if (Store.subscribeRegs) {
+  Store.subscribeRegs(list => {
+    App.regs = list;
+    if (currentRoute() === "fixtures" || currentRoute() === "teams") route();
+  });
+}
+
 
   if (window._blMsgTimer) { clearInterval(window._blMsgTimer); window._blMsgTimer = null; }
 

@@ -1458,11 +1458,11 @@ registerRoute("fixtures", function () {
         <div class="fxt-name">${esc(name || 'TBD')}</div>
       </div>`;
     }
-    const logo = t.data.logo || "";
+    const logo = t.data.logo || t.data.photo || "";
     const hue = (t.data.teamName || '').length * 47 % 360;
     return `<div class="fx-team">
       <div class="fxt-crest" style="${logo ? `background:#fff` : `background:linear-gradient(135deg,hsl(${hue},65%,45%),hsl(${(hue + 40) % 360},60%,55%))`}">
-        ${logo ? `<img src="${esc(logo)}">` : esc((t.data.teamName || '?').slice(0, 2).toUpperCase())}
+        ${logo ? `<img src="${logo}" alt="">` : esc((t.data.teamName || '?').slice(0, 2).toUpperCase())}
       </div>
       <div class="fxt-name">${esc(t.data.teamName)}</div>
     </div>`;

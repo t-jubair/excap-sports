@@ -766,7 +766,7 @@ function actions(r) {
 function editRegPhoto(id) {
   const r = App.regs.find(x => x.id === id);
   if (!r) return;
-  const currentPhoto = (r.data && r.data.photo) || "";
+  const currentPhoto = (r.data && r.data.photo) || (r.data && r.data.logo) || "";
   showModal(`<div style="max-width:420px">
     <h3 style="margin:0 0 6px">${currentPhoto ? "Update" : "Add"} photo</h3>
     <p style="color:var(--muted);font-size:13px;margin:0 0 16px">For <b>${esc(r.data.teamName || r.data.name || r.id)}</b> · ID: ${esc(r.id)}</p>
@@ -1150,7 +1150,13 @@ async function saveRegPhoto(id) {
     });
 
     r.data = r.data || {};
-    r.data.photo = dataUrl;
+    // For team registrations, save as logo (used in fixtures + team cards).
+    // For individual registrations (guest/visitor/volunteer), save as photo.
+    if (r.type === "team") {
+      r.data.logo = dataUrl;
+    } else {
+      r.data.photo = dataUrl;
+    }
     await Store.saveReg(r);
     await Store.logAction("Updated photo", r.id);
     toast("Photo saved ✓");
@@ -1168,7 +1174,11 @@ async function removeRegPhoto(id) {
   if (!r) return;
   if (!confirm(`Remove the photo for ${r.data.teamName || r.data.name}?`)) return;
   try {
-    r.data.photo = "";
+    if (r.type === "team") {
+      r.data.logo = "";
+    } else {
+      r.data.photo = "";
+    }
     await Store.saveReg(r);
     await Store.logAction("Removed photo", r.id);
     toast("Photo removed");
@@ -2964,7 +2974,7 @@ const FIXTURES_SEED = [
   { id: "M11", matchNo: 11, stage: "group", group: "E", homeTeamName: "Boyosh Kom Rokto Gorom Ekadosh'26", awayTeamName: "Covid-19", kickoff: "2026-07-10T11:30:00+06:00", endsAt: "2026-07-10T12:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
   { id: "M12", matchNo: 12, stage: "group", group: "A", homeTeamName: "Rampant XI-25", awayTeamName: "Champs (C-24)", kickoff: "2026-07-10T11:30:00+06:00", endsAt: "2026-07-10T12:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
   { id: "M13", matchNo: 13, stage: "group", group: "B", homeTeamName: "Elite United 23", awayTeamName: "Obscure XI", kickoff: "2026-07-10T12:00:00+06:00", endsAt: "2026-07-10T12:30:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
-  { id: "M14", matchNo: 14, stage: "group", group: "C", homeTeamName: "Aether FC", awayTeamName: "Conspiracy FC", kickoff: "2026-07-10T12:00:00+06:00", endsAt: "2026-07-10T12:30:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
+  { id: "M14", matchNo: 14, stage: "group", group: "C", homeTeamName: "Real Classicos CF", awayTeamName: "Conspiracy FC", kickoff: "2026-07-10T12:00:00+06:00", endsAt: "2026-07-10T12:30:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
   { id: "M15", matchNo: 15, stage: "group", group: "F", homeTeamName: "SSC Batch 2000", awayTeamName: "SCPSC Warriors 05/07", kickoff: "2026-07-10T12:30:00+06:00", endsAt: "2026-07-10T13:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
   { id: "M16", matchNo: 16, stage: "group", group: "E", homeTeamName: "Dark Hawks", awayTeamName: "Covid-19", kickoff: "2026-07-10T12:30:00+06:00", endsAt: "2026-07-10T13:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },
   { id: "M17", matchNo: 17, stage: "group", group: "F", homeTeamName: "SSC Batch 2000", awayTeamName: "SCPSCSC A", kickoff: "2026-07-10T14:30:00+06:00", endsAt: "2026-07-10T15:00:00+06:00", venue: "SCPSC School Field", status: "scheduled" },

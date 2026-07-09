@@ -1826,8 +1826,8 @@ function downloadFixturesPdf() {
             <div class="rule-row"><b>Runners-up rank</b><span>Same tiebreakers applied across all 6 group runners-up</span></div>
             <div class="rule-row"><b>Knockouts</b><span>QF → SF → Final. Same-batch pairing allowed in KO stages</span></div>
             <div class="rule-row"><b>Draws in KO</b><span>Extra time or penalty shootout (admin choice per match)</span></div>
-            <div class="rule-row"><b>Squad</b><span>Min 6, max 10 players per team</span></div>
-            <div class="rule-row"><b>Substitutions</b><span>Rolling substitutions permitted</span></div>
+            <div class="rule-row"><b>Squad</b><span>Min 7, max 11 players per team</span></div>
+            <div class="rule-row"><b>Subs</b><span>Rolling substitutions permitted</span></div>
             <div class="rule-row"><b>Footwear</b><span>Barefoot / studless as specified in registration</span></div>
             <div class="rule-row"><b>Goals</b><span>Chinese bar goals · standard offside rules</span></div>
           </div>

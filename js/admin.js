@@ -13,7 +13,13 @@ const LOGO_SLOTS = [
 let adminTab = "dashboard", regFilter = "all";
 
 registerRoute("admin", renderAdmin);
+const MASTER_ADMIN_EMAIL = "me.talhajubair@gmail.com";
+function isMasterAdmin() {
+  return Store.user && Store.user.email &&
+    Store.user.email.toLowerCase().trim() === MASTER_ADMIN_EMAIL;
+}
 async function renderAdmin() {
+  document.body.classList.add("is-admin");
   if (!Store.user) return renderAdminLogin();
 
   if (!window._adminSubs) {
@@ -22,15 +28,7 @@ async function renderAdmin() {
     try { App.regs = await Store.listRegs(); } catch (e) { }
     try { App.tickets = await Store.listTickets(); } catch (e) { App.tickets = []; }
     // Now subscribe for live updates
-    Store.subscribeRegs(list => {
-      App.regs = list;
-      if (currentRoute() === "admin") {
-        // Re-render whichever admin tab is currently open
-        const rerender = { dashboard: adminDashboard, registrations: adminRegistrations, teams: adminTeams, volunteers: adminVolunteers, checkin: adminCheckin, payments: adminPayments, messages: adminMessages }[adminTab];
-        if (rerender) rerender();
-        refreshNotifBadge();
-      }
-    });
+
 
     Store.subscribeSettings(s => { if (s) App.settings = s; });
     Store.subscribeTickets(list => {
@@ -39,9 +37,18 @@ async function renderAdmin() {
     });
     Store.subscribeRegs(list => {
       App.regs = list;
-      if (currentRoute() === "admin") { refreshCurrentTab(); refreshNotifBadge(); }
+      if (currentRoute() === "admin") {
+        // Don't re-render check-in tab on reg updates — just refresh KPIs and list
+        if (adminTab === "checkin") {
+          if (typeof _ciBuildMap === "function") _ciBuildMap();
+          if (typeof _ciUpdateKPIs === "function") _ciUpdateKPIs();
+          if (typeof renderCiList === "function") renderCiList();
+        } else {
+          refreshCurrentTab();
+        }
+        refreshNotifBadge();
+      }
     });
-    Store.subscribeSettings(s => { App.settings = s; });
     Store.subscribeTickets(list => {
       App.tickets = list;
       if (currentRoute() === "admin") { refreshNotifBadge(); }
@@ -1268,6 +1275,10 @@ async function confirmReject(id) {
 }
 
 function refreshCurrentTab() {
+  // If leaving check-in tab, kill the camera
+  if (adminTab !== "checkin" && window._ciScannerRunning) {
+    _ciStopScanner();
+  }
   const rerender = {
     dashboard: adminDashboard,
     registrations: adminRegistrations,
@@ -2344,7 +2355,7 @@ function beepOK() {
 /* ============================================================
    Check-in sound + haptic engine
    ============================================================ */
-   let _ciVolume = 0.7;
+   let _ciVolume = 1.0;
    let _ciCtx = null;
    function _ciAudio() {
      if (!_ciCtx) try { _ciCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
@@ -2361,7 +2372,7 @@ function beepOK() {
        osc.type = type;
        osc.frequency.setValueAtTime(f, t);
        gain.gain.setValueAtTime(0.0001, t);
-       gain.gain.exponentialRampToValueAtTime(_ciVolume * 0.4, t + 0.02);
+       gain.gain.exponentialRampToValueAtTime(_ciVolume * 0.9, t + 0.02);
        gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
        osc.connect(gain); gain.connect(ctx.destination);
        osc.start(t); osc.stop(t + dur + 0.02);
@@ -2369,11 +2380,12 @@ function beepOK() {
      });
    }
    function _ciVibrate(pattern) { if (navigator.vibrate) try { navigator.vibrate(pattern); } catch (e) {} }
-   function ciSoundValid()     { _ciTone([523, 784], [0.10, 0.16], "sine");     _ciVibrate([80]); }
-   function ciSoundDuplicate() { _ciTone([440, 440], [0.09, 0.09], "square");   _ciVibrate([60, 40, 60]); }
-   function ciSoundReject()    { _ciTone([330, 220], [0.14, 0.22], "sawtooth"); _ciVibrate([260]); }
-   function ciSoundUnknown()   { _ciTone([220], [0.18], "triangle");            _ciVibrate(0); }
-   function ciSoundUndo()      { _ciTone([784, 523], [0.08, 0.12], "sine");     _ciVibrate([40]); }
+   // Scanner-style loud beeps — mimic grocery-store barcode scanner "BEEP!"
+   function ciSoundValid()     { _ciTone([2700], [0.18], "square");                _ciVibrate([120]); }
+   function ciSoundDuplicate() { _ciTone([2700, 2700], [0.10, 0.10], "square");    _ciVibrate([80, 40, 80]); }
+   function ciSoundReject()    { _ciTone([220, 180, 140], [0.15, 0.15, 0.22], "sawtooth"); _ciVibrate([300, 100, 300]); }
+   function ciSoundUnknown()   { _ciTone([300, 200], [0.12, 0.22], "sawtooth");    _ciVibrate([200, 100, 200]); }
+   function ciSoundUndo()      { _ciTone([1800, 900], [0.08, 0.14], "sine");       _ciVibrate([50]); }
 function beepFail() {
   try {
     const A = new (window.AudioContext || window.webkitAudioContext)();
@@ -2416,85 +2428,257 @@ async function ciManual() {
   $("#ci-manual").focus();
 }
 
+function ciSearch(query) {
+  const box = document.getElementById("ci-search-results");
+  if (!box) return;
+  const q = String(query || "").toLowerCase().trim();
+  if (q.length < 2) { box.innerHTML = ""; return; }
+
+  // Search all registrations + individual players + individual guests
+  const matches = [];
+  (App.regs || []).forEach(r => {
+    const d = r.data || {};
+    const contact = String(r.contact || d.phone || d.captainPhone || "").toLowerCase();
+    const name = String(d.teamName || d.name || "").toLowerCase();
+    const id = String(r.id || "").toLowerCase();
+    if (id.includes(q) || name.includes(q) || contact.includes(q)) {
+      matches.push({ level: "reg", reg: r, kind: "reg", idx: -1, name: d.teamName || d.name || r.id, sub: r.type + " · " + (r.status || "—"), code: r.id });
+    }
+    (r.players || []).forEach((p, i) => {
+      const pn = String(p.name || "").toLowerCase();
+      const pc = String(p.phone || "").toLowerCase();
+      const pid = `${r.id}#P${i + 1}`.toLowerCase();
+      if (pid.includes(q) || pn.includes(q) || pc.includes(q)) {
+        matches.push({ level: "player", reg: r, kind: "P", idx: i, name: p.name || "Player " + (i + 1), sub: "Player of " + (d.teamName || r.id), code: `${r.id}#P${i + 1}` });
+      }
+    });
+    (r.guests || []).forEach((g, i) => {
+      const gn = String(g.name || "").toLowerCase();
+      const gc = String(g.phone || "").toLowerCase();
+      const gid = `${r.id}#G${i + 1}`.toLowerCase();
+      if (gid.includes(q) || gn.includes(q) || gc.includes(q)) {
+        matches.push({ level: "guest", reg: r, kind: "G", idx: i, name: g.name || "Guest " + (i + 1), sub: "Guest of " + (d.teamName || r.id), code: `${r.id}#G${i + 1}` });
+      }
+    });
+  });
+
+  if (!matches.length) {
+    box.innerHTML = `<div class="ci-search-empty">No matches for "${esc(query)}"</div>`;
+    return;
+  }
+  const top10 = matches.slice(0, 10);
+  const statusColor = st => st === "approved" ? "#16a34a" : st === "review" ? "#d97706" : st === "rejected" ? "#dc2626" : "#6b7280";
+  box.innerHTML = top10.map(m => {
+    const d = m.reg.data || {};
+    const photo = (m.kind !== "reg" && (m.reg.players?.[m.idx]?.photo || m.reg.guests?.[m.idx]?.photo)) || d.photo || d.logo || "";
+    const initials = (m.name || "?").split(/\s+/).slice(0, 2).map(x => x[0] || "").join("").toUpperCase();
+    return `<div class="ci-sr" onclick="ciSearchSelect('${esc(m.code)}')">
+      <div class="ci-sr-ava">${photo ? `<img src="${esc(photo)}">` : `<span>${esc(initials)}</span>`}</div>
+      <div class="ci-sr-info">
+        <b>${esc(m.name)}</b>
+        <span>${esc(m.sub)} · <code>${esc(m.code)}</code></span>
+      </div>
+      <span class="ci-sr-st" style="background:${statusColor(m.reg.status)}">${esc(m.reg.status || "—")}</span>
+    </div>`;
+  }).join("") + (matches.length > 10 ? `<div class="ci-search-empty">+ ${matches.length - 10} more — refine search</div>` : "");
+}
+
+function ciSearchSelect(code) {
+  ciSearchClear();
+  doCheckin(code);
+}
+
+function ciSearchEnter() {
+  // If exactly one result, select it; otherwise treat as raw code
+  const box = document.getElementById("ci-search-results");
+  const results = box ? box.querySelectorAll(".ci-sr") : [];
+  if (results.length === 1) results[0].click();
+  else {
+    const val = document.getElementById("ci-search").value.trim();
+    if (val) doCheckin(val);
+  }
+}
+
+function ciSearchClear() {
+  const inp = document.getElementById("ci-search");
+  const box = document.getElementById("ci-search-results");
+  if (inp) inp.value = "";
+  if (box) box.innerHTML = "";
+}
+
+
 async function doCheckin(code) {
   const res = _ciResolveCode(code);
+  // Cancel any pending auto-clear
+  if (window._ciAutoClear) clearTimeout(window._ciAutoClear);
 
   if (res.outcome === "malformed") {
     ciSoundUnknown();
     _ciShowProfile({ kind: "malformed", code: res.code });
+    window._ciAutoClear = setTimeout(_ciClear, 4000);
     return;
   }
   if (res.outcome === "unknown") {
     ciSoundUnknown();
     _ciShowProfile({ kind: "unknown", code: res.code });
+    window._ciAutoClear = setTimeout(_ciClear, 4000);
     return;
   }
 
-  // Security checks
   const reg = res.reg;
+
+  // Strict status gate — only "approved" allowed
   if (reg.status === "rejected") {
     ciSoundReject();
     _ciShowProfile({ kind: "rejected", res });
     return;
   }
-  if (reg.status !== "approved" && reg.status !== "waitlist") {
+  if (reg.status === "deleted") {
+    ciSoundReject();
+    _ciShowProfile({ kind: "deleted", res });
+    return;
+  }
+  if (reg.status === "review" || reg.status === "pending" || reg.status === "submitted") {
+    ciSoundReject();
+    _ciShowProfile({ kind: "pending", res });
+    return;
+  }
+  if (reg.status !== "approved") {
     ciSoundReject();
     _ciShowProfile({ kind: "not-approved", res });
     return;
   }
-
-  // Duplicate check
-  const alreadyIn = res.entity && res.entity.checkedIn;
-  if (alreadyIn) {
-    ciSoundDuplicate();
-    _ciShowProfile({ kind: "duplicate", res });
-    return;
-  }
-
-  // Valid — show profile card, then confirm
   ciSoundValid();
-  _ciShowProfile({ kind: "valid", res });
+  await _ciConfirmEntry(reg.id, res.kind, res.idx, res.code);
+  // APPROVED — show profile, count previous entries
+  const entries = _ciGetEntries(res);
+  ciSoundValid();
+  _ciShowProfile({ kind: "valid", res, entries });
 
   if (window._ciRush) {
-    // Auto-confirm after 1.5s in rush mode
     if (window._ciAutoTimer) clearTimeout(window._ciAutoTimer);
     window._ciAutoTimer = setTimeout(() => _ciConfirmCheckin(res), 1500);
   }
+}
+
+async function _ciConfirmEntry(regId, kind, idx, code) {
+  const r = App.regs.find(x => x.id === regId);
+  if (!r) return;
+  const now = Date.now();
+  const adminId = (Store.user && Store.user.uid) || "admin";
+  const entry = { at: now, by: adminId };
+
+  try {
+    if (kind === "reg") {
+      r.entries = r.entries || [];
+      r.entries.push(entry);
+      r.checkedIn = now;
+      r.checkedBy = adminId;
+    } else if (kind === "P" && r.players && r.players[+idx]) {
+      r.players[+idx].entries = r.players[+idx].entries || [];
+      r.players[+idx].entries.push(entry);
+      r.players[+idx].checkedIn = now;
+      r.players[+idx].checkedBy = adminId;
+    } else if (kind === "G" && r.guests && r.guests[+idx]) {
+      r.guests[+idx].entries = r.guests[+idx].entries || [];
+      r.guests[+idx].entries.push(entry);
+      r.guests[+idx].checkedIn = now;
+      r.guests[+idx].checkedBy = adminId;
+    }
+    await Store.saveReg(r);
+    await Store.logAction("Entry recorded", `${code} — entry #${_ciEntryCount(r, kind, +idx)}`);
+    ciSoundValid();
+    _ciShowProfile({ kind: "confirmed", res: _ciResolveCode(code) });
+    _ciBuildMap();
+    _ciUpdateKPIs();
+    renderCiList();
+    // Auto-clear after 2.5s so the next scan can proceed hands-free
+    if (window._ciAutoClear) clearTimeout(window._ciAutoClear);
+    window._ciAutoClear = setTimeout(_ciClear, 2500);
+  } catch (e) {
+    toast("Save failed: " + (e.message || "error"), "err");
+  }
+}
+
+function _ciEntryCount(reg, kind, idx) {
+  if (kind === "reg") return (reg.entries || []).length;
+  if (kind === "P") return (reg.players?.[idx]?.entries || []).length;
+  if (kind === "G") return (reg.guests?.[idx]?.entries || []).length;
+  return 0;
+}
+
+function _ciGetEntries(reg, kind, idx) {
+  let entity = null;
+  if (kind === "reg") entity = reg;
+  else if (kind === "P" && reg.players) entity = reg.players[idx];
+  else if (kind === "G" && reg.guests) entity = reg.guests[idx];
+  if (!entity) return [];
+  const list = entity.entries || [];
+  // Migrate legacy single check-in for display purposes
+  if (entity.checkedIn && !list.length) {
+    return [{ at: entity.checkedIn, by: entity.checkedBy || "system" }];
+  }
+  return list;
 }
 
 async function _ciConfirmCheckin(res) {
   const reg = res.reg;
   const now = Date.now();
   const adminId = (Store.user && Store.user.uid) || "admin";
+  const entryRecord = { at: now, by: adminId };
+
   try {
+    // Push a new entry to the entries[] array (initialise if needed)
     if (res.kind === "reg") {
+      reg.entries = reg.entries || [];
+      // Migrate legacy single checkedIn to entries[] if present
+      if (reg.checkedIn && !reg.entries.length) {
+        reg.entries.push({ at: reg.checkedIn, by: reg.checkedBy || "system" });
+      }
+      reg.entries.push(entryRecord);
+      // Keep legacy field pointing at latest entry for backward compatibility
       reg.checkedIn = now;
       reg.checkedBy = adminId;
     } else if (res.kind === "P" && reg.players && reg.players[res.idx]) {
-      reg.players[res.idx].checkedIn = now;
-      reg.players[res.idx].checkedBy = adminId;
+      const p = reg.players[res.idx];
+      p.entries = p.entries || [];
+      if (p.checkedIn && !p.entries.length) {
+        p.entries.push({ at: p.checkedIn, by: p.checkedBy || "system" });
+      }
+      p.entries.push(entryRecord);
+      p.checkedIn = now;
+      p.checkedBy = adminId;
     } else if (res.kind === "G" && reg.guests && reg.guests[res.idx]) {
-      reg.guests[res.idx].checkedIn = now;
-      reg.guests[res.idx].checkedBy = adminId;
+      const g = reg.guests[res.idx];
+      g.entries = g.entries || [];
+      if (g.checkedIn && !g.entries.length) {
+        g.entries.push({ at: g.checkedIn, by: g.checkedBy || "system" });
+      }
+      g.entries.push(entryRecord);
+      g.checkedIn = now;
+      g.checkedBy = adminId;
     }
-    // Optimistic: update UI immediately; sync in background
-    _ciAppendRecent(res);
-    _ciShowProfile({ kind: "confirmed", res });
+
+    _ciShowProfile({ kind: "confirmed", res, entries: _ciGetEntries(res) });
     await Store.saveReg(reg);
-    await Store.logAction("Checked in", `${res.code} — ${res.displayName}`);
+    await Store.logAction("Entry recorded", `${res.code} — ${res.displayName} (entry ${_ciGetEntries(res).length})`);
     _ciBuildMap();
     _ciUpdateKPIs();
     renderCiList();
+
+    // Auto-clear in rush mode
     if (window._ciRush) {
       setTimeout(() => {
         const slot = $("#ci-profile-slot");
         if (slot) slot.innerHTML = _ciIdleHtml();
-      }, 3000);
+      }, 2500);
     }
   } catch (e) {
-    toast("Sync failed — will retry: " + (e.message || "error"), "err");
+    toast("Sync failed: " + (e.message || "error"), "err");
   }
 }
+
+
 
 function _ciDeny(code, reason) {
   Store.logAction("Denied check-in", code + " — " + reason);
@@ -2502,33 +2686,37 @@ function _ciDeny(code, reason) {
   if (slot) slot.innerHTML = _ciIdleHtml();
   toast("Denied: " + reason, "warn");
 }
-
 function _ciShowProfile(opts) {
   const slot = $("#ci-profile-slot"); if (!slot) return;
   const kind = opts.kind;
 
+  // Error states — clean cards
   if (kind === "malformed") {
     slot.innerHTML = `<div class="ci-card ci-card-err">
-      <div class="cc-stripe">INVALID CODE FORMAT</div>
+      <div class="cc-stripe">✕ INVALID QR CODE</div>
       <div class="cc-body-err">
         <div class="cce-ic">⚠️</div>
-        <b>Not a valid EX-CAP pass</b>
-        <span>Code: <code>${esc(opts.code)}</code></span>
-        <p>Codes look like <code>EXCAP-FT26-T001</code>. Try again.</p>
-        <button class="btn btn-line" onclick="_ciClear()">Clear</button>
+        <b>This QR is not a valid EX-CAP pass</b>
+        <span>Scanned: <code>${esc(opts.code)}</code></span>
+        <p>Valid codes look like <code>EXCAP-FT26-T001</code>. Ask the person to show their official pass.</p>
       </div>
     </div>`;
     return;
   }
   if (kind === "unknown") {
     slot.innerHTML = `<div class="ci-card ci-card-err">
-      <div class="cc-stripe">CODE NOT FOUND</div>
+      <div class="cc-stripe">✕ REGISTRATION NOT FOUND</div>
       <div class="cc-body-err">
-        <div class="cce-ic">🔍</div>
-        <b>No registration matches this code</b>
-        <span>Code: <code>${esc(opts.code)}</code></span>
-        <p>Verify the code was scanned correctly, or ask organizer.</p>
-        <button class="btn btn-line" onclick="_ciClear()">Clear</button>
+        <div class="cce-ic">🗑️</div>
+        <b>This registration doesn't exist in the system</b>
+        <span>Scanned: <code>${esc(opts.code)}</code></span>
+        <p><b>Do not admit.</b> This QR code corresponds to a registration that was either:</p>
+        <ul style="text-align:left;margin:8px auto 12px;padding-left:20px;max-width:340px;color:var(--muted);font-size:13px;line-height:1.6">
+          <li><b>Deleted</b> by an organizer</li>
+          <li><b>Cancelled</b> before the event</li>
+          <li>Copied from another tournament, or tampered with</li>
+        </ul>
+        <p style="color:var(--muted-2);font-size:12px">If the person insists it's valid, ask them to show the confirmation email and check their status in the Registrations tab manually.</p>
       </div>
     </div>`;
     return;
@@ -2537,48 +2725,110 @@ function _ciShowProfile(opts) {
   const res = opts.res;
   const reg = res.reg;
   const d = reg.data || {};
+
+  // Blocked status states
+  if (kind === "rejected") {
+    slot.innerHTML = `<div class="ci-card ci-card-err">
+      <div class="cc-stripe">✕ REGISTRATION REJECTED</div>
+      <div class="cc-body-err">
+        <div class="cce-ic">🚫</div>
+        <b>${esc(res.displayName)}</b>
+        <span>ID: <code>${esc(res.code)}</code></span>
+        <p><b>Do not admit.</b> This registration was rejected by organizers.${reg.rejectionReason ? `<br>Reason: ${esc(reg.rejectionReason)}` : ""}</p>
+      </div>
+    </div>`;
+    return;
+  }
+  if (kind === "deleted") {
+    slot.innerHTML = `<div class="ci-card ci-card-err">
+      <div class="cc-stripe">✕ REGISTRATION DELETED</div>
+      <div class="cc-body-err">
+        <div class="cce-ic">🗑️</div>
+        <b>${esc(res.displayName)}</b>
+        <span>ID: <code>${esc(res.code)}</code></span>
+        <p><b>Do not admit.</b> This registration was deleted.</p>
+      </div>
+    </div>`;
+    return;
+  }
+  if (kind === "pending" || kind === "not-approved") {
+    slot.innerHTML = `<div class="ci-card ci-card-warn">
+      <div class="cc-stripe">⏳ NOT YET APPROVED</div>
+      <div class="cc-body-err">
+        <div class="cce-ic">⏳</div>
+        <b>${esc(res.displayName)}</b>
+        <span>ID: <code>${esc(res.code)}</code> · Status: <b>${esc(reg.status).toUpperCase()}</b></span>
+        <p><b>Do not admit yet.</b> This registration is still ${esc(reg.status)}. Approve it in the Registrations tab first.</p>
+      </div>
+    </div>`;
+    return;
+  }
+
+  // Valid — build detailed profile
   const isSub = res.isSub;
-  const entityPhoto = (res.entity && res.entity.photo) || d.photo || "";
+  const entityPhoto = (res.entity && res.entity.photo) || d.photo || d.logo || "";
   const displayName = res.displayName;
   const initials = (displayName || "?").split(/\s+/).slice(0, 2).map(x => x[0] || "").join("").toUpperCase();
   const batch = [d.sscBatch && "SSC " + d.sscBatch, d.hscBatch && "HSC " + d.hscBatch].filter(Boolean).join(" · ") || "—";
   const phone = reg.contact || d.phone || d.captainPhone || "—";
 
-  let stripe = "", stripeClass = "", statusLine = "", buttons = "";
-  if (kind === "valid") {
-    stripe = "✓ VALID PASS — CONFIRM ENTRY"; stripeClass = "ok";
-    statusLine = "Ready to admit. Verify photo matches person.";
-    buttons = `
-      <button class="btn ci-btn-big ci-btn-ok" onclick='_ciConfirmCheckin(${JSON.stringify({ reg: { id: reg.id }, kind: res.kind, idx: res.idx, code: res.code, displayName })}, true)'>✓ Confirm entry</button>
-      <button class="btn ci-btn-big ci-btn-deny" onclick="_ciShowDenyOptions('${esc(res.code)}')">✕ Deny</button>`;
-  } else if (kind === "duplicate") {
-    const when = fmtDateTime(res.entity.checkedIn || (isSub ? 0 : reg.checkedIn));
-    stripe = "⚠ ALREADY CHECKED IN"; stripeClass = "warn";
-    statusLine = `Previously admitted at ${when}. Do not re-admit.`;
-    buttons = `<button class="btn ci-btn-big btn-line" onclick="_ciClear()">Continue scanning</button>`;
-  } else if (kind === "rejected") {
-    stripe = "✕ REGISTRATION REJECTED"; stripeClass = "err";
-    statusLine = "This registration was rejected. Do not admit.";
-    buttons = `<button class="btn ci-btn-big btn-line" onclick="_ciClear()">Continue</button>`;
-  } else if (kind === "not-approved") {
-    stripe = "⏳ NOT YET APPROVED"; stripeClass = "warn";
-    statusLine = `Status: ${reg.status.toUpperCase()}. Approve in Registrations first.`;
-    buttons = `<button class="btn ci-btn-big btn-line" onclick="_ciClear()">Continue</button>`;
-  } else if (kind === "confirmed") {
-    stripe = "✓ ADMITTED"; stripeClass = "ok solid";
-    statusLine = "Check-in recorded.";
-    buttons = `<button class="btn ci-btn-big btn-line" onclick="_ciClear()">Next scan</button>`;
+  // Entry history
+  const entries = _ciGetEntries(reg, res.kind, res.idx);
+  const entryCount = entries.length;
+  const nextEntryNumber = entryCount + 1;
+  const lastEntry = entries[entries.length - 1];
+  const lastEntryTime = lastEntry ? fmtDateTime(lastEntry.at) : null;
+
+  let entryHistoryHtml = "";
+  if (entryCount > 0) {
+    const last3 = entries.slice(-3).reverse();
+    entryHistoryHtml = `<div class="cc-entries">
+      <div class="cc-entries-h">
+        <span>Entry history</span>
+        <b>${entryCount} entr${entryCount === 1 ? 'y' : 'ies'} recorded</b>
+      </div>
+      <div class="cc-entries-list">
+        ${last3.map((e, i) => `<div class="cc-entry-row">
+          <span class="cce-num">#${entryCount - i}</span>
+          <span class="cce-time">${esc(fmtDateTime(e.at))}</span>
+        </div>`).join("")}
+        ${entryCount > 3 ? `<div class="cc-entry-more">+ ${entryCount - 3} earlier entries</div>` : ""}
+      </div>
+    </div>`;
   }
 
+  if (kind === "confirmed") {
+    slot.innerHTML = `<div class="ci-card ci-card-ok ci-card-ok-solid">
+      <div class="cc-stripe">✓ ENTRY #${entryCount} RECORDED</div>
+      <div class="cc-body">
+        <div class="cc-photo">${entityPhoto ? `<img src="${entityPhoto}" alt="">` : `<span>${esc(initials)}</span>`}</div>
+        <div class="cc-info">
+          <div class="cc-name">${esc(displayName)}</div>
+          <div class="cc-tags">
+            <span class="cc-tag">${esc(reg.type)}${isSub ? " · " + (res.kind === "P" ? "Player" : "Guest") : ""}</span>
+            <span class="cc-tag cc-tag-count">Entry #${entryCount}</span>
+          </div>
+          <p class="cc-status">✓ Recorded at ${esc(fmtDateTime(Date.now()))}. Person may proceed.</p>
+        </div>
+      </div>
+    </div>`;
+    return;
+  }
+
+  // Valid — waiting for admin to confirm
+  const stripeLabel = entryCount === 0 ? "✓ VALID PASS — FIRST ENTRY" : `↩ RE-ENTRY (previously entered ${entryCount}×)`;
+  const stripeClass = entryCount === 0 ? "ok" : "ok-repeat";
+
   slot.innerHTML = `<div class="ci-card ci-card-${stripeClass}">
-    <div class="cc-stripe">${stripe}</div>
+    <div class="cc-stripe">${stripeLabel}</div>
     <div class="cc-body">
-      <div class="cc-photo">${entityPhoto ? `<img src="${esc(entityPhoto)}">` : `<span>${esc(initials)}</span>`}</div>
+      <div class="cc-photo">${entityPhoto ? `<img src="${entityPhoto}" alt="">` : `<span>${esc(initials)}</span>`}</div>
       <div class="cc-info">
         <div class="cc-name">${esc(displayName)}</div>
         <div class="cc-tags">
           <span class="cc-tag">${esc(reg.type)}${isSub ? " · " + (res.kind === "P" ? "Player" : "Guest") : ""}</span>
           <span class="cc-tag">${esc(d.category || "—")}</span>
+          ${entryCount > 0 ? `<span class="cc-tag cc-tag-count">${entryCount} prior entr${entryCount === 1 ? 'y' : 'ies'}</span>` : ""}
         </div>
         <div class="cc-rows">
           <div><b>ID</b><span>${esc(res.code)}</span></div>
@@ -2586,11 +2836,16 @@ function _ciShowProfile(opts) {
           <div><b>Phone</b><span>${esc(phone)}</span></div>
           ${d.hostTeam ? `<div><b>Team guest of</b><span>${esc(d.hostTeam)}</span></div>` : ""}
         </div>
-        <p class="cc-status">${esc(statusLine)}</p>
+        ${entryHistoryHtml}
       </div>
     </div>
-    <div class="cc-actions">${buttons}</div>
   </div>`;
+}
+
+// Helper for manual confirm button (resolves the res object again)
+function _ciConfirmFromButton(code) {
+  const res = _ciResolveCode(code);
+  if (res.outcome === "found") _ciConfirmCheckin(res);
 }
 
 // Refresh idle placeholder
@@ -2625,34 +2880,42 @@ function ciRush(on) { window._ciRush = on; }
 function _ciRatePerMin() {
   const fiveAgo = Date.now() - 5 * 60 * 1000;
   let count = 0;
-  App.regs.forEach(r => {
-    if (r.checkedIn && r.checkedIn >= fiveAgo) count++;
-    (r.players || []).forEach(p => { if (p.checkedIn && p.checkedIn >= fiveAgo) count++; });
-    (r.guests || []).forEach(g => { if (g.checkedIn && g.checkedIn >= fiveAgo) count++; });
+  (App.regs || []).forEach(r => {
+    (r.entries || []).forEach(e => { if (e.at >= fiveAgo) count++; });
+    (r.players || []).forEach(p => { (p.entries || []).forEach(e => { if (e.at >= fiveAgo) count++; }); });
+    (r.guests || []).forEach(g => { (g.entries || []).forEach(e => { if (e.at >= fiveAgo) count++; }); });
   });
   return Math.round(count / 5);
 }
 function _ciRecentCount() {
   const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
   let count = 0;
-  App.regs.forEach(r => {
-    if (r.checkedIn && r.checkedIn >= dayStart.getTime()) count++;
-    (r.players || []).forEach(p => { if (p.checkedIn && p.checkedIn >= dayStart.getTime()) count++; });
-    (r.guests || []).forEach(g => { if (g.checkedIn && g.checkedIn >= dayStart.getTime()) count++; });
+  (App.regs || []).forEach(r => {
+    (r.entries || []).forEach(e => { if (e.at >= dayStart.getTime()) count++; });
+    (r.players || []).forEach(p => { (p.entries || []).forEach(e => { if (e.at >= dayStart.getTime()) count++; }); });
+    (r.guests || []).forEach(g => { (g.entries || []).forEach(e => { if (e.at >= dayStart.getTime()) count++; }); });
   });
   return count;
 }
 function _ciUpdateKPIs() {
   const st = checkinStats();
-  document.querySelectorAll(".ci-kpi b").forEach((b, i) => {
-    if (i === 0) b.textContent = st.inN;
-    else if (i === 1) b.textContent = st.total;
-    else if (i === 2) b.textContent = st.total - st.inN;
-    else if (i === 3) b.textContent = _ciRatePerMin();
+  const inEl = document.getElementById("ci-kpi-in");
+  const uniqueEl = document.getElementById("ci-kpi-unique");
+  const rateEl = document.getElementById("ci-kpi-rate");
+  if (inEl) inEl.textContent = st.inN;
+  if (uniqueEl) uniqueEl.textContent = _ciUniqueCount();
+  if (rateEl) rateEl.textContent = _ciRatePerMin();
+  const rc = document.getElementById("ci-recent-count");
+  if (rc) rc.textContent = _ciRecentCount() + " events today";
+}
+function _ciUniqueCount() {
+  const seen = new Set();
+  (App.regs || []).forEach(r => {
+    if ((r.entries || []).length > 0) seen.add(r.id);
+    (r.players || []).forEach((p, i) => { if ((p.entries || []).length > 0) seen.add(`${r.id}#P${i + 1}`); });
+    (r.guests || []).forEach((g, i) => { if ((g.entries || []).length > 0) seen.add(`${r.id}#G${i + 1}`); });
   });
-  const bar = $(".ci-progress-fill");
-  if (bar && st.total) bar.style.width = Math.round(st.inN / st.total * 100) + "%";
-  const rc = $("#ci-recent-count"); if (rc) rc.textContent = _ciRecentCount() + " today";
+  return seen.size;
 }
 function _ciAppendRecent(res) {} // list re-renders after save
 
@@ -2694,10 +2957,20 @@ function showCi(cls, icon, name, sub, photo) {
 }
 function checkinStats() {
   let inN = 0, total = 0;
-  App.regs.forEach(r => {
-    if (["approved"].includes(r.status) || r.type === "student") { total++; if (r.checkedIn) inN++; }
-    (r.players || []).forEach(p => { total++; if (p.checkedIn) inN++; });
-    (r.guests || []).forEach(g => { total++; if (g.checkedIn) inN++; });
+  (App.regs || []).forEach(r => {
+    if (r.type === "team") {
+      (r.players || []).forEach(p => {
+        if (r.status === "approved") total++;
+        if ((p.entries || []).length > 0) inN += p.entries.length;
+      });
+      (r.guests || []).forEach(g => {
+        if (r.status === "approved") total++;
+        if ((g.entries || []).length > 0) inN += g.entries.length;
+      });
+    } else {
+      if (r.status === "approved") total++;
+      if ((r.entries || []).length > 0) inN += r.entries.length;
+    }
   });
   return { inN, total };
 }
@@ -2708,35 +2981,32 @@ function adminCheckin() {
 
   $("#admin-body").innerHTML = `
     <div class="ci-page">
-
       <!-- Top KPIs -->
       <div class="ci-kpi-row">
         <div class="ci-kpi ok">
           <div class="ck-ic">✅</div>
-          <div><b>${st.inN}</b><span>Checked in</span></div>
+          <div><b>${st.inN}</b><span>Total entries today</span></div>
         </div>
         <div class="ci-kpi">
           <div class="ck-ic">🎫</div>
-          <div><b>${st.total}</b><span>Eligible</span></div>
+          <div><b>${st.total}</b><span>Approved passes</span></div>
         </div>
         <div class="ci-kpi">
-          <div class="ck-ic">⏳</div>
-          <div><b>${st.total - st.inN}</b><span>Awaiting</span></div>
+          <div class="ck-ic">👥</div>
+          <div><b>${_ciUniqueCount()}</b><span>Unique visitors in</span></div>
         </div>
         <div class="ci-kpi rate">
           <div class="ck-ic">⚡</div>
           <div><b>${rate}</b><span>per min (last 5m)</span></div>
         </div>
       </div>
-      <div class="ci-progress"><div class="ci-progress-fill" style="width:${st.total ? Math.round(st.inN / st.total * 100) : 0}%"></div></div>
 
-      <!-- Main scan area -->
       <div class="ci-main">
-        <!-- Left: scanner + controls -->
+        <!-- Left: scanner (always on) -->
         <div class="ci-scanner-col">
           <div class="ci-scanner-card">
             <div class="ci-hd">
-              <h3>Scan pass</h3>
+              <h3>📷 Scan pass</h3>
               <div class="ci-hd-controls">
                 <label class="ci-toggle">
                   <input type="checkbox" id="ci-rush" ${window._ciRush ? "checked" : ""} onchange="ciRush(this.checked)">
@@ -2745,19 +3015,18 @@ function adminCheckin() {
                 </label>
                 <label class="ci-vol-wrap" title="Volume">
                   <span>🔊</span>
-                  <input type="range" id="ci-vol" min="0" max="100" value="${_ciVolume * 100}" onchange="_ciVolume = this.value / 100" oninput="_ciVolume = this.value / 100">
+                  <input type="range" id="ci-vol" min="0" max="100" value="${_ciVolume * 100}" oninput="_ciVolume = this.value / 100">
                 </label>
               </div>
             </div>
             <div id="reader" class="ci-reader"></div>
-            <div class="ci-scanner-btns">
-              <button class="btn btn-pitch" id="ci-start" onclick="ciStart()">📷 Start camera</button>
-              <button class="btn btn-line" onclick="ciStop()">⏹ Stop</button>
-              <button class="btn btn-line" onclick="ciSoundValid()" title="Test sound">🔊 Test</button>
-            </div>
-            <div class="ci-manual-row">
-              <input id="ci-manual" placeholder="Or type code manually…" onkeydown="if(event.key==='Enter')ciManual()">
-              <button class="btn btn-primary" onclick="ciManual()">Check in</button>
+            <div class="ci-search-wrap">
+              <div class="ci-search-row">
+                <span class="ci-search-ic">🔍</span>
+                <input id="ci-search" placeholder="Search by ID, name, or mobile number…" oninput="ciSearch(this.value)" onkeydown="if(event.key==='Enter')ciSearchEnter()">
+                <button class="btn btn-sm btn-line" onclick="ciSearchClear()" title="Clear">✕</button>
+              </div>
+              <div class="ci-search-results" id="ci-search-results"></div>
             </div>
           </div>
         </div>
@@ -2767,7 +3036,7 @@ function adminCheckin() {
           <div class="ci-idle">
             <div class="ci-idle-ic">👀</div>
             <b>Ready to scan</b>
-            <p>Point your camera at a pass, or type an ID above. Details will appear here.</p>
+            <p>Point your camera at a pass. The person's profile will appear here.</p>
           </div>
         </div>
       </div>
@@ -2780,64 +3049,188 @@ function adminCheckin() {
         </div>
         <div id="ci-list"></div>
       </div>
-
     </div>`;
+
   renderCiList();
+  // Auto-start the camera
+  setTimeout(() => { if (!window._ciScannerRunning) ciStart(); }, 200);
 }
-function ciStart() {
-  const btn = $("#ci-start");
-  if (!window.QR || !window.Html5Qrcode) { toast("Scanner needs the live HTTPS site + camera permission", "warn"); return; }
-  if (window._ciScanner && window._ciScanner.stop) window._ciScanner.stop();
-  const onDecode = (text) => doCheckin(text);
-  onDecode.__err = (e) => toast("Camera error — check permission", "err");
-  window._ciScanner = QR.scanner("reader", onDecode);
-  if (window._ciScanner.ok) { btn.textContent = "Scanning…"; } else toast(window._ciScanner.error || "Scanner unavailable", "warn");
+async function ciStart() {
+  const readerEl = document.getElementById("reader");
+  const statusEl = document.getElementById("ci-cam-status");
+  if (!readerEl) return;
+
+  // If already running, do nothing
+  if (window._ciScanner && window._ciScannerRunning) {
+    return;
+  }
+
+  // Fully tear down any previous instance
+  await _ciStopScanner();
+
+  // Clear all children from #reader (removes stacked <video>s)
+  readerEl.innerHTML = "";
+
+  if (!window.Html5Qrcode) {
+    if (statusEl) statusEl.innerHTML = `<span class="ci-cam-err">⚠ Scanner library not loaded — use manual entry below</span>`;
+    return;
+  }
+
+  try {
+    const html5 = new Html5Qrcode("reader");
+    window._ciScanner = html5;
+    window._ciScannerRunning = true;
+
+    await html5.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 240, height: 240 } },
+      async (decoded) => {
+        if (window._ciBusy) return;
+        window._ciBusy = true;
+        await doCheckin(decoded);
+        setTimeout(() => { window._ciBusy = false; }, 3000);
+      },
+      () => {}
+    );
+    if (statusEl) statusEl.innerHTML = '<span class="ci-cam-live">🟢 Camera live — point at any QR</span>';
+  } catch (e) {
+    window._ciScannerRunning = false;
+    if (statusEl) statusEl.innerHTML = `<span class="ci-cam-err">⚠ Camera failed: ${esc(e.message || "unknown")} — use manual entry below</span>`;
+  }
 }
-function ciStop() { if (window._ciScanner && window._ciScanner.stop) { _ciScanner.stop(); window._ciScanner = null; const b = $("#ci-start"); if (b) b.textContent = "Start camera"; } }
-function ciManual() { const c = $("#ci-manual").value.trim(); if (!c) { toast("Enter a code", "warn"); return; } doCheckin(c); $("#ci-manual").value = ""; }
+
+async function _ciStopScanner() {
+  try {
+    if (window._ciScanner) {
+      if (window._ciScannerRunning) {
+        try { await window._ciScanner.stop(); } catch (e) {}
+        try { await window._ciScanner.clear(); } catch (e) {}
+      }
+      window._ciScanner = null;
+      window._ciScannerRunning = false;
+    }
+  } catch (e) {}
+  const el = document.getElementById("reader");
+  if (el) el.innerHTML = "";
+}
+
+function ciStop() { _ciStopScanner(); }
 function renderCiList() {
-  const list = [];
-  App.regs.forEach(r => {
-    if (r.checkedIn) list.push({ t: r.checkedIn, name: r.data.teamName || r.data.name, sub: r.type + " · " + r.id, regId: r.id, kind: "reg" });
-    (r.players || []).forEach((p, i) => { if (p.checkedIn) list.push({ t: p.checkedIn, name: p.name, sub: r.data.teamName + " · Player " + (i + 1), regId: r.id, kind: "P", idx: i }); });
-    (r.guests || []).forEach((g, i) => { if (g.checkedIn) list.push({ t: g.checkedIn, name: g.name, sub: (r.data.teamName || "") + " · Guest " + (i + 1), regId: r.id, kind: "G", idx: i }); });
+  const wrap = document.getElementById("ci-list");
+  if (!wrap) return;
+  const events = [];
+  (App.regs || []).forEach(r => {
+    (r.entries || []).forEach((e, i) => events.push({
+      at: e.at, name: r.data.teamName || r.data.name || r.id, id: r.id, kind: "reg", idx: -1, entryNum: i + 1, entryIdxAbs: i, total: (r.entries || []).length, type: r.type
+    }));
+    (r.players || []).forEach((p, pi) => (p.entries || []).forEach((e, i) => events.push({
+      at: e.at, name: p.name || (r.data.teamName + " Player " + (pi + 1)), id: r.id, kind: "P", idx: pi, entryNum: i + 1, entryIdxAbs: i, total: p.entries.length, type: "player"
+    })));
+    (r.guests || []).forEach((g, gi) => (g.entries || []).forEach((e, i) => events.push({
+      at: e.at, name: g.name || "Guest", id: r.id, kind: "G", idx: gi, entryNum: i + 1, entryIdxAbs: i, total: g.entries.length, type: "guest"
+    })));
   });
-  list.sort((a, b) => b.t - a.t);
-  const el = $("#ci-list"); if (!el) return;
-  el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Name</th><th>Pass</th><th></th></tr></thead><tbody>
-        ${list.slice(0, 80).map(x => `<tr>
-          <td style="white-space:nowrap">${fmtDateTime(x.t)}</td>
-          <td><b>${esc(x.name)}</b></td>
-          <td style="color:var(--muted)">${esc(x.sub)}</td>
-          <td><button class="btn btn-sm btn-danger" onclick="undoCheckin('${x.regId}','${x.kind}',${x.idx != null ? x.idx : -1})">Undo</button></td>
-        </tr>`).join("") || `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">No check-ins yet.</td></tr>`}
-      </tbody></table></div>`;
+  events.sort((a, b) => b.at - a.at);
+  const recent = events.slice(0, 20);
+
+  if (!recent.length) {
+    wrap.innerHTML = `<div class="empty-wall" style="padding:32px 20px">No entries recorded yet today.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = `<div class="ci-events">
+    ${recent.map(e => `<div class="ci-event">
+      <div class="ci-ev-time">${esc(fmtDateTime(e.at))}</div>
+      <div class="ci-ev-name">
+        <b>${esc(e.name)}</b>
+        <span>${esc(e.type)} · ${esc(e.id)}</span>
+      </div>
+      <div class="ci-ev-badge">Entry #${e.entryNum}</div>
+      <button class="btn btn-line btn-sm" onclick="undoCheckin('${esc(e.id)}','${esc(e.kind)}',${e.idx})" title="Undo (within 1 hour)">↩</button>
+${isMasterAdmin() ? `<button class="btn btn-danger btn-sm" onclick="ciDeleteEntry('${esc(e.id)}','${esc(e.kind)}',${e.idx},${e.entryIdxAbs})" title="Delete this entry (master admin only)">🗑</button>` : ""}
+    </div>`).join("")}
+  </div>`;
 }
 async function undoCheckin(regId, kind, idx) {
   const r = App.regs.find(x => x.id === regId); if (!r) return;
-  let stamp = 0;
-  if (kind === "reg") stamp = r.checkedIn || 0;
-  else if (kind === "P" && r.players?.[+idx]) stamp = r.players[+idx].checkedIn || 0;
-  else if (kind === "G" && r.guests?.[+idx]) stamp = r.guests[+idx].checkedIn || 0;
+  let entriesArr;
+  if (kind === "reg") entriesArr = r.entries;
+  else if (kind === "P" && r.players?.[+idx]) entriesArr = r.players[+idx].entries;
+  else if (kind === "G" && r.guests?.[+idx]) entriesArr = r.guests[+idx].entries;
+  if (!entriesArr || entriesArr.length === 0) { toast("Nothing to undo", "warn"); return; }
+
+  const lastEntry = entriesArr[entriesArr.length - 1];
   const hourAgo = Date.now() - 60 * 60 * 1000;
-  if (stamp < hourAgo) {
-    toast("Undo only allowed within 1 hour — contact head organizer", "warn");
+  if (lastEntry.at < hourAgo) {
+    toast("Can only undo entries within the last hour", "warn");
     return;
   }
-  if (!confirm("Remove this check-in?")) return;
-  let name = r.data.teamName || r.data.name || regId;
-  if (kind === "reg") { delete r.checkedIn; delete r.checkedBy; }
-  else if (kind === "P" && r.players[+idx]) { name = r.players[+idx].name || name; delete r.players[+idx].checkedIn; delete r.players[+idx].checkedBy; }
-  else if (kind === "G" && r.guests[+idx]) { name = r.guests[+idx].name || name; delete r.guests[+idx].checkedIn; delete r.guests[+idx].checkedBy; }
+
+  if (!confirm(`Remove the last entry recorded at ${fmtDateTime(lastEntry.at)}?`)) return;
+
+  const name = r.data.teamName || r.data.name || regId;
+  entriesArr.pop();
+
+  // Update legacy fields
+  if (entriesArr.length > 0) {
+    const newLast = entriesArr[entriesArr.length - 1];
+    if (kind === "reg") { r.checkedIn = newLast.at; r.checkedBy = newLast.by; }
+    else if (kind === "P") { r.players[+idx].checkedIn = newLast.at; r.players[+idx].checkedBy = newLast.by; }
+    else if (kind === "G") { r.guests[+idx].checkedIn = newLast.at; r.guests[+idx].checkedBy = newLast.by; }
+  } else {
+    if (kind === "reg") { delete r.checkedIn; delete r.checkedBy; }
+    else if (kind === "P") { delete r.players[+idx].checkedIn; delete r.players[+idx].checkedBy; }
+    else if (kind === "G") { delete r.guests[+idx].checkedIn; delete r.guests[+idx].checkedBy; }
+  }
+
   try {
     await Store.saveReg(r);
-    await Store.logAction("Undo check-in", regId + " — " + name);
+    await Store.logAction("Undo last entry", regId + " — " + name);
     ciSoundUndo();
-    toast("Check-in removed");
+    toast("Last entry removed");
     _ciBuildMap();
     _ciUpdateKPIs();
     renderCiList();
   } catch (e) { toast("Could not undo: " + (e.message || "error"), "err"); }
+}
+
+async function ciDeleteEntry(regId, kind, idx, entryIdx) {
+  if (!isMasterAdmin()) {
+    toast("Only the master admin can delete entries", "warn");
+    return;
+  }
+  const r = App.regs.find(x => x.id === regId); if (!r) return;
+  let arr;
+  if (kind === "reg") arr = r.entries;
+  else if (kind === "P" && r.players?.[+idx]) arr = r.players[+idx].entries;
+  else if (kind === "G" && r.guests?.[+idx]) arr = r.guests[+idx].entries;
+  if (!arr || !arr[entryIdx]) { toast("Entry not found", "warn"); return; }
+
+  const stamp = arr[entryIdx].at;
+  if (!confirm(`Delete entry recorded at ${fmtDateTime(stamp)}?\n\nThis action cannot be undone.`)) return;
+
+  arr.splice(entryIdx, 1);
+
+  // Rebuild legacy fields
+  if (arr.length > 0) {
+    const newLast = arr[arr.length - 1];
+    if (kind === "reg") { r.checkedIn = newLast.at; r.checkedBy = newLast.by; }
+    else if (kind === "P") { r.players[+idx].checkedIn = newLast.at; r.players[+idx].checkedBy = newLast.by; }
+    else if (kind === "G") { r.guests[+idx].checkedIn = newLast.at; r.guests[+idx].checkedBy = newLast.by; }
+  } else {
+    if (kind === "reg") { delete r.checkedIn; delete r.checkedBy; }
+    else if (kind === "P") { delete r.players[+idx].checkedIn; delete r.players[+idx].checkedBy; }
+    else if (kind === "G") { delete r.guests[+idx].checkedIn; delete r.guests[+idx].checkedBy; }
+  }
+
+  try {
+    await Store.saveReg(r);
+    await Store.logAction("MASTER admin deleted entry", `${regId} at ${fmtDateTime(stamp)}`);
+    toast("Entry deleted");
+    _ciBuildMap();
+    _ciUpdateKPIs();
+    renderCiList();
+  } catch (e) { toast("Delete failed: " + (e.message || "error"), "err"); }
 }
 
 /* ============================================================

@@ -156,7 +156,7 @@ async function renderAdmin() {
   $("#app").innerHTML = `<div class="admin-shell">
         <aside class="admin-side" id="aside">
           <div class="brand"><div class="mark">${logoImg("excap", "EX")}</div><div><b>EX-CAP</b><span>Control panel</span></div></div>
-          <nav class="admin-nav">${tabs.map(([k, ic, l]) => `<a class="${adminTab === k ? 'active' : ''}" onclick="adminTab='${k}';renderAdmin();$('#aside').classList.remove('open')"><span class="ic">${ic}</span>${l}</a>`).join("")}</nav>
+          <nav class="admin-nav">${tabs.map(([k, ic, l]) => `<a class="${adminTab === k ? 'active' : ''}" onclick="switchAdminTab('${k}')"><span class="ic">${ic}</span>${l}</a>`).join("")}</nav>
           <div style="margin-top:18px;border-top:1px solid var(--line-soft);padding-top:14px">
             <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;margin-bottom:6px">
               <div class="dev-ava" style="width:34px;height:34px;border-radius:10px;font-size:13px">${(Store._profile && Store._profile.photo) ? `<img src="${Store._profile.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">` : initials(me.name)}</div>
@@ -1304,6 +1304,17 @@ function refreshCurrentTab() {
   } else {
     renderAdmin();
   }
+}
+
+function switchAdminTab(newTab) {
+  // Kill camera if leaving check-in
+  if (adminTab === "checkin" && newTab !== "checkin") {
+    if (typeof _ciStopScanner === "function") _ciStopScanner();
+  }
+  adminTab = newTab;
+  renderAdmin();
+  const aside = document.getElementById("aside");
+  if (aside) aside.classList.remove("open");
 }
 
 async function approveReg(id) {
@@ -2548,17 +2559,8 @@ async function doCheckin(code) {
     _ciShowProfile({ kind: "not-approved", res });
     return;
   }
-  ciSoundValid();
+  // APPROVED — auto-confirm entry immediately (sound + card + save happen inside)
   await _ciConfirmEntry(reg.id, res.kind, res.idx, res.code);
-  // APPROVED — show profile, count previous entries
-  const entries = _ciGetEntries(res);
-  ciSoundValid();
-  _ciShowProfile({ kind: "valid", res, entries });
-
-  if (window._ciRush) {
-    if (window._ciAutoTimer) clearTimeout(window._ciAutoTimer);
-    window._ciAutoTimer = setTimeout(() => _ciConfirmCheckin(res), 1500);
-  }
 }
 
 async function _ciConfirmEntry(regId, kind, idx, code) {
@@ -3052,17 +3054,26 @@ function adminCheckin() {
     </div>`;
 
   renderCiList();
-  // Auto-start the camera
-  setTimeout(() => { if (!window._ciScannerRunning) ciStart(); }, 200);
+  // Auto-start the camera (force restart since #reader is a fresh element after render)
+  setTimeout(() => ciStart(), 200);
 }
 async function ciStart() {
   const readerEl = document.getElementById("reader");
   const statusEl = document.getElementById("ci-cam-status");
   if (!readerEl) return;
 
-  // If already running, do nothing
+  // Check if the scanner instance is still valid (video element exists in DOM)
   if (window._ciScanner && window._ciScannerRunning) {
-    return;
+    const hasVideo = readerEl.querySelector("video");
+    if (hasVideo) {
+      // Truly still alive — do nothing
+      return;
+    }
+    // Stale — the video was destroyed by a re-render. Tear down and restart.
+    window._ciScannerRunning = false;
+    try { await window._ciScanner.stop(); } catch (e) {}
+    try { await window._ciScanner.clear(); } catch (e) {}
+    window._ciScanner = null;
   }
 
   // Fully tear down any previous instance
